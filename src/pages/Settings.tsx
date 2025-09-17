@@ -1,17 +1,126 @@
 import { useState } from 'react';
-import { ArrowLeft, Settings as SettingsIcon, User, Key, Shield, MessageSquare, Bell, Database, HelpCircle, ChevronRight, Edit2 } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, User, Key, Shield, MessageSquare, Bell, Database, HelpCircle, ChevronRight, Edit2, FileText, Plus, Edit, Trash2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 
-type SettingsView = 'main' | 'profile' | 'account' | 'privacy' | 'chats' | 'notifications' | 'shortcuts' | 'help';
+type SettingsView = 'main' | 'profile' | 'account' | 'privacy' | 'chats' | 'notifications' | 'shortcuts' | 'help' | 'templates';
+
+interface Template {
+  id: string;
+  name: string;
+  content: string;
+  category: 'agendamento' | 'consulta' | 'exame' | 'receita' | 'outro';
+  usageCount: number;
+  createdAt: string;
+}
+
+const mockTemplates: Template[] = [
+  {
+    id: '1',
+    name: 'Agendamento Confirmado',
+    content: 'Olá! Sua consulta foi agendada para {data} às {hora} com {medico}. Por favor, chegue 15 minutos antes.',
+    category: 'agendamento',
+    usageCount: 45,
+    createdAt: '2024-01-10'
+  },
+  {
+    id: '2',
+    name: 'Lembrete de Consulta',
+    content: 'Lembramos que você tem consulta marcada para amanhã às {hora}. Confirme sua presença.',
+    category: 'consulta',
+    usageCount: 32,
+    createdAt: '2024-01-15'
+  },
+  {
+    id: '3',
+    name: 'Resultado de Exame',
+    content: 'Seus exames estão prontos! Pode retirar na recepção ou agendar uma consulta para avaliação.',
+    category: 'exame',
+    usageCount: 28,
+    createdAt: '2024-01-20'
+  }
+];
+
+const templateCategories = [
+  { value: 'agendamento', label: 'Agendamento' },
+  { value: 'consulta', label: 'Consulta' },
+  { value: 'exame', label: 'Exame' },
+  { value: 'receita', label: 'Receita' },
+  { value: 'outro', label: 'Outro' }
+];
 
 export default function Settings() {
   const [currentView, setCurrentView] = useState<SettingsView>('main');
+  
+  // Estados para templates
+  const [templates, setTemplates] = useState<Template[]>(mockTemplates);
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [newTemplateContent, setNewTemplateContent] = useState('');
+  const [newTemplateCategory, setNewTemplateCategory] = useState<string>('outro');
+  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
 
   const navigateBack = () => {
     setCurrentView('main');
+  };
+
+  // Funções para templates
+  const handleCreateTemplate = () => {
+    if (!newTemplateName.trim() || !newTemplateContent.trim()) return;
+    
+    const newTemplate: Template = {
+      id: Date.now().toString(),
+      name: newTemplateName,
+      content: newTemplateContent,
+      category: newTemplateCategory as Template['category'],
+      usageCount: 0,
+      createdAt: new Date().toISOString()
+    };
+    
+    setTemplates(prev => [...prev, newTemplate]);
+    setNewTemplateName('');
+    setNewTemplateContent('');
+    setNewTemplateCategory('outro');
+  };
+
+  const handleEditTemplate = (template: Template) => {
+    setEditingTemplate(template);
+    setNewTemplateName(template.name);
+    setNewTemplateContent(template.content);
+    setNewTemplateCategory(template.category);
+  };
+
+  const handleUpdateTemplate = () => {
+    if (!editingTemplate || !newTemplateName.trim() || !newTemplateContent.trim()) return;
+    
+    setTemplates(prev => prev.map(template => 
+      template.id === editingTemplate.id 
+        ? { 
+            ...template, 
+            name: newTemplateName, 
+            content: newTemplateContent,
+            category: newTemplateCategory as Template['category']
+          }
+        : template
+    ));
+    
+    cancelTemplateEdit();
+  };
+
+  const cancelTemplateEdit = () => {
+    setEditingTemplate(null);
+    setNewTemplateName('');
+    setNewTemplateContent('');
+    setNewTemplateCategory('outro');
+  };
+
+  const handleDeleteTemplate = (templateId: string) => {
+    setTemplates(prev => prev.filter(template => template.id !== templateId));
   };
 
   const renderMainSettings = () => (
@@ -77,6 +186,12 @@ export default function Settings() {
               title: 'Atalhos do teclado',
               subtitle: 'Ações rápidas',
               action: () => setCurrentView('shortcuts')
+            },
+            {
+              icon: FileText,
+              title: 'Templates',
+              subtitle: 'Gerenciar templates de mensagens',
+              action: () => setCurrentView('templates')
             },
             {
               icon: HelpCircle,
@@ -436,6 +551,152 @@ export default function Settings() {
     </div>
   );
 
+  const renderTemplateSettings = () => (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-200 bg-white flex items-center space-x-3">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={navigateBack}
+          className="h-8 w-8 p-0"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-xl font-semibold text-gray-900">Templates de Mensagens</h1>
+      </div>
+
+      {/* Template Content */}
+      <div className="flex-1 bg-gray-50">
+        <ScrollArea className="h-full">
+          <div className="p-6 space-y-6">
+            {/* Formulário de criação/edição */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                {editingTemplate ? 'Editar Template' : 'Criar Novo Template'}
+              </h3>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="template-name">Nome do Template</Label>
+                    <Input
+                      id="template-name"
+                      value={newTemplateName}
+                      onChange={(e) => setNewTemplateName(e.target.value)}
+                      placeholder="Ex: Agendamento Confirmado"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="template-category">Categoria</Label>
+                    <Select value={newTemplateCategory} onValueChange={setNewTemplateCategory}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {templateCategories.map((category) => (
+                          <SelectItem key={category.value} value={category.value}>
+                            {category.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="template-content">Conteúdo da Mensagem</Label>
+                  <Textarea
+                    id="template-content"
+                    value={newTemplateContent}
+                    onChange={(e) => setNewTemplateContent(e.target.value)}
+                    placeholder="Digite o conteúdo do template..."
+                    className="min-h-[100px]"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Use {"{variável}"} para campos dinâmicos (ex: {"{nome}"}, {"{data}"}, {"{hora}"})
+                  </p>
+                </div>
+                
+                <div className="flex justify-end space-x-2">
+                  {editingTemplate && (
+                    <Button variant="outline" onClick={cancelTemplateEdit}>
+                      Cancelar
+                    </Button>
+                  )}
+                  <Button 
+                    onClick={editingTemplate ? handleUpdateTemplate : handleCreateTemplate}
+                    disabled={!newTemplateName.trim() || !newTemplateContent.trim()}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {editingTemplate ? 'Atualizar Template' : 'Criar Template'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Lista de templates existentes */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Templates Existentes</h3>
+                <span className="text-sm text-gray-500">{templates.length} templates criados</span>
+              </div>
+              
+              <div className="space-y-3">
+                {templates.map((template) => (
+                  <div 
+                    key={template.id}
+                    className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h4 className="font-medium text-gray-900">{template.name}</h4>
+                          <Badge variant="outline" className="text-xs">
+                            {templateCategories.find(c => c.value === template.category)?.label}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                          {template.content}
+                        </p>
+                        <div className="flex items-center space-x-4 text-xs text-gray-500">
+                          <span>Usado {template.usageCount} vezes</span>
+                          <span>Criado em {new Date(template.createdAt).toLocaleDateString('pt-BR')}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-1 ml-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => handleEditTemplate(template)}
+                          title="Editar template"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                          onClick={() => handleDeleteTemplate(template.id)}
+                          title="Deletar template"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </ScrollArea>
+      </div>
+    </div>
+  );
+
   const renderCurrentView = () => {
     switch (currentView) {
       case 'profile':
@@ -452,6 +713,8 @@ export default function Settings() {
         return renderShortcutSettings();
       case 'help':
         return renderHelpSettings();
+      case 'templates':
+        return renderTemplateSettings();
       default:
         return renderMainSettings();
     }
