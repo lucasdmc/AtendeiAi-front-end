@@ -1,7 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from '@/hooks/useAuth';
-import { ClinicProvider } from './contexts/ClinicContext';
-import Auth from './pages/Auth';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import Index from './pages/Index';
 import Agenda from './pages/Agenda';
@@ -10,60 +7,57 @@ import Conversations from './pages/Conversations';
 import Appointments from './pages/Appointments';
 import Clinics from './pages/Clinics';
 import Users from './pages/Users';
-import { Toaster } from "@/components/ui/sonner";
+import Auth from './pages/Auth';
+import NotFound from './pages/NotFound';
 
 function App() {
   return (
-    <AuthProvider>
-      <ClinicProvider>
-        <Router>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/" element={
-              <Layout>
-                <Index />
-              </Layout>
-            } />
-            <Route path="/calendar" element={
-              <Layout>
-                <Agenda />
-              </Layout>
-            } />
-            <Route path="/agenda" element={
-              <Layout>
-                <Agenda />
-              </Layout>
-            } />
-            <Route path="/context" element={
-              <Layout>
-                <ContextPage />
-              </Layout>
-            } />
-            <Route path="/conversations" element={
-              <Layout>
-                <Conversations />
-              </Layout>
-            } />
-            <Route path="/appointments" element={
-              <Layout>
-                <Appointments />
-              </Layout>
-            } />
-            <Route path="/clinics" element={
-              <Layout>
-                <Clinics />
-              </Layout>
-            } />
-            <Route path="/users" element={
-              <Layout>
-                <Users />
-              </Layout>
-            } />
-          </Routes>
-          <Toaster />
-        </Router>
-      </ClinicProvider>
-    </AuthProvider>
+    <Router>
+      <Routes>
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/" element={
+          <Layout>
+            <Index />
+          </Layout>
+        } />
+        <Route path="/calendar" element={
+          <Layout>
+            <Agenda />
+          </Layout>
+        } />
+        <Route path="/agenda" element={
+          <Layout>
+            <Agenda />
+          </Layout>
+        } />
+        <Route path="/context" element={
+          <Layout>
+            <ContextPage />
+          </Layout>
+        } />
+        <Route path="/conversations" element={
+          <Layout>
+            <Conversations />
+          </Layout>
+        } />
+        <Route path="/appointments" element={
+          <Layout>
+            <Appointments />
+          </Layout>
+        } />
+        <Route path="/clinics" element={
+          <Layout>
+            <Clinics />
+          </Layout>
+        } />
+        <Route path="/users" element={
+          <Layout>
+            <Users />
+          </Layout>
+        } />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Router>
   );
 }
 

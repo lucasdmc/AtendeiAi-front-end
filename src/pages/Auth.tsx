@@ -1,171 +1,46 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useToast } from "@/hooks/use-toast"
 import { Loader2, LogIn, UserPlus } from "lucide-react"
-import type { Session, User } from "@supabase/supabase-js"
 
 const Auth = () => {
   const navigate = useNavigate()
-  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
-  const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
 
   // Form states
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
 
-  useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        
-        // Redirect authenticated users
-        if (session?.user) {
-          navigate("/")
-        }
-      }
-    )
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      
-      if (session?.user) {
-        navigate("/")
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [navigate])
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !password) {
-      toast({
-        title: "Erro",
-        description: "Por favor, preencha todos os campos",
-        variant: "destructive"
-      })
-      return
-    }
-
     setLoading(true)
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
-
-      if (error) {
-        toast({
-          title: "Erro no login",
-          description: error.message === "Invalid login credentials" 
-            ? "Email ou senha incorretos" 
-            : error.message,
-          variant: "destructive"
-        })
-      } else {
-        toast({
-          title: "Sucesso",
-          description: "Login realizado com sucesso!"
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Ocorreu um erro inesperado. Tente novamente.",
-        variant: "destructive"
-      })
-    } finally {
+    
+    // Simular login - apenas para visualização
+    setTimeout(() => {
       setLoading(false)
-    }
+      alert("Login simulado com sucesso!")
+      navigate("/")
+    }, 1000)
   }
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !password || !confirmPassword) {
-      toast({
-        title: "Erro",
-        description: "Por favor, preencha todos os campos",
-        variant: "destructive"
-      })
-      return
-    }
-
-    if (password !== confirmPassword) {
-      toast({
-        title: "Erro",
-        description: "As senhas não coincidem",
-        variant: "destructive"
-      })
-      return
-    }
-
-    if (password.length < 6) {
-      toast({
-        title: "Erro",
-        description: "A senha deve ter pelo menos 6 caracteres",
-        variant: "destructive"
-      })
-      return
-    }
-
     setLoading(true)
-    try {
-      const redirectUrl = `${window.location.origin}/`
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl
-        }
-      })
-
-      if (error) {
-        if (error.message.includes("User already registered")) {
-          toast({
-            title: "Usuário já cadastrado",
-            description: "Este email já está registrado. Tente fazer login.",
-            variant: "destructive"
-          })
-        } else {
-          toast({
-            title: "Erro no cadastro",
-            description: error.message,
-            variant: "destructive"
-          })
-        }
-      } else {
-        toast({
-          title: "Cadastro realizado",
-          description: "Verifique seu email para confirmar a conta!"
-        })
-        // Reset form
-        setEmail("")
-        setPassword("")
-        setConfirmPassword("")
-      }
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Ocorreu um erro inesperado. Tente novamente.",
-        variant: "destructive"
-      })
-    } finally {
+    
+    // Simular cadastro - apenas para visualização
+    setTimeout(() => {
       setLoading(false)
-    }
+      alert("Cadastro simulado com sucesso!")
+      // Reset form
+      setEmail("")
+      setPassword("")
+      setConfirmPassword("")
+    }, 1000)
   }
 
   return (
