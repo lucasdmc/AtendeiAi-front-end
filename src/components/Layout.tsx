@@ -48,6 +48,7 @@ export const Layout = ({ children }: LayoutProps) => {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const location = useLocation();
 
+
   const isActive = (path: string) => {
     return location.pathname === path;
   };

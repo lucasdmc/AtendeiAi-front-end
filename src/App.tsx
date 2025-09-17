@@ -37,7 +37,11 @@ function App() {
               <ContextPage />
             </Layout>
           } />
-        <Route path="/conversations" element={<Conversations />} />
+          <Route path="/conversations" element={
+            <Layout>
+              <Conversations />
+            </Layout>
+          } />
           <Route path="/appointments" element={
             <Layout>
               <Appointments />
