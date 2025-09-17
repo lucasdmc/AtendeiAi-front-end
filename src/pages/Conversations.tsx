@@ -1617,8 +1617,6 @@ export default function Conversations() {
                 </div>
               </div>
             </div>
-
-            </div>
           </ScrollArea>
           
           {/* Botões de ação fixos */}
