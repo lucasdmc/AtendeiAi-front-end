@@ -1223,76 +1223,15 @@ export default function Conversations() {
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <Tag className="h-5 w-5 text-green-500" />
-              <span>Gerenciar Flags</span>
+              <span>Aplicar Flag</span>
             </DialogTitle>
             <DialogDescription>
-              Crie e gerencie flags para classificar conversas
+              Selecione uma flag para aplicar na conversa
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="flex-1 pr-6">
-            <div className="flex flex-col space-y-6 pb-4">
-            {/* Formulário de criação/edição */}
-            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-              <h4 className="text-sm font-medium text-gray-900 mb-3">
-                {editingFlag ? 'Editar Flag' : 'Criar Nova Flag'}
-              </h4>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="flag-name">Nome da Flag</Label>
-                  <Input
-                    id="flag-name"
-                    value={newFlagName}
-                    onChange={(e) => setNewFlagName(e.target.value)}
-                    placeholder="Ex: Urgente, Agendamento..."
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="flag-color">Cor</Label>
-                  <div className="flex items-center space-x-2">
-                    <div 
-                      className="w-8 h-8 rounded-full border-2 border-gray-300 flex-shrink-0"
-                      style={{ backgroundColor: newFlagColor }}
-                    />
-                    <select
-                      value={newFlagColor}
-                      onChange={(e) => setNewFlagColor(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    >
-                      {colorOptions.map((color) => (
-                        <option key={color.value} value={color.value}>
-                          {color.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-2 mt-4">
-                {editingFlag && (
-                  <Button variant="outline" onClick={cancelFlagEdit}>
-                    Cancelar
-                  </Button>
-                )}
-                <Button 
-                  onClick={editingFlag ? handleUpdateFlag : handleCreateFlag}
-                  disabled={!newFlagName.trim()}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  {editingFlag ? 'Atualizar Flag' : 'Criar Flag'}
-                </Button>
-              </div>
-            </div>
-
-            {/* Lista de flags existentes */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-medium text-gray-900">Flags Existentes</h4>
-                <span className="text-xs text-gray-500">{flags.length} flags criadas</span>
-              </div>
+          <ScrollArea className="flex-1">
+            <div className="space-y-3 pr-4">
               
               <ScrollArea className="max-h-[300px]">
                 <div className="space-y-2 pr-4">
@@ -1327,24 +1266,18 @@ export default function Conversations() {
                         </Badge>
                       </div>
                       
-                      <div className="flex items-center space-x-1 ml-3">
+                      <div className="ml-3">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => handleEditFlag(flag)}
-                          title="Editar flag"
+                          className="h-8 w-8 p-0 text-green-500 hover:text-green-700"
+                          onClick={() => {
+                            console.log('Aplicando flag:', flag.name);
+                            setFlagsModalOpen(false);
+                          }}
+                          title="Aplicar flag"
                         >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                          onClick={() => handleDeleteFlag(flag.id)}
-                          title="Deletar flag"
-                        >
-                          <Trash2 className="h-4 w-4" />
+                          <Plus className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -1373,7 +1306,13 @@ export default function Conversations() {
           </ScrollArea>
           
           {/* Botões de ação fixos */}
-          <div className="flex justify-end space-x-2 pt-4 border-t border-gray-200 bg-white">
+          <div className="flex justify-between items-center pt-4 border-t border-gray-200 bg-white">
+            <Link to="/settings">
+              <Button variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Gerenciar Flags
+              </Button>
+            </Link>
             <Button variant="outline" onClick={() => setFlagsModalOpen(false)}>
               Fechar
             </Button>

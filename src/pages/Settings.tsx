@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Settings as SettingsIcon, User, Key, Shield, MessageSquare, Bell, Database, HelpCircle, ChevronRight, Edit2, FileText, Plus, Edit, Trash2, Send } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, User, Key, Shield, MessageSquare, Bell, Database, HelpCircle, ChevronRight, Edit2, FileText, Plus, Edit, Trash2, Send, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 
-type SettingsView = 'main' | 'profile' | 'account' | 'privacy' | 'chats' | 'notifications' | 'shortcuts' | 'help' | 'templates';
+type SettingsView = 'main' | 'profile' | 'account' | 'privacy' | 'chats' | 'notifications' | 'shortcuts' | 'help' | 'templates' | 'flags';
 
 interface Template {
   id: string;
@@ -17,6 +17,13 @@ interface Template {
   content: string;
   category: 'agendamento' | 'consulta' | 'exame' | 'receita' | 'outro';
   usageCount: number;
+  createdAt: string;
+}
+
+interface Flag {
+  id: string;
+  name: string;
+  color: string;
   createdAt: string;
 }
 
@@ -55,6 +62,23 @@ const templateCategories = [
   { value: 'outro', label: 'Outro' }
 ];
 
+const mockFlags: Flag[] = [
+  { id: '1', name: 'Urgente', color: '#EF4444', createdAt: '2024-01-15' },
+  { id: '2', name: 'Retorno', color: '#3B82F6', createdAt: '2024-01-20' },
+  { id: '3', name: 'Primeira Consulta', color: '#10B981', createdAt: '2024-01-25' }
+];
+
+const colorOptions = [
+  { name: 'Azul', value: '#3B82F6' },
+  { name: 'Verde', value: '#10B981' },
+  { name: 'Vermelho', value: '#EF4444' },
+  { name: 'Amarelo', value: '#F59E0B' },
+  { name: 'Roxo', value: '#8B5CF6' },
+  { name: 'Rosa', value: '#EC4899' },
+  { name: 'Laranja', value: '#F97316' },
+  { name: 'Cinza', value: '#6B7280' }
+];
+
 export default function Settings() {
   const [currentView, setCurrentView] = useState<SettingsView>('main');
   
@@ -64,6 +88,12 @@ export default function Settings() {
   const [newTemplateContent, setNewTemplateContent] = useState('');
   const [newTemplateCategory, setNewTemplateCategory] = useState<string>('outro');
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+
+  // Estados para flags
+  const [flags, setFlags] = useState<Flag[]>(mockFlags);
+  const [newFlagName, setNewFlagName] = useState('');
+  const [newFlagColor, setNewFlagColor] = useState('#3B82F6');
+  const [editingFlag, setEditingFlag] = useState<Flag | null>(null);
 
   const navigateBack = () => {
     setCurrentView('main');
@@ -121,6 +151,50 @@ export default function Settings() {
 
   const handleDeleteTemplate = (templateId: string) => {
     setTemplates(prev => prev.filter(template => template.id !== templateId));
+  };
+
+  // Funções para flags
+  const handleCreateFlag = () => {
+    if (!newFlagName.trim()) return;
+    
+    const newFlag: Flag = {
+      id: Date.now().toString(),
+      name: newFlagName,
+      color: newFlagColor,
+      createdAt: new Date().toISOString()
+    };
+    
+    setFlags(prev => [...prev, newFlag]);
+    setNewFlagName('');
+    setNewFlagColor('#3B82F6');
+  };
+
+  const handleEditFlag = (flag: Flag) => {
+    setEditingFlag(flag);
+    setNewFlagName(flag.name);
+    setNewFlagColor(flag.color);
+  };
+
+  const handleUpdateFlag = () => {
+    if (!editingFlag || !newFlagName.trim()) return;
+    
+    setFlags(prev => prev.map(flag => 
+      flag.id === editingFlag.id 
+        ? { ...flag, name: newFlagName, color: newFlagColor }
+        : flag
+    ));
+    
+    cancelFlagEdit();
+  };
+
+  const cancelFlagEdit = () => {
+    setEditingFlag(null);
+    setNewFlagName('');
+    setNewFlagColor('#3B82F6');
+  };
+
+  const handleDeleteFlag = (flagId: string) => {
+    setFlags(prev => prev.filter(flag => flag.id !== flagId));
   };
 
   const renderMainSettings = () => (
@@ -192,6 +266,12 @@ export default function Settings() {
               title: 'Templates',
               subtitle: 'Gerenciar templates de mensagens',
               action: () => setCurrentView('templates')
+            },
+            {
+              icon: Tag,
+              title: 'Flags',
+              subtitle: 'Gerenciar flags para classificar conversas',
+              action: () => setCurrentView('flags')
             },
             {
               icon: HelpCircle,
@@ -697,6 +777,169 @@ export default function Settings() {
     </div>
   );
 
+  const renderFlagSettings = () => (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-200 bg-white flex items-center space-x-3">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={navigateBack}
+          className="h-8 w-8 p-0"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-xl font-semibold text-gray-900">Flags de Conversas</h1>
+      </div>
+
+      {/* Flag Content */}
+      <div className="flex-1 bg-gray-50">
+        <ScrollArea className="h-full">
+          <div className="p-6 space-y-6">
+            {/* Formulário de criação/edição */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                {editingFlag ? 'Editar Flag' : 'Criar Nova Flag'}
+              </h3>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="flag-name">Nome da Flag</Label>
+                    <Input
+                      id="flag-name"
+                      value={newFlagName}
+                      onChange={(e) => setNewFlagName(e.target.value)}
+                      placeholder="Ex: Urgente, Agendamento..."
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="flag-color">Cor</Label>
+                    <div className="flex items-center space-x-2">
+                      <div 
+                        className="w-8 h-8 rounded-full border-2 border-gray-300 flex-shrink-0"
+                        style={{ backgroundColor: newFlagColor }}
+                      />
+                      <select
+                        value={newFlagColor}
+                        onChange={(e) => setNewFlagColor(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      >
+                        {colorOptions.map((color) => (
+                          <option key={color.value} value={color.value}>
+                            {color.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end space-x-2">
+                  {editingFlag && (
+                    <Button variant="outline" onClick={cancelFlagEdit}>
+                      Cancelar
+                    </Button>
+                  )}
+                  <Button 
+                    onClick={editingFlag ? handleUpdateFlag : handleCreateFlag}
+                    disabled={!newFlagName.trim()}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {editingFlag ? 'Atualizar Flag' : 'Criar Flag'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Lista de flags existentes */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Flags Existentes</h3>
+                <span className="text-sm text-gray-500">{flags.length} flags criadas</span>
+              </div>
+              
+              <div className="space-y-3">
+                {flags.map((flag) => (
+                  <div 
+                    key={flag.id}
+                    className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3 flex-1">
+                        <div 
+                          className="w-6 h-6 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: flag.color }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900">
+                            {flag.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Criada em {new Date(flag.createdAt).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs"
+                          style={{ 
+                            backgroundColor: `${flag.color}20`, 
+                            borderColor: flag.color,
+                            color: flag.color 
+                          }}
+                        >
+                          {flag.name}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex items-center space-x-1 ml-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => handleEditFlag(flag)}
+                          title="Editar flag"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                          onClick={() => handleDeleteFlag(flag.id)}
+                          title="Deletar flag"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Instruções de uso */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start space-x-2">
+                <Tag className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-700">
+                  <p className="font-medium mb-1">Como usar as flags:</p>
+                  <ul className="text-xs space-y-1 text-blue-600">
+                    <li>• Flags ajudam a categorizar e organizar conversas</li>
+                    <li>• Clique em uma conversa e aplique flags conforme necessário</li>
+                    <li>• Use cores diferentes para identificar rapidamente os tipos</li>
+                    <li>• Flags podem ser filtradas na lista de conversas</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ScrollArea>
+      </div>
+    </div>
+  );
+
   const renderCurrentView = () => {
     switch (currentView) {
       case 'profile':
@@ -715,6 +958,8 @@ export default function Settings() {
         return renderHelpSettings();
       case 'templates':
         return renderTemplateSettings();
+      case 'flags':
+        return renderFlagSettings();
       default:
         return renderMainSettings();
     }
