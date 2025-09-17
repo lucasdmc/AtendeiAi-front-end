@@ -10,9 +10,23 @@ import {
   Settings,
   Menu,
   X,
-  LogOut
+  LogOut,
+  Shield,
+  Bell,
+  Palette,
+  HelpCircle,
+  Key,
+  Database,
+  ChevronRight,
+  User,
+  Phone
 } from 'lucide-react';
 import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { ScrollArea } from "./ui/scroll-area";
 
 interface LayoutProps {
   children: ReactNode;
@@ -31,6 +45,7 @@ const menuItems = [
 export const Layout = ({ children }: LayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarMinimized, setSidebarMinimized] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const location = useLocation();
 
   const isActive = (path: string) => {
@@ -134,18 +149,38 @@ export const Layout = ({ children }: LayoutProps) => {
                   </div>
                 </div>
                 
-                <Link to="/auth">
-                  <Button variant="ghost" size="sm" className="w-full mt-2 justify-start">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sair
+                <div className="flex space-x-2 mt-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="flex-1 justify-start"
+                    onClick={() => setSettingsModalOpen(true)}
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Configurações
                   </Button>
-                </Link>
+                  
+                  <Link to="/auth">
+                    <Button variant="ghost" size="sm" className="px-3" title="Sair">
+                      <LogOut className="w-4 h-4" />
+                    </Button>
+                  </Link>
+                </div>
               </>
             ) : (
               <div className="flex flex-col items-center space-y-2">
                 <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                   <Users className="w-4 h-4" />
                 </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0" 
+                  title="Configurações"
+                  onClick={() => setSettingsModalOpen(true)}
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
                 <Link to="/auth">
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Sair">
                     <LogOut className="w-4 h-4" />
@@ -177,6 +212,167 @@ export const Layout = ({ children }: LayoutProps) => {
           onClick={() => setSidebarOpen(false)}
         />
       )}
+
+      {/* Modal de Configurações */}
+      <Dialog open={settingsModalOpen} onOpenChange={setSettingsModalOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0">
+          {/* Header do Modal */}
+          <DialogHeader className="px-6 py-4 border-b border-gray-200">
+            <DialogTitle className="flex items-center space-x-3 text-xl">
+              <Settings className="h-6 w-6 text-gray-600" />
+              <span>Configurações</span>
+            </DialogTitle>
+            <DialogDescription className="text-gray-500 mt-1">
+              Gerencie suas preferências e configurações do sistema
+            </DialogDescription>
+          </DialogHeader>
+          
+          <ScrollArea className="flex-1">
+            <div className="px-6 py-4 space-y-6">
+              {/* Perfil do Usuário */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+                  <User className="h-5 w-5" />
+                  <span>Perfil</span>
+                </h3>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center space-x-4 mb-4">
+                    <Avatar className="h-16 w-16">
+                      <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=64&h=64&fit=crop&crop=face" />
+                      <AvatarFallback className="bg-gray-300 text-gray-700 text-lg">
+                        UD
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="space-y-2">
+                        <div>
+                          <Label htmlFor="name" className="text-sm font-medium">Nome</Label>
+                          <Input id="name" defaultValue="Usuário Demo" className="mt-1" />
+                        </div>
+                        <div>
+                          <Label htmlFor="phone" className="text-sm font-medium">Telefone</Label>
+                          <Input id="phone" defaultValue="(48) 99999-9999" className="mt-1" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button variant="outline" size="sm" className="w-full">
+                    Alterar Foto do Perfil
+                  </Button>
+                </div>
+              </div>
+
+              {/* Seções de Configuração */}
+              <div className="space-y-3">
+                {/* Conta */}
+                <div className="border border-gray-200 rounded-lg">
+                  <button className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center space-x-3">
+                      <Key className="h-5 w-5 text-gray-500" />
+                      <div>
+                        <div className="font-medium text-gray-900">Conta</div>
+                        <div className="text-sm text-gray-500">Notificações de segurança, dados da conta</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                  </button>
+                </div>
+
+                {/* Privacidade */}
+                <div className="border border-gray-200 rounded-lg">
+                  <button className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center space-x-3">
+                      <Shield className="h-5 w-5 text-gray-500" />
+                      <div>
+                        <div className="font-medium text-gray-900">Privacidade</div>
+                        <div className="text-sm text-gray-500">Contatos bloqueados, mensagens temporárias</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                  </button>
+                </div>
+
+                {/* Conversas */}
+                <div className="border border-gray-200 rounded-lg">
+                  <button className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center space-x-3">
+                      <MessageSquare className="h-5 w-5 text-gray-500" />
+                      <div>
+                        <div className="font-medium text-gray-900">Conversas</div>
+                        <div className="text-sm text-gray-500">Tema, papel de parede, configurações de conversas</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                  </button>
+                </div>
+
+                {/* Notificações */}
+                <div className="border border-gray-200 rounded-lg">
+                  <button className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center space-x-3">
+                      <Bell className="h-5 w-5 text-gray-500" />
+                      <div>
+                        <div className="font-medium text-gray-900">Notificações</div>
+                        <div className="text-sm text-gray-500">Notificações de mensagens</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                  </button>
+                </div>
+
+                {/* Atalhos do teclado */}
+                <div className="border border-gray-200 rounded-lg">
+                  <button className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center space-x-3">
+                      <Database className="h-5 w-5 text-gray-500" />
+                      <div>
+                        <div className="font-medium text-gray-900">Atalhos do teclado</div>
+                        <div className="text-sm text-gray-500">Ações rápidas</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                  </button>
+                </div>
+
+                {/* Ajuda */}
+                <div className="border border-gray-200 rounded-lg">
+                  <button className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center space-x-3">
+                      <HelpCircle className="h-5 w-5 text-gray-500" />
+                      <div>
+                        <div className="font-medium text-gray-900">Ajuda</div>
+                        <div className="text-sm text-gray-500">Central de Ajuda, fale conosco, Política de Privacidade</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Desconectar */}
+              <div className="pt-4 border-t border-gray-200">
+                <Link to="/auth">
+                  <Button variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Desconectar
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </ScrollArea>
+          
+          {/* Footer do Modal */}
+          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setSettingsModalOpen(false)}>
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
