@@ -253,9 +253,8 @@ export default function Users() {
       </div>
 
       {/* Conteúdo da tela */}
-      <div className="flex-1 bg-gray-50">
-        <ScrollArea className="h-full">
-          <div className="p-6 space-y-6">
+      <div className="flex-1 bg-gray-50 overflow-y-auto">
+        <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-muted-foreground">
@@ -270,15 +269,15 @@ export default function Users() {
               Novo Usuário
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px] max-h-[80vh]">
+          <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-hidden">
             <DialogHeader>
               <DialogTitle>Criar Novo Usuário</DialogTitle>
               <DialogDescription>
                 Preencha as informações do novo usuário
               </DialogDescription>
             </DialogHeader>
-            <ScrollArea className="max-h-[60vh]">
-              <form onSubmit={handleCreate} className="space-y-4 pr-4">
+            <div className="max-h-[60vh] overflow-y-auto pr-4">
+              <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nome Completo *</Label>
@@ -328,7 +327,7 @@ export default function Users() {
                 </Button>
               </div>
               </form>
-            </ScrollArea>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
@@ -483,7 +482,7 @@ export default function Users() {
 
       {/* Modal de Edição */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[80vh]">
+        <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>Editar Usuário</DialogTitle>
             <DialogDescription>
@@ -491,8 +490,8 @@ export default function Users() {
             </DialogDescription>
           </DialogHeader>
           {editingUser && (
-            <ScrollArea className="max-h-[60vh]">
-              <form onSubmit={handleUpdate} className="space-y-4 pr-4">
+            <div className="max-h-[60vh] overflow-y-auto pr-4">
+              <form onSubmit={handleUpdate} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-name">Nome Completo</Label>
@@ -543,12 +542,11 @@ export default function Users() {
                 </Button>
               </div>
               </form>
-            </ScrollArea>
+            </div>
           )}
         </DialogContent>
       </Dialog>
-          </div>
-        </ScrollArea>
+        </div>
       </div>
     </div>
   )

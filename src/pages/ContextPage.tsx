@@ -24,9 +24,8 @@ const ContextPage = () => {
       </div>
 
       {/* Conteúdo da tela */}
-      <div className="flex-1 bg-gray-50">
-        <ScrollArea className="h-full">
-          <div className="p-6 space-y-8">
+      <div className="flex-1 bg-gray-50 overflow-y-auto">
+        <div className="p-6 space-y-8">
           <div className="text-center">
             <p className="text-lg text-muted-foreground">
               Configure o contexto e comportamento do sistema
@@ -91,8 +90,7 @@ const ContextPage = () => {
           </CardContent>
         </Card>
       </div>
-          </div>
-        </ScrollArea>
+        </div>
       </div>
     </div>
   );

@@ -43,9 +43,8 @@ const Index = () => {
   ]
 
   return (
-    <div className="h-full bg-gray-50">
-      <ScrollArea className="h-full">
-        <div className="p-6 space-y-8">
+    <div className="h-full bg-gray-50 overflow-y-auto">
+      <div className="p-6 space-y-8">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-foreground mb-2">
           Sistema de Gestão de Atendimento Virtual
@@ -79,8 +78,7 @@ const Index = () => {
           </Link>
         ))}
       </div>
-        </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };

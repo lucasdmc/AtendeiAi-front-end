@@ -6,9 +6,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Appointments = () => {
   return (
-    <div className="h-full bg-gray-50">
-      <ScrollArea className="h-full">
-        <div className="p-6 space-y-8">
+    <div className="h-full bg-gray-50 overflow-y-auto">
+      <div className="p-6 space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">
@@ -96,8 +95,7 @@ const Appointments = () => {
           </div>
         </CardContent>
       </Card>
-        </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };

@@ -297,9 +297,8 @@ export default function Clinics() {
       </div>
 
       {/* Conteúdo da tela */}
-      <div className="flex-1 bg-gray-50">
-        <ScrollArea className="h-full">
-          <div className="p-6 space-y-6">
+      <div className="flex-1 bg-gray-50 overflow-y-auto">
+        <div className="p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-muted-foreground">
@@ -314,15 +313,15 @@ export default function Clinics() {
               Nova Clínica
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
+          <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden">
             <DialogHeader>
               <DialogTitle>Criar Nova Clínica</DialogTitle>
               <DialogDescription>
                 Preencha as informações da nova clínica
               </DialogDescription>
             </DialogHeader>
-            <ScrollArea className="max-h-[60vh]">
-              <form onSubmit={handleCreate} className="space-y-4 pr-4">
+            <div className="max-h-[60vh] overflow-y-auto pr-4">
+              <form onSubmit={handleCreate} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Nome da Clínica *</Label>
                 <Input id="name" name="name" placeholder="Digite o nome da clínica" required />
@@ -376,7 +375,7 @@ export default function Clinics() {
                 </Button>
               </div>
               </form>
-            </ScrollArea>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
@@ -517,7 +516,7 @@ export default function Clinics() {
 
       {/* Modal de Edição */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>Editar Clínica</DialogTitle>
             <DialogDescription>
@@ -525,8 +524,8 @@ export default function Clinics() {
             </DialogDescription>
           </DialogHeader>
           {editingClinic && (
-            <ScrollArea className="max-h-[60vh]">
-              <form onSubmit={handleUpdate} className="space-y-4 pr-4">
+            <div className="max-h-[60vh] overflow-y-auto pr-4">
+              <form onSubmit={handleUpdate} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-name">Nome da Clínica</Label>
                 <Input id="edit-name" name="edit-name" defaultValue={editingClinic.name} required />
@@ -570,22 +569,22 @@ export default function Clinics() {
                 </Button>
               </div>
               </form>
-            </ScrollArea>
+            </div>
           )}
         </DialogContent>
       </Dialog>
 
       {/* Modal de Configuração JSON */}
       <Dialog open={isJsonDialogOpen} onOpenChange={setIsJsonDialogOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[80vh]">
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>Configuração JSON - {selectedClinicForJson?.name}</DialogTitle>
             <DialogDescription>
               Insira a configuração JSON para esta clínica
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[60vh]">
-            <form className="space-y-4 pr-4">
+          <div className="max-h-[60vh] overflow-y-auto pr-4">
+            <form className="space-y-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="json-config">Configuração JSON</Label>
@@ -626,11 +625,10 @@ export default function Clinics() {
               </Button>
             </div>
             </form>
-          </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
-          </div>
-        </ScrollArea>
+        </div>
       </div>
     </div>
   )
