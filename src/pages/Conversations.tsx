@@ -31,7 +31,7 @@ import {
   Tag,
   Palette,
   Filter,
-  Settings
+  Settings as SettingsIcon
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -600,7 +600,7 @@ export default function Conversations() {
                 </Button>
                 <Link to="/settings">
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Configurações">
-                    <Settings className="h-4 w-4" />
+                    <SettingsIcon className="h-4 w-4" />
                   </Button>
                 </Link>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
