@@ -1,18 +1,37 @@
 import React from 'react';
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Settings, Bot } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { FileText, Settings, Bot, ArrowLeft } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const ContextPage = () => {
   return (
-    <div className="space-y-8">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-foreground mb-2">
-          Página de Contexto
-        </h1>
-        <p className="text-lg text-muted-foreground">
-          Configure o contexto e comportamento do sistema
-        </p>
+    <div className="h-full flex flex-col">
+      {/* Header com botão voltar */}
+      <div className="p-4 border-b border-gray-200 bg-white flex items-center space-x-3">
+        <Link to="/settings">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 w-8 p-0"
+            title="Voltar para Configurações"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </Link>
+        <h1 className="text-xl font-semibold text-gray-900">Configuração do Bot</h1>
       </div>
+
+      {/* Conteúdo da tela */}
+      <div className="flex-1 bg-gray-50">
+        <ScrollArea className="h-full">
+          <div className="p-6 space-y-8">
+          <div className="text-center">
+            <p className="text-lg text-muted-foreground">
+              Configure o contexto e comportamento do sistema
+            </p>
+          </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="hover:shadow-lg transition-all duration-200">
@@ -71,6 +90,8 @@ const ContextPage = () => {
             </div>
           </CardContent>
         </Card>
+          </div>
+        </ScrollArea>
       </div>
     </div>
   );

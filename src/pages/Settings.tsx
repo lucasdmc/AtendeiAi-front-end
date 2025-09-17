@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ArrowLeft, Settings as SettingsIcon, User, Key, Shield, MessageSquare, Bell, Database, HelpCircle, ChevronRight, Edit2, FileText, Plus, Edit, Trash2, Send, Tag } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, Settings as SettingsIcon, User, ChevronRight, Edit2, FileText, Plus, Edit, Trash2, Tag, Users, Building2, MapPin, Phone, Bot, Clock, Shield, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -9,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 
-type SettingsView = 'main' | 'profile' | 'account' | 'privacy' | 'chats' | 'notifications' | 'shortcuts' | 'help' | 'templates' | 'flags';
+type SettingsView = 'main' | 'profile' | 'templates' | 'flags' | 'context';
 
 interface Template {
   id: string;
@@ -230,71 +231,76 @@ export default function Settings() {
       {/* Settings Options */}
       <div className="flex-1 bg-gray-50">
         <div className="divide-y divide-gray-200">
-          {[
-            {
-              icon: Key,
-              title: 'Conta',
-              subtitle: 'Notificações de segurança, dados da conta',
-              action: () => setCurrentView('account')
-            },
-            {
-              icon: Shield,
-              title: 'Privacidade',
-              subtitle: 'Contatos bloqueados, mensagens temporárias',
-              action: () => setCurrentView('privacy')
-            },
-            {
-              icon: MessageSquare,
-              title: 'Conversas',
-              subtitle: 'Tema, papel de parede, configurações de conversas',
-              action: () => setCurrentView('chats')
-            },
-            {
-              icon: Bell,
-              title: 'Notificações',
-              subtitle: 'Notificações de mensagens',
-              action: () => setCurrentView('notifications')
-            },
-            {
-              icon: Database,
-              title: 'Atalhos do teclado',
-              subtitle: 'Ações rápidas',
-              action: () => setCurrentView('shortcuts')
-            },
-            {
-              icon: FileText,
-              title: 'Templates',
-              subtitle: 'Gerenciar templates de mensagens',
-              action: () => setCurrentView('templates')
-            },
-            {
-              icon: Tag,
-              title: 'Flags',
-              subtitle: 'Gerenciar flags para classificar conversas',
-              action: () => setCurrentView('flags')
-            },
-            {
-              icon: HelpCircle,
-              title: 'Ajuda',
-              subtitle: 'Central de Ajuda, fale conosco, Política de Privacidade',
-              action: () => setCurrentView('help')
-            }
-          ].map((item, index) => (
-            <button
-              key={index}
-              onClick={item.action}
-              className="w-full bg-white px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
+          {/* Links para telas originais */}
+          <Link to="/users" className="block">
+            <div className="w-full bg-white px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
               <div className="flex items-center space-x-3">
-                <item.icon className="h-5 w-5 text-gray-500" />
+                <Users className="h-5 w-5 text-gray-500" />
                 <div className="text-left">
-                  <div className="font-medium text-gray-900">{item.title}</div>
-                  <div className="text-sm text-gray-500">{item.subtitle}</div>
+                  <div className="font-medium text-gray-900">Usuários</div>
+                  <div className="text-sm text-gray-500">Gestão de usuários do sistema</div>
                 </div>
               </div>
               <ChevronRight className="h-4 w-4 text-gray-400" />
-            </button>
-          ))}
+            </div>
+          </Link>
+
+          <Link to="/clinics" className="block">
+            <div className="w-full bg-white px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+              <div className="flex items-center space-x-3">
+                <Building2 className="h-5 w-5 text-gray-500" />
+                <div className="text-left">
+                  <div className="font-medium text-gray-900">Clínicas</div>
+                  <div className="text-sm text-gray-500">Gestão de clínicas e unidades</div>
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-gray-400" />
+            </div>
+          </Link>
+
+          <button
+            onClick={() => setCurrentView('context')}
+            className="w-full bg-white px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              <FileText className="h-5 w-5 text-gray-500" />
+              <div className="text-left">
+                <div className="font-medium text-gray-900">Contexto</div>
+                <div className="text-sm text-gray-500">Configuração do bot e contexto</div>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+          </button>
+
+          {/* Seções internas do Settings */}
+          <button
+            onClick={() => setCurrentView('templates')}
+            className="w-full bg-white px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              <FileText className="h-5 w-5 text-gray-500" />
+              <div className="text-left">
+                <div className="font-medium text-gray-900">Templates</div>
+                <div className="text-sm text-gray-500">Gerenciar templates de mensagens</div>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+          </button>
+
+          <button
+            onClick={() => setCurrentView('flags')}
+            className="w-full bg-white px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              <Tag className="h-5 w-5 text-gray-500" />
+              <div className="text-left">
+                <div className="font-medium text-gray-900">Flags</div>
+                <div className="text-sm text-gray-500">Gerenciar flags para classificar conversas</div>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+          </button>
+
         </div>
       </div>
     </div>
@@ -317,58 +323,22 @@ export default function Settings() {
 
       {/* Profile Content */}
       <div className="flex-1 bg-gray-50 p-6">
-        <div className="bg-white rounded-lg p-6 space-y-6">
+        <div className="bg-white rounded-lg p-6">
           {/* Avatar Section */}
           <div className="text-center">
-            <Avatar className="h-32 w-32 mx-auto mb-4">
+            <Avatar className="h-32 w-32 mx-auto mb-6">
               <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=128&h=128&fit=crop&crop=face" />
               <AvatarFallback className="bg-gray-300 text-gray-700 text-3xl">
                 UD
               </AvatarFallback>
             </Avatar>
+            
+            <h3 className="text-2xl font-semibold text-gray-900 mb-2">Usuário Demo</h3>
+            <p className="text-gray-600 mb-6">Administrador</p>
+            
             <Button variant="outline" size="sm">
               <Edit2 className="h-4 w-4 mr-2" />
-              Alterar Foto
-            </Button>
-          </div>
-
-          {/* Profile Fields */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name" className="text-sm font-medium text-gray-700">Nome</Label>
-              <Input 
-                id="name" 
-                defaultValue="Usuário Demo" 
-                className="mt-1"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="status" className="text-sm font-medium text-gray-700">Recado</Label>
-              <Input 
-                id="status" 
-                defaultValue="Olá! Eu estou usando o WhatsApp." 
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Telefone</Label>
-              <Input 
-                id="phone" 
-                defaultValue="(48) 99999-9999" 
-                className="mt-1"
-                disabled
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Para alterar seu número, entre em contato com o suporte
-              </p>
-            </div>
-          </div>
-
-          <div className="pt-4">
-            <Button className="w-full">
-              Salvar Alterações
+              Alterar Foto do Perfil
             </Button>
           </div>
         </div>
@@ -376,260 +346,7 @@ export default function Settings() {
     </div>
   );
 
-  const renderAccountSettings = () => (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-white flex items-center space-x-3">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={navigateBack}
-          className="h-8 w-8 p-0"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-xl font-semibold text-gray-900">Conta</h1>
-      </div>
 
-      {/* Account Content */}
-      <div className="flex-1 bg-gray-50">
-        <div className="divide-y divide-gray-200">
-          {[
-            { title: 'Notificações de segurança', subtitle: 'Receba notificações sobre atividades da conta' },
-            { title: 'Alterar senha', subtitle: 'Altere sua senha de acesso' },
-            { title: 'Verificação em duas etapas', subtitle: 'Adicione uma camada extra de segurança' },
-            { title: 'Sessões ativas', subtitle: 'Gerencie dispositivos conectados' },
-            { title: 'Excluir conta', subtitle: 'Remover permanentemente sua conta', danger: true }
-          ].map((item, index) => (
-            <button
-              key={index}
-              className={`w-full bg-white px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors ${
-                item.danger ? 'text-red-600' : ''
-              }`}
-            >
-              <div className="text-left">
-                <div className={`font-medium ${item.danger ? 'text-red-600' : 'text-gray-900'}`}>
-                  {item.title}
-                </div>
-                <div className="text-sm text-gray-500">{item.subtitle}</div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-gray-400" />
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderPrivacySettings = () => (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-white flex items-center space-x-3">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={navigateBack}
-          className="h-8 w-8 p-0"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-xl font-semibold text-gray-900">Privacidade</h1>
-      </div>
-
-      {/* Privacy Content */}
-      <div className="flex-1 bg-gray-50">
-        <div className="divide-y divide-gray-200">
-          {[
-            { title: 'Visto por último e online', subtitle: 'Todos' },
-            { title: 'Foto do perfil', subtitle: 'Todos' },
-            { title: 'Recado', subtitle: 'Todos' },
-            { title: 'Confirmação de leitura', subtitle: 'Ativado' },
-            { title: 'Grupos', subtitle: 'Todos' },
-            { title: 'Contatos bloqueados', subtitle: '0 contatos' },
-            { title: 'Mensagens temporárias', subtitle: 'Desativado' }
-          ].map((item, index) => (
-            <button
-              key={index}
-              className="w-full bg-white px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <div className="text-left">
-                <div className="font-medium text-gray-900">{item.title}</div>
-                <div className="text-sm text-gray-500">{item.subtitle}</div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-gray-400" />
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderChatSettings = () => (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-white flex items-center space-x-3">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={navigateBack}
-          className="h-8 w-8 p-0"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-xl font-semibold text-gray-900">Conversas</h1>
-      </div>
-
-      {/* Chat Content */}
-      <div className="flex-1 bg-gray-50">
-        <div className="divide-y divide-gray-200">
-          {[
-            { title: 'Tema', subtitle: 'Claro' },
-            { title: 'Papel de parede', subtitle: 'Padrão' },
-            { title: 'Tamanho da fonte', subtitle: 'Médio' },
-            { title: 'Enter para enviar', subtitle: 'Ativado' },
-            { title: 'Arquivar conversas', subtitle: 'Configurações de arquivamento' },
-            { title: 'Backup das conversas', subtitle: 'Nunca' }
-          ].map((item, index) => (
-            <button
-              key={index}
-              className="w-full bg-white px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <div className="text-left">
-                <div className="font-medium text-gray-900">{item.title}</div>
-                <div className="text-sm text-gray-500">{item.subtitle}</div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-gray-400" />
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderNotificationSettings = () => (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-white flex items-center space-x-3">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={navigateBack}
-          className="h-8 w-8 p-0"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-xl font-semibold text-gray-900">Notificações</h1>
-      </div>
-
-      {/* Notification Content */}
-      <div className="flex-1 bg-gray-50">
-        <div className="divide-y divide-gray-200">
-          {[
-            { title: 'Notificações de mensagens', subtitle: 'Ativado' },
-            { title: 'Som de notificação', subtitle: 'Padrão' },
-            { title: 'Vibração', subtitle: 'Padrão' },
-            { title: 'Luz de notificação', subtitle: 'Branca' },
-            { title: 'Usar notificações de alta prioridade', subtitle: 'Ativado' },
-            { title: 'Notificações de grupos', subtitle: 'Ativado' }
-          ].map((item, index) => (
-            <button
-              key={index}
-              className="w-full bg-white px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <div className="text-left">
-                <div className="font-medium text-gray-900">{item.title}</div>
-                <div className="text-sm text-gray-500">{item.subtitle}</div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-gray-400" />
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderShortcutSettings = () => (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-white flex items-center space-x-3">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={navigateBack}
-          className="h-8 w-8 p-0"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-xl font-semibold text-gray-900">Atalhos do Teclado</h1>
-      </div>
-
-      {/* Shortcuts Content */}
-      <div className="flex-1 bg-gray-50 p-6">
-        <div className="bg-white rounded-lg p-6">
-          <h3 className="font-medium text-gray-900 mb-4">Atalhos Disponíveis</h3>
-          <div className="space-y-3">
-            {[
-              { key: 'Ctrl + N', action: 'Nova conversa' },
-              { key: 'Ctrl + Shift + ]', action: 'Próxima conversa' },
-              { key: 'Ctrl + Shift + [', action: 'Conversa anterior' },
-              { key: 'Ctrl + E', action: 'Arquivar conversa' },
-              { key: 'Ctrl + Shift + M', action: 'Silenciar conversa' },
-              { key: 'Ctrl + Backspace', action: 'Excluir conversa' },
-              { key: 'Ctrl + Shift + U', action: 'Marcar como não lida' },
-              { key: 'Ctrl + Shift + N', action: 'Criar grupo' }
-            ].map((shortcut, index) => (
-              <div key={index} className="flex items-center justify-between py-2">
-                <span className="text-sm text-gray-700">{shortcut.action}</span>
-                <code className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">
-                  {shortcut.key}
-                </code>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderHelpSettings = () => (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-white flex items-center space-x-3">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={navigateBack}
-          className="h-8 w-8 p-0"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-xl font-semibold text-gray-900">Ajuda</h1>
-      </div>
-
-      {/* Help Content */}
-      <div className="flex-1 bg-gray-50">
-        <div className="divide-y divide-gray-200">
-          {[
-            { title: 'Central de Ajuda', subtitle: 'Perguntas frequentes e tutoriais' },
-            { title: 'Fale conosco', subtitle: 'Entre em contato com o suporte' },
-            { title: 'Termos e Política de Privacidade', subtitle: 'Leia nossos termos de uso' },
-            { title: 'Informações do app', subtitle: 'Versão e detalhes técnicos' }
-          ].map((item, index) => (
-            <button
-              key={index}
-              className="w-full bg-white px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <div className="text-left">
-                <div className="font-medium text-gray-900">{item.title}</div>
-                <div className="text-sm text-gray-500">{item.subtitle}</div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-gray-400" />
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
 
   const renderTemplateSettings = () => (
     <div className="flex flex-col h-full">
@@ -919,18 +636,422 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* Instruções de uso */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start space-x-2">
-                <Tag className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-blue-700">
-                  <p className="font-medium mb-1">Como usar as flags:</p>
-                  <ul className="text-xs space-y-1 text-blue-600">
-                    <li>• Flags ajudam a categorizar e organizar conversas</li>
-                    <li>• Clique em uma conversa e aplique flags conforme necessário</li>
-                    <li>• Use cores diferentes para identificar rapidamente os tipos</li>
-                    <li>• Flags podem ser filtradas na lista de conversas</li>
-                  </ul>
+          </div>
+        </ScrollArea>
+      </div>
+    </div>
+  );
+
+
+  const renderContextSettings = () => (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-200 bg-white flex items-center space-x-3">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={navigateBack}
+          className="h-8 w-8 p-0"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-xl font-semibold text-gray-900">Configuração do Bot</h1>
+      </div>
+
+      {/* Context Content */}
+      <div className="flex-1 bg-gray-50">
+        <ScrollArea className="h-full">
+          <div className="p-6 space-y-6">
+            {/* Informações Básicas da Clínica */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Building2 className="h-5 w-5 mr-2 text-blue-500" />
+                Informações da Clínica
+              </h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Nome:</span>
+                  <p className="text-gray-900">Clínica Lify</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Razão Social:</span>
+                  <p className="text-gray-900">Lify Serviços de Saúde Ltda</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">CNPJ:</span>
+                  <p className="text-gray-900">00.000.000/0001-00</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Especialidade Principal:</span>
+                  <p className="text-gray-900">Medicina de Família e Comunidade</p>
+                </div>
+                <div className="col-span-2">
+                  <span className="font-medium text-gray-700">Especialidades Secundárias:</span>
+                  <p className="text-gray-900">Clínica Geral, Telemedicina, Pediatria (triagem)</p>
+                </div>
+                <div className="col-span-2">
+                  <span className="font-medium text-gray-700">Missão:</span>
+                  <p className="text-gray-900">Simplificar o acesso à saúde com tecnologia e acolhimento.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Localização */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <MapPin className="h-5 w-5 mr-2 text-green-500" />
+                Localização
+              </h3>
+              <div className="text-sm space-y-2">
+                <p className="text-gray-900">
+                  <span className="font-medium">Endereço:</span> Rua 7 de Setembro, 921
+                </p>
+                <p className="text-gray-900">
+                  <span className="font-medium">Complemento:</span> Edifício Sten Office - Sala 921
+                </p>
+                <p className="text-gray-900">
+                  <span className="font-medium">Bairro:</span> Centro, Blumenau - SC
+                </p>
+                <p className="text-gray-900">
+                  <span className="font-medium">CEP:</span> 89000-000
+                </p>
+              </div>
+            </div>
+
+            {/* Contatos */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Phone className="h-5 w-5 mr-2 text-purple-500" />
+                Contatos
+              </h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Telefone Principal:</span>
+                  <p className="text-gray-900">+55 (47) 3030-0000</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">WhatsApp:</span>
+                  <p className="text-gray-900">+55 (47) 99999-0000</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">E-mail Principal:</span>
+                  <p className="text-gray-900">contato@lify.com.br</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Website:</span>
+                  <p className="text-gray-900">https://lify.com.br</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Configuração do Agente IA */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Bot className="h-5 w-5 mr-2 text-orange-500" />
+                Assistente IA
+              </h3>
+              <div className="space-y-4 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Nome:</span>
+                  <p className="text-gray-900">Assistente Lify</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Personalidade:</span>
+                  <p className="text-gray-900">Amigável, resolutiva e acolhedora</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Tom de Comunicação:</span>
+                  <p className="text-gray-900">Profissional e humano</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Saudação Inicial:</span>
+                  <p className="text-gray-900 bg-gray-50 p-3 rounded border italic">
+                    "Olá! Eu sou o Assistente Lify 👋 Posso agendar consultas, explicar serviços e tirar dúvidas rápidas."
+                  </p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Mensagem de Despedida:</span>
+                  <p className="text-gray-900 bg-gray-50 p-3 rounded border italic">
+                    "Foi um prazer ajudar! Se precisar, é só chamar. 💙"
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Horários de Funcionamento */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Clock className="h-5 w-5 mr-2 text-indigo-500" />
+                Horários de Funcionamento
+              </h3>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="font-medium text-gray-700">Segunda:</span>
+                  <span className="text-gray-900">08:00 - 18:00</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium text-gray-700">Terça:</span>
+                  <span className="text-gray-900">08:00 - 18:00</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium text-gray-700">Quarta:</span>
+                  <span className="text-gray-900">08:00 - 18:00</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium text-gray-700">Quinta:</span>
+                  <span className="text-gray-900">08:00 - 18:00</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium text-gray-700">Sexta:</span>
+                  <span className="text-gray-900">08:00 - 18:00</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium text-gray-700">Sábado:</span>
+                  <span className="text-gray-900">08:00 - 12:00</span>
+                </div>
+                <div className="flex justify-between col-span-2">
+                  <span className="font-medium text-gray-700">Domingo:</span>
+                  <span className="text-gray-900">Fechado</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Profissionais */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <User className="h-5 w-5 mr-2 text-cyan-500" />
+                Profissionais
+              </h3>
+              <div className="space-y-4">
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Dra. Ana Souza</h4>
+                  <p className="text-sm text-gray-600 mb-2">Médica - Medicina de Família (CRM-SC 12345)</p>
+                  <p className="text-xs text-gray-500">8+ anos em atenção primária e manejo de condições crônicas.</p>
+                  <div className="mt-2 flex items-center space-x-2">
+                    <Badge variant="outline" className="text-xs">Medicina de Família</Badge>
+                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700">Ativo</Badge>
+                  </div>
+                </div>
+                
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Dr. Marcelo Oliveira</h4>
+                  <p className="text-sm text-gray-600 mb-2">Médico - Clínica Geral (CRM-SC 54321)</p>
+                  <p className="text-xs text-gray-500">Atendimento ambulatorial e interconsultas.</p>
+                  <div className="mt-2 flex items-center space-x-2">
+                    <Badge variant="outline" className="text-xs">Clínica Geral</Badge>
+                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700">Ativo</Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Serviços */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <FileText className="h-5 w-5 mr-2 text-teal-500" />
+                Serviços Disponíveis
+              </h3>
+              <div className="space-y-4">
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Consulta Clínica Geral</h4>
+                  <p className="text-sm text-gray-600 mb-2">Avaliação clínica e orientação inicial.</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <span><strong>Duração:</strong> 30 minutos</span>
+                    <span><strong>Preço:</strong> R$ 220,00</span>
+                    <span><strong>Convênios:</strong> Unimed, Bradesco Saúde</span>
+                    <span><strong>Status:</strong> <Badge variant="outline" className="text-xs bg-green-50 text-green-700">Ativo</Badge></span>
+                  </div>
+                </div>
+                
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Telemedicina</h4>
+                  <p className="text-sm text-gray-600 mb-2">Consulta remota conforme normas vigentes.</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <span><strong>Duração:</strong> 25 minutos</span>
+                    <span><strong>Preço:</strong> R$ 180,00</span>
+                    <span><strong>Convênios:</strong> Particular apenas</span>
+                    <span><strong>Status:</strong> <Badge variant="outline" className="text-xs bg-green-50 text-green-700">Ativo</Badge></span>
+                  </div>
+                </div>
+
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Eletrocardiograma (ECG)</h4>
+                  <p className="text-sm text-gray-600 mb-2">Registro da atividade elétrica do coração.</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <span><strong>Duração:</strong> 15 minutos</span>
+                    <span><strong>Preço:</strong> R$ 120,00</span>
+                    <span><strong>Convênios:</strong> Unimed</span>
+                    <span><strong>Resultado:</strong> 2 dias</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Configurações do Agente IA */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Bot className="h-5 w-5 mr-2 text-orange-500" />
+                Comportamento do Agente IA
+              </h3>
+              <div className="space-y-4 text-sm">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="font-medium text-gray-700">Proativo:</span>
+                    <Badge variant="outline" className="ml-2 text-xs bg-green-50 text-green-700">Ativo</Badge>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Oferece Sugestões:</span>
+                    <Badge variant="outline" className="ml-2 text-xs bg-green-50 text-green-700">Ativo</Badge>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Solicita Feedback:</span>
+                    <Badge variant="outline" className="ml-2 text-xs bg-green-50 text-green-700">Ativo</Badge>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Escalação Automática:</span>
+                    <Badge variant="outline" className="ml-2 text-xs bg-green-50 text-green-700">Ativo</Badge>
+                  </div>
+                </div>
+                
+                <div>
+                  <span className="font-medium text-gray-700">Tempo Máximo de Resposta:</span>
+                  <p className="text-gray-900">10 segundos</p>
+                </div>
+                
+                <div>
+                  <span className="font-medium text-gray-700">Limite de Tentativas:</span>
+                  <p className="text-gray-900">2 tentativas antes de escalar</p>
+                </div>
+                
+                <div>
+                  <span className="font-medium text-gray-700">Saudação Inicial:</span>
+                  <p className="text-gray-900 bg-gray-50 p-3 rounded border italic">
+                    "Olá! Eu sou o Assistente Lify 👋 Posso agendar consultas, explicar serviços e tirar dúvidas rápidas."
+                  </p>
+                </div>
+                
+                <div>
+                  <span className="font-medium text-gray-700">Mensagem de Despedida:</span>
+                  <p className="text-gray-900 bg-gray-50 p-3 rounded border italic">
+                    "Foi um prazer ajudar! Se precisar, é só chamar. 💙"
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Políticas e Regras */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Shield className="h-5 w-5 mr-2 text-red-500" />
+                Políticas e Restrições
+              </h3>
+              <div className="space-y-4 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Antecedência Mínima para Agendamento:</span>
+                  <p className="text-gray-900">1 hora</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Antecedência para Cancelamento:</span>
+                  <p className="text-gray-900">6 horas</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Confirmação de Consulta:</span>
+                  <p className="text-gray-900">24 horas antes (obrigatória)</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Política de Falta:</span>
+                  <p className="text-gray-900">Cobrança de 30% do valor da consulta</p>
+                </div>
+                
+                <div>
+                  <span className="font-medium text-gray-700 block mb-2">Tópicos Proibidos:</span>
+                  <div className="space-y-1">
+                    <Badge variant="outline" className="text-xs bg-red-50 text-red-700 mr-2">Emergências médicas</Badge>
+                    <Badge variant="outline" className="text-xs bg-red-50 text-red-700 mr-2">Diagnósticos</Badge>
+                    <Badge variant="outline" className="text-xs bg-red-50 text-red-700 mr-2">Prescrições</Badge>
+                    <Badge variant="outline" className="text-xs bg-red-50 text-red-700">Conteúdo adulto</Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Formas de Pagamento */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <CreditCard className="h-5 w-5 mr-2 text-emerald-500" />
+                Formas de Pagamento
+              </h3>
+              <div className="grid grid-cols-3 gap-4 text-sm mb-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span>Dinheiro</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span>Cartão de Crédito</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span>Cartão de Débito</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span>PIX</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+                  <span className="text-gray-500">Transferência</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+                  <span className="text-gray-500">Boleto</span>
+                </div>
+              </div>
+              
+              <div className="pt-4 border-t border-gray-200">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium text-gray-700">Parcelamento:</span>
+                    <p className="text-gray-900">Até 6x sem juros (mín. R$ 50,00)</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Desconto à Vista:</span>
+                    <p className="text-gray-900">5% de desconto</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Configurações do Sistema */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <SettingsIcon className="h-5 w-5 mr-2 text-gray-500" />
+                Configurações do Sistema
+              </h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Fuso Horário:</span>
+                  <p className="text-gray-900">America/Sao_Paulo</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Idioma:</span>
+                  <p className="text-gray-900">Português (Brasil)</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Formato Data:</span>
+                  <p className="text-gray-900">DD/MM/YYYY</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Formato Hora:</span>
+                  <p className="text-gray-900">HH:mm</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Backup Automático:</span>
+                  <Badge variant="outline" className="ml-2 text-xs bg-green-50 text-green-700">Ativo</Badge>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Logs de Atividade:</span>
+                  <Badge variant="outline" className="ml-2 text-xs bg-green-50 text-green-700">Ativo</Badge>
                 </div>
               </div>
             </div>
@@ -944,18 +1065,8 @@ export default function Settings() {
     switch (currentView) {
       case 'profile':
         return renderProfileSettings();
-      case 'account':
-        return renderAccountSettings();
-      case 'privacy':
-        return renderPrivacySettings();
-      case 'chats':
-        return renderChatSettings();
-      case 'notifications':
-        return renderNotificationSettings();
-      case 'shortcuts':
-        return renderShortcutSettings();
-      case 'help':
-        return renderHelpSettings();
+      case 'context':
+        return renderContextSettings();
       case 'templates':
         return renderTemplateSettings();
       case 'flags':

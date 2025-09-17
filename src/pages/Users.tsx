@@ -1,5 +1,6 @@
 import { useState } from "react"
-import { Users as UsersIcon, Plus, Edit, Trash2, Search, Filter, Building2, Shield, Mail, Phone, Loader2, AlertTriangle } from "lucide-react"
+import { Link } from "react-router-dom"
+import { Users as UsersIcon, Plus, Edit, Trash2, Search, Filter, Building2, Shield, Mail, Phone, Loader2, AlertTriangle, ArrowLeft } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { useUsers } from "@/hooks/useApi"
 import { useClinic as useClinicContext } from "@/contexts/ClinicContext"
 import { useToast } from "@/components/ui/use-toast"
@@ -234,10 +236,28 @@ export default function Users() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="h-full flex flex-col">
+      {/* Header com botão voltar */}
+      <div className="p-4 border-b border-gray-200 bg-white flex items-center space-x-3">
+        <Link to="/settings">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 w-8 p-0"
+            title="Voltar para Configurações"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </Link>
+        <h1 className="text-xl font-semibold text-gray-900">Gestão de Usuários</h1>
+      </div>
+
+      {/* Conteúdo da tela */}
+      <div className="flex-1 bg-gray-50">
+        <ScrollArea className="h-full">
+          <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Gestão de Usuários</h1>
           <p className="text-muted-foreground">
             Gerencie usuários e suas permissões no sistema
           </p>
@@ -250,14 +270,15 @@ export default function Users() {
               Novo Usuário
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[500px] max-h-[80vh]">
             <DialogHeader>
               <DialogTitle>Criar Novo Usuário</DialogTitle>
               <DialogDescription>
                 Preencha as informações do novo usuário
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4">
+            <ScrollArea className="max-h-[60vh]">
+              <form onSubmit={handleCreate} className="space-y-4 pr-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nome Completo *</Label>
@@ -267,6 +288,19 @@ export default function Users() {
                   <Label htmlFor="email">E-mail *</Label>
                   <Input id="email" name="email" type="email" placeholder="usuario@email.com" required />
                 </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha *</Label>
+                <Input 
+                  id="password" 
+                  name="password" 
+                  type="password" 
+                  placeholder="Digite a senha" 
+                  required 
+                  minLength={6}
+                />
+                <p className="text-xs text-gray-500">Mínimo de 6 caracteres</p>
               </div>
               
               <div className="space-y-2">
@@ -293,7 +327,8 @@ export default function Users() {
                   Criar Usuário
                 </Button>
               </div>
-            </form>
+              </form>
+            </ScrollArea>
           </DialogContent>
         </Dialog>
       </div>
@@ -448,7 +483,7 @@ export default function Users() {
 
       {/* Modal de Edição */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Editar Usuário</DialogTitle>
             <DialogDescription>
@@ -456,7 +491,8 @@ export default function Users() {
             </DialogDescription>
           </DialogHeader>
           {editingUser && (
-            <form onSubmit={handleUpdate} className="space-y-4">
+            <ScrollArea className="max-h-[60vh]">
+              <form onSubmit={handleUpdate} className="space-y-4 pr-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-name">Nome Completo</Label>
@@ -506,10 +542,14 @@ export default function Users() {
                   Salvar Alterações
                 </Button>
               </div>
-            </form>
+              </form>
+            </ScrollArea>
           )}
         </DialogContent>
       </Dialog>
+          </div>
+        </ScrollArea>
+      </div>
     </div>
   )
 }

@@ -230,6 +230,10 @@ export default function Conversations() {
   const [newTemplateCategory, setNewTemplateCategory] = useState<string>('outro')
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null)
   const [templates, setTemplates] = useState<Template[]>(mockTemplates)
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
+  const [scheduledMessage, setScheduledMessage] = useState('')
+  const [scheduleDate, setScheduleDate] = useState('')
+  const [scheduleTime, setScheduleTime] = useState('')
   
   const location = useLocation()
 
@@ -238,9 +242,6 @@ export default function Conversations() {
     { path: '/conversations', icon: MessageSquare, label: 'Conversas', description: 'Chat e atendimento' },
     { path: '/appointments', icon: Calendar, label: 'Agendamentos', description: 'Consultas e compromissos' },
     { path: '/agenda', icon: Calendar, label: 'Agenda', description: 'Calendário completo' },
-    { path: '/users', icon: Users, label: 'Usuários', description: 'Gestão de usuários' },
-    { path: '/clinics', icon: Building2, label: 'Clínicas', description: 'Gestão de clínicas' },
-    { path: '/context', icon: FileText, label: 'Contexto', description: 'Configuração do bot' },
   ]
 
   const isActive = (path: string) => {
@@ -318,7 +319,27 @@ export default function Conversations() {
   };
 
   const handleScheduleMessageClick = () => {
-    alert('Abrindo agendador de mensagens...');
+    setScheduleModalOpen(true);
+  };
+
+  const handleScheduleMessage = () => {
+    if (!scheduledMessage.trim() || !scheduleDate || !scheduleTime) return;
+    
+    const scheduleDateTime = new Date(`${scheduleDate}T${scheduleTime}`);
+    console.log('Mensagem programada:', {
+      message: scheduledMessage,
+      dateTime: scheduleDateTime,
+      conversation: selectedConversation?.customer_name
+    });
+    
+    // Aqui seria a integração com o backend
+    alert(`Mensagem programada para ${scheduleDateTime.toLocaleString('pt-BR')}!`);
+    
+    // Limpar formulário
+    setScheduledMessage('');
+    setScheduleDate('');
+    setScheduleTime('');
+    setScheduleModalOpen(false);
   };
 
   const handleFlagsClick = () => {
@@ -552,39 +573,33 @@ export default function Conversations() {
           {/* Footer */}
           <div className="p-4 border-t border-gray-200">
             {!sidebarMinimized ? (
-              <>
-                <div className="flex items-center px-3 py-2 text-sm text-gray-600">
-                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-3">
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium">Usuário Demo</div>
-                    <div className="text-xs text-gray-500">Administrador</div>
-                  </div>
-                </div>
+              <div className="flex space-x-2">
+                <Link to="/settings" className="flex-1">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="w-full justify-start"
+                  >
+                    <SettingsIcon className="w-4 h-4 mr-2" />
+                    Configurações
+                  </Button>
+                </Link>
                 
-                <div className="flex space-x-2 mt-2">
-                  <Link to="/settings" className="flex-1">
-                    <Button variant="ghost" size="sm" className="w-full justify-start">
-                      <SettingsIcon className="w-4 h-4 mr-2" />
-                      Configurações
-                    </Button>
-                  </Link>
-                  
-                  <Link to="/auth">
-                    <Button variant="ghost" size="sm" className="px-3" title="Sair">
-                      <LogOut className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </>
+                <Link to="/auth">
+                  <Button variant="ghost" size="sm" className="px-3" title="Sair">
+                    <LogOut className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
             ) : (
               <div className="flex flex-col items-center space-y-2">
-                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                  <Users className="w-4 h-4" />
-                </div>
                 <Link to="/settings">
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Configurações">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0" 
+                    title="Configurações"
+                  >
                     <SettingsIcon className="w-4 h-4" />
                   </Button>
                 </Link>
@@ -1286,21 +1301,6 @@ export default function Conversations() {
               </ScrollArea>
             </div>
 
-            {/* Instruções de uso */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <div className="flex items-start space-x-2">
-                <Tag className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-blue-700">
-                  <p className="font-medium mb-1">Como usar as flags:</p>
-                  <ul className="text-xs space-y-1 text-blue-600">
-                    <li>• Flags ajudam a categorizar e organizar conversas</li>
-                    <li>• Clique em uma conversa e aplique flags conforme necessário</li>
-                    <li>• Use cores diferentes para identificar rapidamente os tipos</li>
-                    <li>• Flags podem ser filtradas na lista de conversas</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
           </ScrollArea>
           
           {/* Botões de ação fixos */}
@@ -1539,21 +1539,6 @@ export default function Conversations() {
               </ScrollArea>
             </div>
 
-            {/* Instruções de uso */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <div className="flex items-start space-x-2">
-                <FileText className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-blue-700">
-                  <p className="font-medium mb-1">Como usar templates:</p>
-                  <ul className="text-xs space-y-1 text-blue-600">
-                    <li>• Clique no ícone ➤ para inserir o template na mensagem</li>
-                    <li>• Organize templates por categorias para facilitar a busca</li>
-                    <li>• Templates mais usados aparecem com contador de uso</li>
-                    <li>• Edite templates existentes para manter sempre atualizados</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
           </ScrollArea>
           
           {/* Botões de ação fixos */}
@@ -1566,6 +1551,91 @@ export default function Conversations() {
             </Link>
             <Button variant="outline" onClick={() => setTemplatesModalOpen(false)}>
               Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Programar Mensagem */}
+      <Dialog open={scheduleModalOpen} onOpenChange={setScheduleModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Clock className="h-5 w-5 text-purple-500" />
+              <span>Programar Mensagem</span>
+            </DialogTitle>
+            <DialogDescription>
+              Agende o envio de uma mensagem para {selectedConversation?.customer_name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Mensagem */}
+            <div className="space-y-2">
+              <Label htmlFor="scheduled-message">Mensagem</Label>
+              <Textarea
+                id="scheduled-message"
+                value={scheduledMessage}
+                onChange={(e) => setScheduledMessage(e.target.value)}
+                placeholder="Digite a mensagem que será enviada..."
+                className="min-h-[100px]"
+              />
+              <p className="text-xs text-gray-500">
+                {scheduledMessage.length}/500 caracteres
+              </p>
+            </div>
+
+            {/* Data e Hora */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="schedule-date">Data</Label>
+                <Input
+                  id="schedule-date"
+                  type="date"
+                  value={scheduleDate}
+                  onChange={(e) => setScheduleDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="schedule-time">Horário</Label>
+                <Input
+                  id="schedule-time"
+                  type="time"
+                  value={scheduleTime}
+                  onChange={(e) => setScheduleTime(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Informações adicionais */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start space-x-2">
+                <Clock className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-700">
+                  <p className="font-medium mb-1">Informações importantes:</p>
+                  <ul className="text-xs space-y-1 text-blue-600">
+                    <li>• A mensagem será enviada automaticamente na data e hora selecionadas</li>
+                    <li>• Você pode cancelar mensagens programadas até 5 minutos antes do envio</li>
+                    <li>• O horário segue o fuso horário local do sistema</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Botões de ação */}
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button variant="outline" onClick={() => setScheduleModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleScheduleMessage}
+              disabled={!scheduledMessage.trim() || !scheduleDate || !scheduleTime}
+            >
+              <Clock className="h-4 w-4 mr-2" />
+              Programar Envio
             </Button>
           </div>
         </DialogContent>

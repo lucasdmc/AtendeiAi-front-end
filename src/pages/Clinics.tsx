@@ -1,5 +1,6 @@
 import { useState } from "react"
-import { Building2, MapPin, Phone, Mail, Plus, Edit, Trash2, Search, Brain, Upload, Loader2, AlertTriangle } from "lucide-react"
+import { Link } from "react-router-dom"
+import { Building2, MapPin, Phone, Mail, Plus, Edit, Trash2, Search, Brain, Upload, Loader2, AlertTriangle, ArrowLeft } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useClinics } from "@/hooks/useApi"
 
@@ -278,14 +280,32 @@ export default function Clinics() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Gestão de Clínicas</h1>
-          <p className="text-muted-foreground">
-            Gerencie as clínicas do sistema e suas configurações
-          </p>
-        </div>
+    <div className="h-full flex flex-col">
+      {/* Header com botão voltar */}
+      <div className="p-4 border-b border-gray-200 bg-white flex items-center space-x-3">
+        <Link to="/settings">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 w-8 p-0"
+            title="Voltar para Configurações"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </Link>
+        <h1 className="text-xl font-semibold text-gray-900">Gestão de Clínicas</h1>
+      </div>
+
+      {/* Conteúdo da tela */}
+      <div className="flex-1 bg-gray-50">
+        <ScrollArea className="h-full">
+          <div className="p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-muted-foreground">
+                Gerencie as clínicas do sistema e suas configurações
+              </p>
+            </div>
         
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -294,14 +314,15 @@ export default function Clinics() {
               Nova Clínica
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
             <DialogHeader>
               <DialogTitle>Criar Nova Clínica</DialogTitle>
               <DialogDescription>
                 Preencha as informações da nova clínica
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4">
+            <ScrollArea className="max-h-[60vh]">
+              <form onSubmit={handleCreate} className="space-y-4 pr-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Nome da Clínica *</Label>
                 <Input id="name" name="name" placeholder="Digite o nome da clínica" required />
@@ -354,7 +375,8 @@ export default function Clinics() {
                   {isCreating ? 'Criando...' : 'Criar Clínica'}
                 </Button>
               </div>
-            </form>
+              </form>
+            </ScrollArea>
           </DialogContent>
         </Dialog>
       </div>
@@ -495,7 +517,7 @@ export default function Clinics() {
 
       {/* Modal de Edição */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Editar Clínica</DialogTitle>
             <DialogDescription>
@@ -503,7 +525,8 @@ export default function Clinics() {
             </DialogDescription>
           </DialogHeader>
           {editingClinic && (
-            <form onSubmit={handleUpdate} className="space-y-4">
+            <ScrollArea className="max-h-[60vh]">
+              <form onSubmit={handleUpdate} className="space-y-4 pr-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-name">Nome da Clínica</Label>
                 <Input id="edit-name" name="edit-name" defaultValue={editingClinic.name} required />
@@ -546,21 +569,23 @@ export default function Clinics() {
                   Salvar Alterações
                 </Button>
               </div>
-            </form>
+              </form>
+            </ScrollArea>
           )}
         </DialogContent>
       </Dialog>
 
       {/* Modal de Configuração JSON */}
       <Dialog open={isJsonDialogOpen} onOpenChange={setIsJsonDialogOpen}>
-        <DialogContent className="sm:max-w-[700px]">
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Configuração JSON - {selectedClinicForJson?.name}</DialogTitle>
             <DialogDescription>
               Insira a configuração JSON para esta clínica
             </DialogDescription>
           </DialogHeader>
-          <form className="space-y-4">
+          <ScrollArea className="max-h-[60vh]">
+            <form className="space-y-4 pr-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="json-config">Configuração JSON</Label>
@@ -600,9 +625,13 @@ export default function Clinics() {
                 Salvar Configuração
               </Button>
             </div>
-          </form>
+            </form>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
+          </div>
+        </ScrollArea>
+      </div>
     </div>
   )
 }

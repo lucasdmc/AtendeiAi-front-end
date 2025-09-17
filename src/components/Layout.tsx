@@ -5,8 +5,6 @@ import {
   MessageSquare, 
   Calendar, 
   Users, 
-  Building2, 
-  FileText, 
   Settings,
   Menu,
   X,
@@ -23,9 +21,6 @@ const menuItems = [
   { path: '/conversations', icon: MessageSquare, label: 'Conversas', description: 'Chat e atendimento' },
   { path: '/appointments', icon: Calendar, label: 'Agendamentos', description: 'Consultas e compromissos' },
   { path: '/agenda', icon: Calendar, label: 'Agenda', description: 'Calendário completo' },
-  { path: '/users', icon: Users, label: 'Usuários', description: 'Gestão de usuários' },
-  { path: '/clinics', icon: Building2, label: 'Clínicas', description: 'Gestão de clínicas' },
-  { path: '/context', icon: FileText, label: 'Contexto', description: 'Configuração do bot' },
 ];
 
 export const Layout = ({ children }: LayoutProps) => {
@@ -124,41 +119,26 @@ export const Layout = ({ children }: LayoutProps) => {
           {/* Footer */}
           <div className="p-4 border-t border-gray-200">
             {!sidebarMinimized ? (
-              <>
-                <div className="flex items-center px-3 py-2 text-sm text-gray-600">
-                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-3">
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium">Usuário Demo</div>
-                    <div className="text-xs text-gray-500">Administrador</div>
-                  </div>
-                </div>
+              <div className="flex space-x-2">
+                <Link to="/settings" className="flex-1">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="w-full justify-start"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Configurações
+                  </Button>
+                </Link>
                 
-                <div className="flex space-x-2 mt-2">
-                  <Link to="/settings" className="flex-1">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="w-full justify-start"
-                    >
-                      <Settings className="w-4 h-4 mr-2" />
-                      Configurações
-                    </Button>
-                  </Link>
-                  
-                  <Link to="/auth">
-                    <Button variant="ghost" size="sm" className="px-3" title="Sair">
-                      <LogOut className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </>
+                <Link to="/auth">
+                  <Button variant="ghost" size="sm" className="px-3" title="Sair">
+                    <LogOut className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
             ) : (
               <div className="flex flex-col items-center space-y-2">
-                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                  <Users className="w-4 h-4" />
-                </div>
                 <Link to="/settings">
                   <Button 
                     variant="ghost" 

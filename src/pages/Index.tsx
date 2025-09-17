@@ -1,6 +1,7 @@
 import { Building2, Users, Calendar, FileText, MessageSquare } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Link } from "react-router-dom"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 const Index = () => {
   const modules = [
@@ -42,7 +43,9 @@ const Index = () => {
   ]
 
   return (
-    <div className="space-y-8">
+    <div className="h-full bg-gray-50">
+      <ScrollArea className="h-full">
+        <div className="p-6 space-y-8">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-foreground mb-2">
           Sistema de Gestão de Atendimento Virtual
@@ -76,6 +79,8 @@ const Index = () => {
           </Link>
         ))}
       </div>
+        </div>
+      </ScrollArea>
     </div>
   );
 };
