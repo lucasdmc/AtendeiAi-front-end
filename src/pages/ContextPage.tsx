@@ -90,6 +90,7 @@ const ContextPage = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
           </div>
         </ScrollArea>
       </div>
