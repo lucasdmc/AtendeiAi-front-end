@@ -1,25 +1,36 @@
-import { useState } from "react"
+import React, { useState } from "react"
+import { Link, useLocation } from 'react-router-dom';
 import { 
   MessageSquare, 
   Search, 
   Send, 
+  Phone, 
   MoreVertical,
+  Check,
   CheckCheck,
   Smile,
+  UserCheck,
   Bot,
   Users,
   Paperclip,
+  Building2,
   Mic,
   X,
   Clock,
   FileText,
   Download,
+  Home,
+  Calendar,
+  Menu,
+  LogOut,
   Share,
   Folder,
   Plus,
   Edit,
   Trash2,
-  Tag
+  Tag,
+  Palette,
+  Filter
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -101,70 +112,39 @@ const mockPatientInfo = {
   name: 'Maria Silva',
   age: 34,
   phone: '+55 47 9719-2447',
-  insurance: 'Unimed'
+  insurance: 'Unimed',
+  status: 'Recado',
+  description: "Don't tread on me. 😤",
+  files: [
+    { id: '1', type: 'image', name: 'Exame_Sangue_2024.jpg', url: 'https://images.unsplash.com/photo-1551963831-b3b1ca40c98e?w=100&h=100&fit=crop', date: '15/03/2024' },
+    { id: '2', type: 'image', name: 'Raio_X_Torax.jpg', url: 'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=100&h=100&fit=crop', date: '10/03/2024' },
+    { id: '3', type: 'document', name: 'Receita_Medica.pdf', url: '#', date: '08/03/2024' },
+    { id: '4', type: 'document', name: 'Relatorio_Consulta.pdf', url: '#', date: '05/03/2024' },
+    { id: '5', type: 'image', name: 'Ultrassom.jpg', url: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=100&h=100&fit=crop', date: '02/03/2024' }
+  ]
 };
 
-const mockFiles = [
-  { id: '1', name: 'Exame de Sangue - 15/03/2024', type: 'PDF', size: '2.3 MB', date: '2024-03-15' },
-  { id: '2', name: 'Radiografia Tórax - 10/03/2024', type: 'JPG', size: '1.8 MB', date: '2024-03-10' },
-  { id: '3', name: 'Receita Médica - 08/03/2024', type: 'PDF', size: '0.5 MB', date: '2024-03-08' },
-  { id: '4', name: 'Ultrassom - 05/03/2024', type: 'PDF', size: '3.2 MB', date: '2024-03-05' },
-  { id: '5', name: 'Eletrocardiograma - 01/03/2024', type: 'PDF', size: '1.1 MB', date: '2024-03-01' }
-];
-
+// Sistema de Flags
 interface Flag {
   id: string;
   name: string;
   color: string;
-  createdAt: string;
-}
-
-interface Template {
-  id: string;
-  name: string;
-  content: string;
-  category: 'agendamento' | 'consulta' | 'exame' | 'receita' | 'outro';
-  usageCount: number;
+  description?: string;
   createdAt: string;
 }
 
 const mockFlags: Flag[] = [
-  { id: '1', name: 'Urgente', color: '#EF4444', createdAt: '2024-01-15' },
-  { id: '2', name: 'Retorno', color: '#3B82F6', createdAt: '2024-01-20' },
-  { id: '3', name: 'Primeira Consulta', color: '#10B981', createdAt: '2024-01-25' }
-];
-
-const mockTemplates: Template[] = [
-  {
-    id: '1',
-    name: 'Agendamento Confirmado',
-    content: 'Olá! Sua consulta foi agendada para {data} às {hora} com {medico}. Por favor, chegue 15 minutos antes.',
-    category: 'agendamento',
-    usageCount: 45,
-    createdAt: '2024-01-10'
-  },
-  {
-    id: '2',
-    name: 'Lembrete de Consulta',
-    content: 'Lembramos que você tem consulta marcada para amanhã às {hora}. Confirme sua presença.',
-    category: 'consulta',
-    usageCount: 32,
-    createdAt: '2024-01-15'
-  },
-  {
-    id: '3',
-    name: 'Resultado de Exame',
-    content: 'Seus exames estão prontos! Pode retirar na recepção ou agendar uma consulta para avaliação.',
-    category: 'exame',
-    usageCount: 28,
-    createdAt: '2024-01-20'
-  }
+  { id: '1', name: 'Manual', color: '#3B82F6', description: 'Atendimento manual por humano', createdAt: '2024-01-15' },
+  { id: '2', name: 'Urgente', color: '#EF4444', description: 'Conversa que precisa de atenção imediata', createdAt: '2024-01-15' },
+  { id: '3', name: 'Agendamento', color: '#10B981', description: 'Relacionado a agendamentos de consultas', createdAt: '2024-01-16' },
+  { id: '4', name: 'Financeiro', color: '#F59E0B', description: 'Questões de pagamento e faturamento', createdAt: '2024-01-16' },
+  { id: '5', name: 'Suporte', color: '#8B5CF6', description: 'Suporte técnico e dúvidas', createdAt: '2024-01-17' }
 ];
 
 const colorOptions = [
   { name: 'Azul', value: '#3B82F6' },
-  { name: 'Verde', value: '#10B981' },
   { name: 'Vermelho', value: '#EF4444' },
+  { name: 'Verde', value: '#10B981' },
   { name: 'Amarelo', value: '#F59E0B' },
   { name: 'Roxo', value: '#8B5CF6' },
   { name: 'Rosa', value: '#EC4899' },
@@ -172,12 +152,57 @@ const colorOptions = [
   { name: 'Cinza', value: '#6B7280' }
 ];
 
+// Sistema de Templates
+interface Template {
+  id: string;
+  name: string;
+  content: string;
+  category: 'saudacao' | 'agendamento' | 'financeiro' | 'despedida' | 'outro';
+  createdAt: string;
+  usageCount: number;
+}
+
+const mockTemplates: Template[] = [
+  {
+    id: '1',
+    name: 'Saudação Inicial',
+    content: 'Olá! Bem-vindo(a) à nossa clínica. Como posso ajudá-lo(a) hoje?',
+    category: 'saudacao',
+    createdAt: '2024-01-15',
+    usageCount: 45
+  },
+  {
+    id: '2',
+    name: 'Agendamento Disponível',
+    content: 'Temos horários disponíveis para esta semana. Gostaria de agendar uma consulta? Por favor, me informe sua preferência de dia e horário.',
+    category: 'agendamento',
+    createdAt: '2024-01-16',
+    usageCount: 32
+  },
+  {
+    id: '3',
+    name: 'Informações de Pagamento',
+    content: 'Para finalizar seu agendamento, precisamos confirmar a forma de pagamento. Aceitamos dinheiro, cartão ou convênio médico.',
+    category: 'financeiro',
+    createdAt: '2024-01-17',
+    usageCount: 18
+  },
+  {
+    id: '4',
+    name: 'Despedida Padrão',
+    content: 'Obrigado(a) pelo contato! Estamos sempre à disposição. Tenha um ótimo dia! 😊',
+    category: 'despedida',
+    createdAt: '2024-01-18',
+    usageCount: 28
+  }
+];
+
 const templateCategories = [
-  { value: 'agendamento', label: 'Agendamento' },
-  { value: 'consulta', label: 'Consulta' },
-  { value: 'exame', label: 'Exame' },
-  { value: 'receita', label: 'Receita' },
-  { value: 'outro', label: 'Outro' }
+  { value: 'saudacao', label: 'Saudação', color: '#10B981' },
+  { value: 'agendamento', label: 'Agendamento', color: '#3B82F6' },
+  { value: 'financeiro', label: 'Financeiro', color: '#F59E0B' },
+  { value: 'despedida', label: 'Despedida', color: '#8B5CF6' },
+  { value: 'outro', label: 'Outro', color: '#6B7280' }
 ];
 
 export default function Conversations() {
@@ -189,19 +214,39 @@ export default function Conversations() {
   const [activeFilter, setActiveFilter] = useState('Tudo')
   const [selectedFiles, setSelectedFiles] = useState<string[]>([])
   const [virtualAssistantActive, setVirtualAssistantActive] = useState(true)
+  const [sidebarMinimized, setSidebarMinimized] = useState(false)
   const [filesModalOpen, setFilesModalOpen] = useState(false)
   const [flagsModalOpen, setFlagsModalOpen] = useState(false)
   const [newFlagName, setNewFlagName] = useState('')
   const [newFlagColor, setNewFlagColor] = useState('#3B82F6')
   const [flags, setFlags] = useState<Flag[]>(mockFlags)
   const [editingFlag, setEditingFlag] = useState<Flag | null>(null)
-  const [selectedFilterFlags] = useState<string[]>([])
+  const [filterModalOpen, setFilterModalOpen] = useState(false)
+  const [selectedFilterFlags, setSelectedFilterFlags] = useState<string[]>([])
   const [templatesModalOpen, setTemplatesModalOpen] = useState(false)
   const [newTemplateName, setNewTemplateName] = useState('')
   const [newTemplateContent, setNewTemplateContent] = useState('')
   const [newTemplateCategory, setNewTemplateCategory] = useState<string>('outro')
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null)
   const [templates, setTemplates] = useState<Template[]>(mockTemplates)
+  
+  const location = useLocation()
+
+  const menuItems = [
+    { path: '/', icon: Home, label: 'Dashboard', description: 'Visão geral do sistema' },
+    { path: '/conversations', icon: MessageSquare, label: 'Conversas', description: 'Chat e atendimento' },
+    { path: '/appointments', icon: Calendar, label: 'Agendamentos', description: 'Consultas e compromissos' },
+    { path: '/agenda', icon: Calendar, label: 'Agenda', description: 'Calendário completo' },
+    { path: '/users', icon: Users, label: 'Usuários', description: 'Gestão de usuários' },
+    { path: '/clinics', icon: Building2, label: 'Clínicas', description: 'Gestão de clínicas' },
+    { path: '/context', icon: FileText, label: 'Contexto', description: 'Configuração do bot' },
+  ]
+
+  const isActive = (path: string) => {
+    return location.pathname === path;
+  };
+
+  const selectedClinic = { id: '1', name: 'Clínica Demo' };
 
   const filteredConversations = mockConversations.filter(conversation => {
     // Filtro por busca
@@ -260,34 +305,23 @@ export default function Conversations() {
     setNewMessage("");
   }
 
-  const handleFilterClick = (filter: string) => {
-    if (filter === 'Flags Personalizadas') {
-      setFilterModalOpen(true);
-      return;
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
     }
-    setActiveFilter(filter);
   }
 
-  const handleFileToggle = (fileId: string) => {
-    setSelectedFiles(prev => 
-      prev.includes(fileId) 
-        ? prev.filter(id => id !== fileId)
-        : [...prev, fileId]
-    );
+  const handleTemplatesClick = () => {
+    setTemplatesModalOpen(true);
   };
 
-  const handleDownloadSelected = () => {
-    console.log('Baixando arquivos:', selectedFiles);
-    // Implementar lógica de download
+  const handleScheduleMessageClick = () => {
+    alert('Abrindo agendador de mensagens...');
   };
 
-  const handleForwardSelected = () => {
-    console.log('Encaminhando arquivos:', selectedFiles);
-    // Implementar lógica de encaminhamento
-  };
-
-  const handleClearSelection = () => {
-    setSelectedFiles([]);
+  const handleFlagsClick = () => {
+    setFlagsModalOpen(true);
   };
 
   const handleCreateFlag = () => {
@@ -295,14 +329,16 @@ export default function Conversations() {
     
     const newFlag: Flag = {
       id: Date.now().toString(),
-      name: newFlagName,
+      name: newFlagName.trim(),
       color: newFlagColor,
-      createdAt: new Date().toISOString()
+      description: '',
+      createdAt: new Date().toISOString().split('T')[0]
     };
     
     setFlags(prev => [...prev, newFlag]);
     setNewFlagName('');
     setNewFlagColor('#3B82F6');
+    alert(`Flag "${newFlag.name}" criada com sucesso!`);
   };
 
   const handleEditFlag = (flag: Flag) => {
@@ -316,11 +352,22 @@ export default function Conversations() {
     
     setFlags(prev => prev.map(flag => 
       flag.id === editingFlag.id 
-        ? { ...flag, name: newFlagName, color: newFlagColor }
+        ? { ...flag, name: newFlagName.trim(), color: newFlagColor }
         : flag
     ));
     
-    cancelFlagEdit();
+    setEditingFlag(null);
+    setNewFlagName('');
+    setNewFlagColor('#3B82F6');
+    alert(`Flag "${newFlagName}" atualizada com sucesso!`);
+  };
+
+  const handleDeleteFlag = (flagId: string) => {
+    const flag = flags.find(f => f.id === flagId);
+    if (flag && window.confirm(`Tem certeza que deseja deletar a flag "${flag.name}"?`)) {
+      setFlags(prev => prev.filter(f => f.id !== flagId));
+      alert(`Flag "${flag.name}" deletada com sucesso!`);
+    }
   };
 
   const cancelFlagEdit = () => {
@@ -329,26 +376,42 @@ export default function Conversations() {
     setNewFlagColor('#3B82F6');
   };
 
-  const handleDeleteFlag = (flagId: string) => {
-    setFlags(prev => prev.filter(flag => flag.id !== flagId));
+  const handleFilterClick = (filter: string) => {
+    if (filter === 'Flags Personalizadas') {
+      setFilterModalOpen(true);
+    } else {
+      setActiveFilter(filter);
+    }
   };
 
+  const applyCustomFilters = () => {
+    setActiveFilter('Flags Personalizadas');
+    setFilterModalOpen(false);
+    
+    if (selectedFilterFlags.length > 0) {
+      const flagNames = selectedFilterFlags.map(id => flags.find(f => f.id === id)?.name).join(', ');
+      alert(`Filtros aplicados: ${flagNames}`);
+    }
+  };
+
+  // Funções de gerenciamento de templates
   const handleCreateTemplate = () => {
     if (!newTemplateName.trim() || !newTemplateContent.trim()) return;
     
     const newTemplate: Template = {
       id: Date.now().toString(),
-      name: newTemplateName,
-      content: newTemplateContent,
+      name: newTemplateName.trim(),
+      content: newTemplateContent.trim(),
       category: newTemplateCategory as Template['category'],
-      usageCount: 0,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString().split('T')[0],
+      usageCount: 0
     };
     
     setTemplates(prev => [...prev, newTemplate]);
     setNewTemplateName('');
     setNewTemplateContent('');
     setNewTemplateCategory('outro');
+    alert(`Template "${newTemplate.name}" criado com sucesso!`);
   };
 
   const handleEditTemplate = (template: Template) => {
@@ -365,14 +428,40 @@ export default function Conversations() {
       template.id === editingTemplate.id 
         ? { 
             ...template, 
-            name: newTemplateName, 
-            content: newTemplateContent,
+            name: newTemplateName.trim(), 
+            content: newTemplateContent.trim(),
             category: newTemplateCategory as Template['category']
           }
         : template
     ));
     
-    cancelTemplateEdit();
+    setEditingTemplate(null);
+    setNewTemplateName('');
+    setNewTemplateContent('');
+    setNewTemplateCategory('outro');
+    alert(`Template "${newTemplateName}" atualizado com sucesso!`);
+  };
+
+  const handleDeleteTemplate = (templateId: string) => {
+    const template = templates.find(t => t.id === templateId);
+    if (template && window.confirm(`Tem certeza que deseja deletar o template "${template.name}"?`)) {
+      setTemplates(prev => prev.filter(t => t.id !== templateId));
+      alert(`Template "${template.name}" deletado com sucesso!`);
+    }
+  };
+
+  const handleUseTemplate = (template: Template) => {
+    setNewMessage(template.content);
+    setTemplatesModalOpen(false);
+    
+    // Incrementar contador de uso
+    setTemplates(prev => prev.map(t => 
+      t.id === template.id 
+        ? { ...t, usageCount: t.usageCount + 1 }
+        : t
+    ));
+    
+    alert(`Template "${template.name}" inserido na mensagem!`);
   };
 
   const cancelTemplateEdit = () => {
@@ -382,456 +471,603 @@ export default function Conversations() {
     setNewTemplateCategory('outro');
   };
 
-  const handleDeleteTemplate = (templateId: string) => {
-    setTemplates(prev => prev.filter(template => template.id !== templateId));
-  };
-
-  const handleUseTemplate = (template: Template) => {
-    setNewMessage(template.content);
-    setTemplates(prev => prev.map(t => 
-      t.id === template.id 
-        ? { ...t, usageCount: t.usageCount + 1 }
-        : t
-    ));
-    setTemplatesModalOpen(false);
-  };
+  if (!selectedClinic) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Building2 className="h-8 w-8 text-muted-foreground" />
+        <span className="ml-2 text-muted-foreground">Nenhuma clínica selecionada</span>
+      </div>
+    )
+  }
 
   return (
-    <div className="h-full flex bg-gray-50">
-      {/* Lista de Conversas */}
-      <div className="w-96 bg-white border-r border-gray-200 flex flex-col">
-        {/* Header da sidebar */}
-        <div className="p-4 bg-gray-50 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">WhatsApp</h2>
-            <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MessageSquare className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </div>
+    <div className="h-screen flex bg-gray-50">
+      {/* Sidebar Principal de Navegação - Minimizável */}
+      <div className={`
+        bg-white shadow-lg transition-all duration-300 ease-in-out flex-shrink-0 border-r border-gray-200
+        ${sidebarMinimized ? 'w-16' : 'w-64'}
+      `}>
+        <div className="flex flex-col h-full">
+          {/* Logo/Header */}
+          <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+            {!sidebarMinimized && (
+              <h1 className="text-xl font-bold text-gray-900">Atende AI</h1>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSidebarMinimized(!sidebarMinimized)}
+              className="h-8 w-8 p-0"
+              title={sidebarMinimized ? 'Expandir sidebar' : 'Minimizar sidebar'}
+            >
+              {sidebarMinimized ? (
+                <Menu className="h-4 w-4" />
+              ) : (
+                <X className="h-4 w-4" />
+              )}
+            </Button>
           </div>
-        <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-              className="pl-9 bg-white border-gray-300"
-              placeholder="Pesquisar ou começar uma nova conversa"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-          <div className="space-y-2 mt-3">
-            {/* Primeira linha - Filtros principais */}
-            <div className="flex space-x-2">
-              {['Tudo', 'Manual', 'IA'].map((filter) => (
-                <button
-                  key={filter}
-                  onClick={() => handleFilterClick(filter)}
+
+          {/* Navigation */}
+          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.path);
+              
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
                   className={`
-                    px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center space-x-1
-                    ${activeFilter === filter 
-                      ? 'bg-green-100 text-green-800 border border-green-200' 
-                      : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    flex items-center rounded-lg text-sm font-medium transition-colors duration-200 relative
+                    ${sidebarMinimized ? 'px-2 py-3 justify-center' : 'px-3 py-3'}
+                    ${active 
+                      ? 'bg-orange-100 text-orange-900' + (sidebarMinimized ? '' : ' border-r-4 border-orange-500')
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                     }
                   `}
+                  title={sidebarMinimized ? item.label : ''}
                 >
-                  {filter === 'Manual' && <Users className="h-3 w-3" />}
-                  {filter === 'IA' && <Bot className="h-3 w-3" />}
-                  <span>{filter}</span>
-                </button>
-              ))}
-            </div>
-            
-            {/* Segunda linha - Filtros especiais */}
-            <div className="flex space-x-2">
-              {/* Filtro Não lidas */}
-              <button
-                onClick={() => handleFilterClick('Não lidas')}
-                className={`
-                  px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center space-x-1
-                  ${activeFilter === 'Não lidas' 
-                    ? 'bg-orange-100 text-orange-800 border border-orange-200' 
-                    : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                  }
-                `}
-              >
-                <MessageSquare className="h-3 w-3" />
-                <span>Não lidas</span>
-                {/* Contador de conversas não lidas */}
-                {mockConversations.filter(c => (c.unreadCount || 0) > 0).length > 0 && (
-                  <Badge variant="secondary" className="ml-1 bg-orange-200 text-orange-800 text-xs">
-                    {mockConversations.filter(c => (c.unreadCount || 0) > 0).length}
-                  </Badge>
-                )}
-              </button>
-              
-              {/* Botão especial para Flags Personalizadas */}
-              <button
-                onClick={() => handleFilterClick('Flags Personalizadas')}
-                className={`
-                  px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center space-x-1
-                  ${activeFilter === 'Flags Personalizadas' 
-                    ? 'bg-purple-100 text-purple-800 border border-purple-200' 
-                    : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                  }
-                `}
-              >
-                <Tag className="h-3 w-3" />
-                <span>Flags</span>
-                {selectedFilterFlags.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 bg-purple-200 text-purple-800 text-xs">
-                    {selectedFilterFlags.length}
-                  </Badge>
-                )}
-              </button>
-            </div>
-          </div>
-      </div>
-
-      {/* Lista de conversas */}
-      <ScrollArea className="flex-1">
-          <div className="py-2">
-            {filteredConversations.map((conversation) => (
-              <div
-                key={conversation.id}
-                className={`
-                  flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors
-                  ${selectedConversation?.id === conversation.id ? 'bg-gray-100 border-r-4 border-green-500' : ''}
-                `}
-                onClick={() => setSelectedConversation(conversation)}
-              >
-                <div className="relative mr-3">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={conversation.avatar} />
-                    <AvatarFallback className="bg-gray-300 text-gray-700">
-                      {getInitials(conversation.customer_name || 'Cliente')}
-                    </AvatarFallback>
-                  </Avatar>
-                  {/* Indicador de mensagens não lidas */}
-                  {(conversation.unreadCount || 0) > 0 && (
-                    <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
-                      {conversation.unreadCount! > 9 ? '9+' : conversation.unreadCount}
+                  <Icon className={`
+                    flex-shrink-0 w-5 h-5 ${sidebarMinimized ? '' : 'mr-3'}
+                    ${active ? 'text-orange-600' : 'text-gray-400'}
+                  `} />
+                  {!sidebarMinimized && (
+                    <div className="flex-1">
+                      <div className="font-medium">{item.label}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>
                     </div>
                   )}
+                  {sidebarMinimized && active && (
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap z-50">
+                      {item.label}
+                    </div>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Footer */}
+          <div className="p-4 border-t border-gray-200">
+            {!sidebarMinimized ? (
+              <>
+                <div className="flex items-center px-3 py-2 text-sm text-gray-600">
+                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-3">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium">Usuário Demo</div>
+                    <div className="text-xs text-gray-500">Administrador</div>
+                  </div>
                 </div>
                 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-3">
-                    <h3 className="font-medium text-gray-900 flex-1">
-                      <span className="block truncate">
-                        {conversation.customer_name && conversation.customer_name.length > 30 
-                          ? `${conversation.customer_name.substring(0, 30)}...`
-                          : conversation.customer_name || 'Cliente'
-                        }
-                      </span>
-                    </h3>
-                    <span className="text-xs text-gray-500 flex-shrink-0">
-                      {new Date(conversation.updated_at).toLocaleTimeString('pt-BR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </span>
-                  </div>
-                  <div className="flex items-start justify-between mt-1">
-                    <p className="text-sm text-gray-600 flex-1 mr-2">
-                      {conversation.lastMessage && conversation.lastMessage.length > 50 
-                        ? `${conversation.lastMessage.substring(0, 50)}...`
-                        : conversation.lastMessage
-                      }
-                    </p>
-                  </div>
-                  {/* Flag padrão na linha de baixo */}
-                  <div className="mt-1">
-                    {(() => {
-                      const flag = getStandardFlag(conversation);
-                      const Icon = flag.icon;
-                      return (
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs px-2 py-0.5"
-                          style={{ 
-                            backgroundColor: `${flag.color}20`, 
-                            borderColor: flag.color,
-                            color: flag.color 
-                          }}
-                        >
-                          <Icon className="h-3 w-3 mr-1" />
-                          {flag.name}
-                        </Badge>
-                      );
-                    })()}
-                  </div>
+                <Link to="/auth">
+                  <Button variant="ghost" size="sm" className="w-full mt-2 justify-start">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sair
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <div className="flex flex-col items-center space-y-2">
+                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                  <Users className="w-4 h-4" />
                 </div>
+                <Link to="/auth">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Sair">
+                    <LogOut className="w-4 h-4" />
+                  </Button>
+                </Link>
               </div>
-            ))}
+            )}
+          </div>
         </div>
-      </ScrollArea>
-    </div>
+      </div>
 
-    {/* Área principal do chat */}
-    <div className="flex-1 flex flex-col">
-      {selectedConversation ? (
-        <>
-          {/* Header do chat */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
-            <div className="flex items-center">
-                <Avatar className="h-10 w-10 mr-3">
-                <AvatarImage src={selectedConversation.avatar} />
-                  <AvatarFallback className="bg-gray-300 text-gray-700">
-                    {getInitials(selectedConversation.customer_name || 'Cliente')}
-                </AvatarFallback>
-              </Avatar>
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <h3 className="font-semibold text-gray-900">
-                      {selectedConversation.customer_name || 'Cliente'}
-                    </h3>
-                    {(() => {
-                      const flag = getStandardFlag(selectedConversation);
-                      const Icon = flag.icon;
-                      return (
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs px-2 py-0.5"
-                          style={{ 
-                            backgroundColor: `${flag.color}20`, 
-                            borderColor: flag.color,
-                            color: flag.color 
-                          }}
-                        >
-                          <Icon className="h-3 w-3 mr-1" />
-                          {flag.name}
-                        </Badge>
-                      );
-                    })()}
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    {selectedConversation.customer_phone}
-                  </p>
-                </div>
-              </div>
+      {/* Área do WhatsApp - Ocupa o restante da tela */}
+      <div className="flex-1 flex bg-white">
+      {/* Sidebar com lista de conversas */}
+        <div className="w-96 bg-white border-r border-gray-200 flex flex-col">
+        {/* Header da sidebar */}
+          <div className="p-4 bg-gray-50 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">WhatsApp</h2>
               <div className="flex items-center space-x-2">
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <Search className="h-4 w-4" />
+                  <MessageSquare className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </div>
             </div>
-
-            {/* Área de mensagens */}
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
-                {conversationMessages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${
-                      message.sender_type === 'customer' ? 'justify-start' : 'justify-end'
-                    }`}
+          <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+                className="pl-9 bg-white border-gray-300"
+                placeholder="Pesquisar ou começar uma nova conversa"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+            <div className="space-y-2 mt-3">
+              {/* Primeira linha - Filtros principais */}
+              <div className="flex space-x-2">
+                {['Tudo', 'Manual', 'IA'].map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => handleFilterClick(filter)}
+                    className={`
+                      px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center space-x-1
+                      ${activeFilter === filter 
+                        ? 'bg-green-100 text-green-800 border border-green-200' 
+                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                      }
+                    `}
                   >
-                    <div
-                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                        message.sender_type === 'customer'
-                          ? 'bg-white border border-gray-200 text-gray-900'
-                          : 'bg-green-500 text-white'
-                      }`}
-                    >
-                      <p className="text-sm">{message.content}</p>
-                      <div className="flex items-center justify-end mt-1 space-x-1">
-                        <span
-                          className={`text-xs ${
-                            message.sender_type === 'customer'
-                              ? 'text-gray-500'
-                              : 'text-green-100'
-                          }`}
-                        >
-                          {new Date(message.timestamp).toLocaleTimeString('pt-BR', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                        {message.sender_type !== 'customer' && (
-                          <CheckCheck className="h-4 w-4 text-green-100" />
-                        )}
+                    {filter === 'Manual' && <Users className="h-3 w-3" />}
+                    {filter === 'IA' && <Bot className="h-3 w-3" />}
+                    <span>{filter}</span>
+                  </button>
+                ))}
+              </div>
+              
+              {/* Segunda linha - Filtros especiais */}
+              <div className="flex space-x-2">
+                {/* Filtro Não lidas */}
+                <button
+                  onClick={() => handleFilterClick('Não lidas')}
+                  className={`
+                    px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center space-x-1
+                    ${activeFilter === 'Não lidas' 
+                      ? 'bg-orange-100 text-orange-800 border border-orange-200' 
+                      : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    }
+                  `}
+                >
+                  <MessageSquare className="h-3 w-3" />
+                  <span>Não lidas</span>
+                  {/* Contador de conversas não lidas */}
+                  {mockConversations.filter(c => (c.unreadCount || 0) > 0).length > 0 && (
+                    <Badge variant="secondary" className="ml-1 bg-orange-200 text-orange-800 text-xs">
+                      {mockConversations.filter(c => (c.unreadCount || 0) > 0).length}
+                    </Badge>
+                  )}
+                </button>
+                
+                {/* Botão especial para Flags Personalizadas */}
+                <button
+                  onClick={() => handleFilterClick('Flags Personalizadas')}
+                  className={`
+                    px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center space-x-1
+                    ${activeFilter === 'Flags Personalizadas' 
+                      ? 'bg-purple-100 text-purple-800 border border-purple-200' 
+                      : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    }
+                  `}
+                >
+                  <Tag className="h-3 w-3" />
+                  <span>Flags</span>
+                  {selectedFilterFlags.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 bg-purple-200 text-purple-800 text-xs">
+                      {selectedFilterFlags.length}
+                    </Badge>
+                  )}
+                </button>
+              </div>
+          </div>
+        </div>
+
+        {/* Lista de conversas */}
+        <ScrollArea className="flex-1">
+            <div className="py-2">
+              {filteredConversations.map((conversation) => (
+                <div
+                  key={conversation.id}
+                  className={`
+                    flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors
+                    ${selectedConversation?.id === conversation.id ? 'bg-gray-100 border-r-4 border-green-500' : ''}
+                  `}
+                  onClick={() => setSelectedConversation(conversation)}
+                >
+                  <div className="relative mr-3">
+                    <Avatar className="h-12 w-12">
+                    <AvatarImage src={conversation.avatar} />
+                      <AvatarFallback className="bg-gray-300 text-gray-700">
+                        {getInitials(conversation.customer_name || 'Cliente')}
+                    </AvatarFallback>
+                  </Avatar>
+                    {/* Indicador de mensagens não lidas */}
+                    {(conversation.unreadCount || 0) > 0 && (
+                      <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+                        {conversation.unreadCount! > 9 ? '9+' : conversation.unreadCount}
                       </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-3">
+                      <h3 className="font-medium text-gray-900 flex-1">
+                        <span className="block truncate">
+                          {(conversation.customer_name || conversation.customer_phone).length > 30 
+                            ? `${(conversation.customer_name || conversation.customer_phone).substring(0, 30)}...` 
+                            : (conversation.customer_name || conversation.customer_phone)
+                          }
+                        </span>
+                      </h3>
+                      <span className="text-xs text-gray-500 flex-shrink-0">
+                        {new Date(conversation.updated_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-sm text-gray-600 flex-1">
+                        <span className="block truncate">
+                          {conversation.lastMessage.length > 50 
+                            ? `${conversation.lastMessage.substring(0, 50)}...` 
+                            : conversation.lastMessage
+                          }
+                        </span>
+                      </p>
+                    </div>
+                    
+                    {/* Flag padrão sempre presente */}
+                    <div className="mt-1">
+                      {(() => {
+                        const standardFlag = getStandardFlag(conversation);
+                        const IconComponent = standardFlag.icon;
+                        return (
+                      <Badge 
+                            variant="outline" 
+                        className="text-xs"
+                            style={{ 
+                              backgroundColor: `${standardFlag.color}20`, 
+                              borderColor: standardFlag.color,
+                              color: standardFlag.color 
+                            }}
+                      >
+                            <IconComponent className="h-3 w-3 mr-1" />
+                            {standardFlag.name}
+                      </Badge>
+                        );
+                      })()}
                     </div>
                   </div>
-                ))}
+                </div>
+              ))}
+          </div>
+        </ScrollArea>
+      </div>
+
+      {/* Área principal do chat */}
+      <div className="flex-1 flex flex-col">
+        {selectedConversation ? (
+          <>
+            {/* Header do chat */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
+              <div className="flex items-center">
+                  <Avatar className="h-10 w-10 mr-3">
+                  <AvatarImage src={selectedConversation.avatar} />
+                    <AvatarFallback className="bg-gray-300 text-gray-700">
+                      {getInitials(selectedConversation.customer_name || 'Cliente')}
+                  </AvatarFallback>
+                </Avatar>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h3 className="font-medium text-gray-900">
+                        {selectedConversation.customer_name || selectedConversation.customer_phone}
+                      </h3>
+                      {(() => {
+                        const standardFlag = getStandardFlag(selectedConversation);
+                        const IconComponent = standardFlag.icon;
+                        return (
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs"
+                            style={{ 
+                              backgroundColor: `${standardFlag.color}20`, 
+                              borderColor: standardFlag.color,
+                              color: standardFlag.color 
+                            }}
+                          >
+                            <IconComponent className="h-3 w-3 mr-1" />
+                            {standardFlag.name}
+                      </Badge>
+                        );
+                      })()}
+                  </div>
+                    <p className="text-sm text-gray-500">{selectedConversation.customer_phone}</p>
+                </div>
+              </div>
+              
+                <div className="flex items-center space-x-2">
+                <Button 
+                  variant={selectedConversation.assigned_user_id ? "default" : "outline"}
+                  size="sm"
+                    onClick={() => {
+                      // Toggle entre Manual e IA
+                      setSelectedConversation(prev => ({
+                        ...prev,
+                        assigned_user_id: prev.assigned_user_id ? null : 'current-user'
+                      }));
+                      
+                      const newMode = selectedConversation.assigned_user_id ? 'IA' : 'Manual';
+                      alert(`Conversa alterada para modo ${newMode}`);
+                    }}
+                >
+                  {selectedConversation.assigned_user_id ? (
+                    <>
+                      <Bot className="h-4 w-4 mr-2" />
+                        Voltar para IA
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="h-4 w-4 mr-2" />
+                      Assumir Conversa
+                    </>
+                  )}
+                </Button>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Search className="h-4 w-4" />
+                </Button>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                    onClick={() => setShowContactInfo(!showContactInfo)}
+                  >
+                    {showContactInfo ? <X className="h-4 w-4" /> : <Users className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+
+            {/* Área de mensagens */}
+              <div className="flex-1 flex flex-col bg-gray-50">
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-4">
+                    {conversationMessages.map((message) => (
+                    <div
+                      key={message.id}
+                        className={`flex ${message.sender_type === 'customer' ? 'justify-end' : 'justify-start'}`}
+                    >
+                        <div className="flex items-end space-x-2 max-w-[70%]">
+                          {message.sender_type === 'bot' && (
+                          <Avatar className="h-6 w-6">
+                              <AvatarFallback className="bg-gray-400 text-white text-xs">
+                              AI
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
+                        
+                        <div
+                            className={`px-3 py-2 rounded-lg shadow-sm ${
+                              message.sender_type === 'customer'
+                                ? 'bg-green-500 text-white rounded-br-none'
+                                : 'bg-white text-gray-900 rounded-bl-none border'
+                            }`}
+                          >
+                            <p className="text-sm">{message.content}</p>
+                            <div className={`flex items-center justify-end gap-1 mt-1`}>
+                            <span className="text-xs opacity-70">
+                                {new Date(message.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                              {message.sender_type === 'customer' && (
+                                <CheckCheck className="h-3 w-3 text-blue-200" />
+                              )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    ))}
               </div>
             </ScrollArea>
 
             {/* Input de mensagem */}
-            <div className="p-4 bg-gray-50 border-t border-gray-200">
-              <div className="flex items-center space-x-2">
-                <Button variant="ghost" size="sm" className="h-10 w-10 p-0">
-                  <Smile className="h-5 w-5" />
-                </Button>
-                <Button variant="ghost" size="sm" className="h-10 w-10 p-0">
-                  <Paperclip className="h-5 w-5" />
-                </Button>
-                <Input
-                  placeholder="Digite uma mensagem"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                  className="flex-1"
-                />
-                {newMessage.trim() ? (
-                  <Button onClick={sendMessage} size="sm" className="h-10 w-10 p-0">
+                <div className="p-4 bg-gray-50 border-t border-gray-200">
+                  <div className="flex items-end space-x-2">
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Smile className="h-4 w-4" />
+                  </Button>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
+                  
+                    <div className="flex-1">
+                    <Input
+                        placeholder="Digite uma mensagem"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                        className="bg-white border-gray-300"
+                    />
+                  </div>
+                  
+                    {newMessage.trim() ? (
+                  <Button 
+                    onClick={sendMessage}
+                    size="sm"
+                        className="h-8 w-8 p-0 bg-green-500 hover:bg-green-600"
+                  >
                     <Send className="h-4 w-4" />
                   </Button>
-                ) : (
-                  <Button variant="ghost" size="sm" className="h-10 w-10 p-0">
-                    <Mic className="h-5 w-5" />
-                  </Button>
-                )}
-              </div>
+                    ) : (
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Mic className="h-4 w-4" />
+                      </Button>
+                    )}
+                </div>
+                </div>
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="flex-1 flex items-center justify-center bg-gray-50">
             <div className="text-center">
-              <MessageSquare className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
                 Selecione uma conversa
               </h3>
-              <p className="text-gray-500">
-                Escolha uma conversa da lista para começar a conversar
-              </p>
+                <p className="text-gray-500">
+                  Escolha uma conversa na lista para visualizar as mensagens
+                </p>
+                  </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
 
-      {/* Sidebar direita - Dados do Paciente */}
-      {showContactInfo && selectedConversation && (
-        <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Dados do Paciente</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowContactInfo(false)}
-                className="h-8 w-8 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <div className="text-center mb-6">
-              <Avatar className="h-20 w-20 mx-auto mb-3">
-                <AvatarImage src={selectedConversation.avatar} />
-                <AvatarFallback className="bg-gray-300 text-gray-700 text-xl">
-                  {getInitials(selectedConversation.customer_name || 'Cliente')}
-                </AvatarFallback>
-              </Avatar>
-              <h3 className="font-semibold text-gray-900">
-                {selectedConversation.customer_name || 'Cliente'}
-              </h3>
-              <p className="text-sm text-gray-500">
-                {selectedConversation.customer_phone}
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">Nome:</label>
-                <p className="text-sm text-gray-900 mt-1">{mockPatientInfo.name}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Idade:</label>
-                <p className="text-sm text-gray-900 mt-1">{mockPatientInfo.age} anos</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Telefone:</label>
-                <p className="text-sm text-gray-900 mt-1">{mockPatientInfo.phone}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Convênio:</label>
-                <p className="text-sm text-blue-600 mt-1">{mockPatientInfo.insurance}</p>
+        {/* Sidebar direito - Dados do Paciente */}
+        {showContactInfo && selectedConversation && (
+          <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
+            {/* Header */}
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-gray-900">Dados do Paciente</h3>
+                  <Button 
+                  variant="ghost" 
+                    size="sm" 
+                  className="h-8 w-8 p-0"
+                  onClick={() => setShowContactInfo(false)}
+                  >
+                  <X className="h-4 w-4" />
+                  </Button>
               </div>
             </div>
-          </div>
 
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-6 space-y-4">
-              {/* Botão para Arquivos e Documentos */}
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => setFilesModalOpen(true)}
-              >
-                <Folder className="h-4 w-4 mr-3" />
-                <div className="flex-1 text-left">
-                  <div className="font-medium">Arquivos e Documentos</div>
-                  <div className="text-xs text-gray-500 mt-0.5">5 arquivos</div>
-                </div>
-              </Button>
-
-              {/* Templates */}
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => setTemplatesModalOpen(true)}
-              >
-                <FileText className="h-4 w-4 mr-3" />
-                <div className="flex-1 text-left">
-                  <div className="font-medium">Templates</div>
-                  <div className="text-xs text-gray-500 mt-0.5">Mensagens prontas</div>
-                </div>
-              </Button>
-
-              {/* Parar Atendente Virtual */}
-              <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Bot className="h-4 w-4 text-gray-500" />
-                  <div>
-                    <div className="font-medium text-sm">Parar Atendente Virtual</div>
-                    <div className="text-xs text-gray-500">Assumir conversa</div>
+            <ScrollArea className="flex-1">
+              {/* Foto e informações do paciente */}
+              <div className="p-6 text-center border-b border-gray-200">
+                <Avatar className="h-24 w-24 mx-auto mb-4">
+                  <AvatarImage src={selectedConversation.avatar} />
+                  <AvatarFallback className="bg-gray-300 text-gray-700 text-2xl">
+                    {getInitials(selectedConversation.customer_name || 'Cliente')}
+                  </AvatarFallback>
+                </Avatar>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  {mockPatientInfo.name}
+                </h2>
+                
+                {/* Dados do paciente */}
+                <div className="space-y-3 text-left">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Nome:</span>
+                    <span className="text-sm font-medium text-gray-900">{mockPatientInfo.name}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Idade:</span>
+                    <span className="text-sm font-medium text-gray-900">{mockPatientInfo.age} anos</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Telefone:</span>
+                    <span className="text-sm font-medium text-gray-900">{mockPatientInfo.phone}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Convênio:</span>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      {mockPatientInfo.insurance}
+                    </Badge>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="sr-only peer"
-                      checked={virtualAssistantActive}
-                      onChange={(e) => setVirtualAssistantActive(e.target.checked)}
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-                  </label>
-                </div>
               </div>
 
-              {/* Programar mensagem */}
-              <Button variant="outline" className="w-full justify-start">
-                <Clock className="h-4 w-4 mr-3" />
-                <div className="flex-1 text-left">
-                  <div className="font-medium">Programar mensagem</div>
-                  <div className="text-xs text-gray-500 mt-0.5">Agendar envio de mensagem</div>
-                </div>
-              </Button>
+              {/* Botão Arquivos e Documentos */}
+              <div className="p-4 border-b border-gray-200">
+                <Button
+                  variant="outline"
+                  className="w-full justify-between"
+                  onClick={() => setFilesModalOpen(true)}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Folder className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm font-medium">Arquivos e Documentos</span>
+                  </div>
+                  <Badge variant="secondary" className="bg-blue-50 text-blue-700">
+                    {mockPatientInfo.files.length}
+                  </Badge>
+                </Button>
+              </div>
 
-              {/* Flags */}
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => setFlagsModalOpen(true)}
-              >
-                <Tag className="h-4 w-4 mr-3" />
-                <div className="flex-1 text-left">
-                  <div className="font-medium">Flags</div>
-                  <div className="text-xs text-gray-500 mt-0.5">Marcar conversa com etiquetas</div>
+              {/* Opções de Atendimento */}
+              <div className="p-4 space-y-4">
+                <div 
+                  className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                  onClick={handleTemplatesClick}
+                >
+                  <FileText className="h-5 w-5 text-blue-500" />
+                  <span className="text-sm text-gray-700 font-medium">Templates</span>
                 </div>
-              </Button>
+                
+                <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                  <Bot className="h-5 w-5 text-orange-500" />
+                  <div className="flex-1 flex items-center justify-between">
+                    <span className="text-sm text-gray-700 font-medium">Parar Atendente Virtual</span>
+                    <button
+                      onClick={() => setVirtualAssistantActive(!virtualAssistantActive)}
+                      className="relative"
+                    >
+                      <div className={`
+                        w-10 h-5 rounded-full shadow-inner cursor-pointer transition-colors
+                        ${virtualAssistantActive ? 'bg-green-400' : 'bg-gray-300'}
+                      `}>
+                        <div className={`
+                          w-4 h-4 bg-white rounded-full shadow transform transition-transform
+                          ${virtualAssistantActive ? 'translate-x-5' : 'translate-x-0'}
+                        `}></div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+                
+                <div 
+                  className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                  onClick={handleScheduleMessageClick}
+                >
+                  <Clock className="h-5 w-5 text-purple-500" />
+                  <div className="flex-1">
+                    <div className="text-sm text-gray-700 font-medium">Programar mensagem</div>
+                    <div className="text-xs text-gray-500">Agendar envio de mensagem</div>
+                  </div>
+                </div>
+                
+                <div 
+                  className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                  onClick={handleFlagsClick}
+                >
+                  <div className="h-5 w-5 flex items-center justify-center">
+                    🏷️
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm text-gray-700 font-medium">Flags</div>
+                    <div className="text-xs text-gray-500">Marcar conversa com etiquetas</div>
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
+                </div>
+              )}
             </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal de Arquivos e Documentos */}
       <Dialog open={filesModalOpen} onOpenChange={setFilesModalOpen}>
@@ -846,85 +1082,118 @@ export default function Conversations() {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="max-h-[400px] pr-4">
-            <div className="space-y-2">
-              {mockFiles.map((file) => (
-                <div 
-                  key={file.id}
-                  className={`
-                    flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors
-                    ${selectedFiles.includes(file.id) 
-                      ? 'border-blue-300 bg-blue-50' 
-                      : 'border-gray-200 hover:bg-gray-50'
-                    }
-                  `}
-                  onClick={() => handleFileToggle(file.id)}
-                >
-                  <div className="flex items-center space-x-3 flex-1">
-                    <div className="flex-shrink-0">
-                      <FileText className="h-8 w-8 text-blue-500" />
-                    </div>
+          <div className="flex flex-col space-y-4">
+            {/* Contador e ações */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">
+                {mockPatientInfo.files.length} arquivos encontrados
+              </span>
+              {selectedFiles.length > 0 && (
+                <Badge variant="secondary" className="bg-blue-50 text-blue-700">
+                  {selectedFiles.length} selecionado(s)
+                </Badge>
+              )}
+            </div>
+
+            {/* Lista de arquivos */}
+            <ScrollArea className="max-h-[400px]">
+              <div className="space-y-2 pr-4">
+                {mockPatientInfo.files.map((file) => (
+                  <div 
+                    key={file.id}
+                    className={`
+                      flex items-center p-3 rounded-lg border transition-all cursor-pointer group
+                      ${selectedFiles.includes(file.id) 
+                        ? 'bg-blue-50 border-blue-200 shadow-sm' 
+                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:shadow-sm'
+                      }
+                    `}
+                    onClick={() => {
+                      setSelectedFiles(prev => 
+                        prev.includes(file.id) 
+                          ? prev.filter(id => id !== file.id)
+                          : [...prev, file.id]
+                      )
+                    }}
+                  >
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {file.name}
-                      </p>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <span className="text-xs text-gray-500">{file.type}</span>
-                        <span className="text-xs text-gray-400">•</span>
-                        <span className="text-xs text-gray-500">{file.size}</span>
-                        <span className="text-xs text-gray-400">•</span>
-                        <span className="text-xs text-gray-500">
-                          {new Date(file.date).toLocaleDateString('pt-BR')}
-                        </span>
+                      <div className="flex items-center space-x-3">
+                        {file.type === 'image' ? (
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                            <img src={file.url} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                            <FileText className="h-6 w-6 text-red-600" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {file.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {file.date} • {file.type.toUpperCase()}
+                          </p>
+                        </div>
                       </div>
                     </div>
+                    
+                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(file.url, '_blank');
+                        }}
+                        title="Visualizar"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  
-                  <div className="flex items-center space-x-2 ml-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedFiles.includes(file.id)}
-                      onChange={() => handleFileToggle(file.id)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </ScrollArea>
+
+            {/* Ações em lote */}
+            {selectedFiles.length > 0 && (
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <span className="text-sm text-blue-700 font-medium">
+                  {selectedFiles.length} arquivo(s) selecionado(s)
+                </span>
+                <div className="flex space-x-2">
+                  <Button size="sm" variant="outline" className="text-xs">
+                    <Download className="h-3 w-3 mr-1" />
+                    Baixar
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-xs">
+                    <Share className="h-3 w-3 mr-1" />
+                    Encaminhar
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="text-xs"
+                    onClick={() => setSelectedFiles([])}
+                  >
+                    Limpar
+                  </Button>
             </div>
-          </ScrollArea>
-          
-          <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-            <div className="text-sm text-gray-500">
-              {selectedFiles.length > 0 && `${selectedFiles.length} arquivo(s) selecionado(s)`}
-            </div>
-            <div className="flex space-x-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleClearSelection}
-                disabled={selectedFiles.length === 0}
-              >
-                Limpar
+          </div>
+        )}
+
+            {/* Botões de ação principal */}
+            <div className="flex justify-end space-x-2 pt-4 border-t border-gray-200">
+              <Button variant="outline" onClick={() => setFilesModalOpen(false)}>
+                Fechar
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleDownloadSelected}
-                disabled={selectedFiles.length === 0}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Baixar
+              <Button>
+                <FileText className="h-4 w-4 mr-2" />
+                Adicionar Arquivo
               </Button>
-              <Button 
-                size="sm"
-                onClick={handleForwardSelected}
-                disabled={selectedFiles.length === 0}
-              >
-                <Share className="h-4 w-4 mr-2" />
-                Encaminhar
-              </Button>
-            </div>
+      </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -1093,119 +1362,277 @@ export default function Conversations() {
         </DialogContent>
       </Dialog>
 
+      {/* Modal de Filtros Personalizados */}
+      <Dialog open={filterModalOpen} onOpenChange={setFilterModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Tag className="h-5 w-5 text-purple-500" />
+              <span>Filtrar por Flags</span>
+            </DialogTitle>
+            <DialogDescription>
+              Selecione as flags que deseja usar para filtrar as conversas
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col space-y-4">
+            {/* Lista de flags disponíveis */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-900 mb-3">
+                Selecione as flags para filtrar:
+              </h4>
+              
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {flags.filter(flag => flag.name !== 'Manual').map((flag) => (
+                  <div 
+                    key={flag.id}
+                    className={`
+                      flex items-center p-3 rounded-lg border cursor-pointer transition-all
+                      ${selectedFilterFlags.includes(flag.id) 
+                        ? 'bg-purple-50 border-purple-200 shadow-sm' 
+                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                      }
+                    `}
+                    onClick={() => {
+                      setSelectedFilterFlags(prev => 
+                        prev.includes(flag.id) 
+                          ? prev.filter(id => id !== flag.id)
+                          : [...prev, flag.id]
+                      )
+                    }}
+                  >
+                    <div className="flex items-center space-x-3 flex-1">
+                      <div 
+                        className="w-4 h-4 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: flag.color }}
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          {flag.name}
+                        </p>
+                        {flag.description && (
+                          <p className="text-xs text-gray-500">
+                            {flag.description}
+                          </p>
+                        )}
+                      </div>
+                      <Badge 
+                        variant="outline" 
+                        className="text-xs"
+                        style={{ 
+                          backgroundColor: `${flag.color}20`, 
+                          borderColor: flag.color,
+                          color: flag.color 
+                        }}
+                      >
+                        {flag.name}
+                      </Badge>
+                    </div>
+                    
+                    {selectedFilterFlags.includes(flag.id) && (
+                      <div className="ml-2">
+                        <div className="w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
+                          <Check className="h-3 w-3 text-white" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Flags selecionadas */}
+            {selectedFilterFlags.length > 0 && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                <h5 className="text-sm font-medium text-purple-900 mb-2">
+                  Flags selecionadas para filtro:
+                </h5>
+                <div className="flex flex-wrap gap-2">
+                  {selectedFilterFlags.map(flagId => {
+                    const flag = flags.find(f => f.id === flagId);
+                    return flag ? (
+                      <Badge 
+                        key={flagId}
+                        variant="outline"
+                        className="text-xs"
+                        style={{ 
+                          backgroundColor: `${flag.color}20`, 
+                          borderColor: flag.color,
+                          color: flag.color 
+                        }}
+                      >
+                        {flag.name}
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Instruções */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start space-x-2">
+                <Tag className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-700">
+                  <p className="font-medium mb-1">Como funciona:</p>
+                  <ul className="text-xs space-y-1 text-blue-600">
+                    <li>• Selecione uma ou mais flags para filtrar</li>
+                    <li>• Apenas conversas com essas flags serão exibidas</li>
+                    <li>• Você pode combinar múltiplas flags</li>
+                    <li>• Use "Limpar" para remover todos os filtros</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Botões de ação */}
+            <div className="flex justify-between pt-4 border-t border-gray-200">
+              <Button 
+                variant="outline" 
+                onClick={() => setSelectedFilterFlags([])}
+                disabled={selectedFilterFlags.length === 0}
+              >
+                Limpar Seleção
+              </Button>
+              
+              <div className="flex space-x-2">
+                <Button variant="outline" onClick={() => setFilterModalOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={applyCustomFilters}
+                  disabled={selectedFilterFlags.length === 0}
+                >
+                  <Tag className="h-4 w-4 mr-2" />
+                  Aplicar Filtros ({selectedFilterFlags.length})
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Modal de Templates */}
       <Dialog open={templatesModalOpen} onOpenChange={setTemplatesModalOpen}>
         <DialogContent className="sm:max-w-[800px] max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <FileText className="h-5 w-5 text-blue-500" />
-              <span>Templates de Mensagens</span>
+              <span>Gerenciar Templates</span>
             </DialogTitle>
             <DialogDescription>
-              Crie e gerencie templates para respostas rápidas
+              Crie e gerencie templates de mensagens para respostas rápidas
             </DialogDescription>
           </DialogHeader>
           
           <ScrollArea className="flex-1 pr-6">
             <div className="flex flex-col space-y-6 pb-4">
-              {/* Formulário de criação/edição */}
-              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">
-                  {editingTemplate ? 'Editar Template' : 'Criar Novo Template'}
-                </h4>
+            {/* Formulário de criação/edição */}
+            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+              <h4 className="text-sm font-medium text-gray-900 mb-3">
+                {editingTemplate ? 'Editar Template' : 'Criar Novo Template'}
+              </h4>
+              
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="space-y-2">
+                  <Label htmlFor="template-name">Nome do Template</Label>
+                  <Input
+                    id="template-name"
+                    value={newTemplateName}
+                    onChange={(e) => setNewTemplateName(e.target.value)}
+                    placeholder="Ex: Saudação Inicial, Agendamento..."
+                  />
+                </div>
                 
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="template-name">Nome do Template</Label>
-                      <Input
-                        id="template-name"
-                        value={newTemplateName}
-                        onChange={(e) => setNewTemplateName(e.target.value)}
-                        placeholder="Ex: Agendamento Confirmado"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="template-category">Categoria</Label>
-                      <Select value={newTemplateCategory} onValueChange={setNewTemplateCategory}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {templateCategories.map((category) => (
-                            <SelectItem key={category.value} value={category.value}>
-                              {category.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="template-content">Conteúdo da Mensagem</Label>
-                    <Textarea
-                      id="template-content"
-                      value={newTemplateContent}
-                      onChange={(e) => setNewTemplateContent(e.target.value)}
-                      placeholder="Digite o conteúdo do template..."
-                      className="min-h-[100px]"
-                    />
-                    <p className="text-xs text-gray-500">
-                      Use {"{variável}"} para campos dinâmicos (ex: {"{nome}"}, {"{data}"}, {"{hora}"})
-                    </p>
-                  </div>
-                  
-                  <div className="flex justify-end space-x-2">
-                    {editingTemplate && (
-                      <Button variant="outline" onClick={cancelTemplateEdit}>
-                        Cancelar
-                      </Button>
-                    )}
-                    <Button 
-                      onClick={editingTemplate ? handleUpdateTemplate : handleCreateTemplate}
-                      disabled={!newTemplateName.trim() || !newTemplateContent.trim()}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      {editingTemplate ? 'Atualizar Template' : 'Criar Template'}
-                    </Button>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="template-category">Categoria</Label>
+                  <Select value={newTemplateCategory} onValueChange={setNewTemplateCategory}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {templateCategories.map((category) => (
+                        <SelectItem key={category.value} value={category.value}>
+                          <div className="flex items-center space-x-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: category.color }}
+                            />
+                            <span>{category.label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="template-content">Conteúdo da Mensagem</Label>
+                <Textarea
+                  id="template-content"
+                  value={newTemplateContent}
+                  onChange={(e) => setNewTemplateContent(e.target.value)}
+                  placeholder="Digite o conteúdo do template..."
+                  rows={4}
+                  className="resize-none"
+                />
+                <p className="text-xs text-gray-500">
+                  {newTemplateContent.length}/500 caracteres
+                </p>
+              </div>
+              
+              <div className="flex justify-end space-x-2 mt-4">
+                {editingTemplate && (
+                  <Button variant="outline" onClick={cancelTemplateEdit}>
+                    Cancelar
+                  </Button>
+                )}
+                <Button 
+                  onClick={editingTemplate ? handleUpdateTemplate : handleCreateTemplate}
+                  disabled={!newTemplateName.trim() || !newTemplateContent.trim()}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  {editingTemplate ? 'Atualizar Template' : 'Criar Template'}
+                </Button>
+              </div>
+            </div>
 
-              {/* Lista de templates existentes */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-medium text-gray-900">Templates Existentes</h4>
-                  <span className="text-xs text-gray-500">{templates.length} templates criados</span>
-                </div>
-                
-                <ScrollArea className="max-h-[400px]">
-                  <div className="space-y-3 pr-4">
-                    {templates.map((template) => (
+            {/* Lista de templates existentes */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-gray-900">Templates Existentes</h4>
+                <span className="text-xs text-gray-500">{templates.length} templates criados</span>
+              </div>
+              
+              <ScrollArea className="max-h-[400px]">
+                <div className="space-y-3 pr-4">
+                  {templates.map((template) => {
+                    const category = templateCategories.find(c => c.value === template.category);
+                    return (
                       <div 
                         key={template.id}
                         className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
                       >
                         <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <h5 className="font-medium text-gray-900">{template.name}</h5>
-                              <Badge variant="outline" className="text-xs">
-                                {templateCategories.find(c => c.value === template.category)?.label}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                              {template.content}
-                            </p>
-                            <div className="flex items-center space-x-4 text-xs text-gray-500">
-                              <span>Usado {template.usageCount} vezes</span>
-                              <span>Criado em {new Date(template.createdAt).toLocaleDateString('pt-BR')}</span>
-                            </div>
+                          <div className="flex items-center space-x-2">
+                            <h5 className="text-sm font-medium text-gray-900">
+                              {template.name}
+                            </h5>
+                            <Badge 
+                              variant="outline" 
+                              className="text-xs"
+                              style={{ 
+                                backgroundColor: `${category?.color}20`, 
+                                borderColor: category?.color,
+                                color: category?.color 
+                              }}
+                            >
+                              {category?.label}
+                            </Badge>
                           </div>
                           
-                          <div className="flex items-center space-x-1 ml-3">
+                          <div className="flex items-center space-x-1">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1213,7 +1640,7 @@ export default function Conversations() {
                               onClick={() => handleUseTemplate(template)}
                               title="Usar template"
                             >
-                              <Send className="h-4 w-4" />
+                              <Send className="h-4 w-4 text-green-500" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -1235,11 +1662,38 @@ export default function Conversations() {
                             </Button>
                           </div>
                         </div>
+                        
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                          {template.content}
+                        </p>
+                        
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <span>Criado em {new Date(template.createdAt).toLocaleDateString('pt-BR')}</span>
+                          <span>Usado {template.usageCount} vezes</span>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </ScrollArea>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            </div>
+
+            {/* Instruções de uso */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start space-x-2">
+                <FileText className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-700">
+                  <p className="font-medium mb-1">Como usar templates:</p>
+                  <ul className="text-xs space-y-1 text-blue-600">
+                    <li>• Clique no ícone ➤ para inserir o template na mensagem</li>
+                    <li>• Organize templates por categorias para facilitar a busca</li>
+                    <li>• Templates mais usados aparecem com contador de uso</li>
+                    <li>• Edite templates existentes para manter sempre atualizados</li>
+                  </ul>
+                </div>
               </div>
+            </div>
+
             </div>
           </ScrollArea>
           
