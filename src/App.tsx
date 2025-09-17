@@ -9,6 +9,7 @@ import Appointments from './pages/Appointments';
 import Clinics from './pages/Clinics';
 import Users from './pages/Users';
 import Auth from './pages/Auth';
+import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -55,6 +56,11 @@ function App() {
           <Route path="/users" element={
             <Layout>
               <Users />
+            </Layout>
+          } />
+          <Route path="/settings" element={
+            <Layout>
+              <Settings />
             </Layout>
           } />
           <Route path="*" element={<NotFound />} />
