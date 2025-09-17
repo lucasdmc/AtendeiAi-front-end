@@ -30,7 +30,8 @@ import {
   Trash2,
   Tag,
   Palette,
-  Filter
+  Filter,
+  Settings
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -597,6 +598,11 @@ export default function Conversations() {
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                   <MessageSquare className="h-4 w-4" />
                 </Button>
+                <Link to="/settings">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Configurações">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </Link>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
