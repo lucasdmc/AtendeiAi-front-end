@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Settings, User, Key, Shield, MessageSquare, Bell, Database, HelpCircle, ChevronRight, Edit2 } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, User, Key, Shield, MessageSquare, Bell, Database, HelpCircle, ChevronRight, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,7 @@ export default function Settings() {
       {/* Header */}
       <div className="p-6 border-b border-gray-200 bg-white">
         <div className="flex items-center space-x-3">
-          <Settings className="h-6 w-6 text-gray-600" />
+          <SettingsIcon className="h-6 w-6 text-gray-600" />
           <h1 className="text-xl font-semibold text-gray-900">Configurações</h1>
         </div>
       </div>
