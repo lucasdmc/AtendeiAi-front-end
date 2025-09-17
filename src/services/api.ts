@@ -16,3 +16,20 @@ export const conversationApi = {
     return { success: true };
   }
 };
+
+export const userApi = {
+  createUser: async (data: any) => {
+    console.log('Mock createUser:', data);
+    return { success: true };
+  },
+  
+  updateUser: async (id: string, data: any) => {
+    console.log('Mock updateUser:', { id, data });
+    return { success: true };
+  },
+  
+  deleteUser: async (id: string) => {
+    console.log('Mock deleteUser:', id);
+    return { success: true };
+  }
+};

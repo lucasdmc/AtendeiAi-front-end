@@ -22,3 +22,54 @@ export const useConversationHistory = (clinicId: string, phone: string, limit: n
     loading: false
   };
 };
+
+export const useUsers = (clinicId: string) => {
+  return {
+    data: [],
+    loading: false,
+    error: null,
+    refetch: () => {}
+  };
+};
+
+export const useClinics = () => {
+  return {
+    data: [],
+    loading: false,
+    error: null,
+    refetch: () => {}
+  };
+};
+
+export const useAppointments = (clinicId: string) => {
+  return {
+    data: [],
+    loading: false,
+    error: null,
+    refetch: () => {}
+  };
+};
+
+export const useClinic = (clinicId: string) => {
+  return {
+    data: null,
+    loading: false,
+    error: null
+  };
+};
+
+export const useClinicProfessionals = (clinicId: string) => {
+  return {
+    data: [],
+    loading: false,
+    error: null
+  };
+};
+
+export const useClinicServices = (clinicId: string) => {
+  return {
+    data: [],
+    loading: false,
+    error: null
+  };
+};

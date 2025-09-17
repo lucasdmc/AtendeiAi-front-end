@@ -1,77 +1,113 @@
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Clock, Users } from "lucide-react";
+import React, { useState } from 'react';
+import { useAgenda } from '@/hooks/useAgenda';
+import AgendaHeader from '@/components/agenda/AgendaHeader';
+import WeekView from '@/components/agenda/WeekView';
+import MonthView from '@/components/agenda/MonthView';
+import YearView from '@/components/agenda/YearView';
+import AgendamentoModal from '@/components/agenda/AgendamentoModal';
 
-const Agenda = () => {
+const Agenda: React.FC = () => {
+  const {
+    currentDate,
+    setCurrentDate,
+    view,
+    setView,
+    weekData,
+    monthData,
+    yearData,
+    flags,
+    addAgendamento,
+    getFlagById,
+  } = useAgenda();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+
+  const handleNewAgendamento = () => {
+    setSelectedDate(currentDate);
+    setIsModalOpen(true);
+  };
+
+  const handleAgendamentoSubmit = (agendamentoData: any) => {
+    addAgendamento(agendamentoData);
+    alert('Agendamento criado com sucesso!');
+  };
+
+  const handleDayClick = (date: Date) => {
+    if (view === 'mes') {
+      setCurrentDate(date);
+      setView('semana');
+    }
+  };
+
+  const handleMonthClick = (date: Date) => {
+    if (view === 'ano') {
+      setCurrentDate(date);
+      setView('mes');
+    }
+  };
+
+  const renderView = () => {
+    switch (view) {
+      case 'semana':
+        return (
+          <WeekView
+            weekData={weekData}
+            flags={flags}
+            onAgendamentoClick={(agendamento) => {
+              const flag = getFlagById(agendamento.flag_id);
+              alert(`${agendamento.paciente_nome} - ${agendamento.horario_inicio} (${flag?.name})`);
+            }}
+          />
+        );
+      case 'mes':
+        return (
+          <MonthView
+            monthData={monthData}
+            currentDate={currentDate}
+            onDayClick={handleDayClick}
+          />
+        );
+      case 'ano':
+        return (
+          <YearView
+            yearData={yearData}
+            onMonthClick={handleMonthClick}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="space-y-8">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-foreground mb-2">
-          Agenda
-        </h1>
-        <p className="text-lg text-muted-foreground">
-          Visualize e gerencie seus agendamentos
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Agenda</h1>
+        <p className="text-muted-foreground">
+          Visualize e gerencie agendamentos por semana, mês ou ano
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="hover:shadow-lg transition-all duration-200">
-          <CardHeader className="text-center pb-4">
-            <div className="mx-auto w-12 h-12 text-blue-600 mb-4">
-              <Calendar className="w-full h-full" />
-            </div>
-            <CardTitle className="text-xl">Visualização Mensal</CardTitle>
-            <CardDescription className="text-sm">
-              Veja todos os agendamentos do mês
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-center">
-              <span className="text-sm text-primary hover:underline">
-                Em breve →
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+      <AgendaHeader
+        currentDate={currentDate}
+        view={view}
+        onDateChange={setCurrentDate}
+        onViewChange={setView}
+        onNewAgendamento={handleNewAgendamento}
+      />
 
-        <Card className="hover:shadow-lg transition-all duration-200">
-          <CardHeader className="text-center pb-4">
-            <div className="mx-auto w-12 h-12 text-green-600 mb-4">
-              <Clock className="w-full h-full" />
-            </div>
-            <CardTitle className="text-xl">Agendamentos de Hoje</CardTitle>
-            <CardDescription className="text-sm">
-              Consultas e compromissos do dia
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-center">
-              <span className="text-sm text-primary hover:underline">
-                Em breve →
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-all duration-200">
-          <CardHeader className="text-center pb-4">
-            <div className="mx-auto w-12 h-12 text-purple-600 mb-4">
-              <Users className="w-full h-full" />
-            </div>
-            <CardTitle className="text-xl">Pacientes</CardTitle>
-            <CardDescription className="text-sm">
-              Gerencie informações dos pacientes
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-center">
-              <span className="text-sm text-primary hover:underline">
-                Em breve →
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="mb-6">
+        {renderView()}
       </div>
+
+      <AgendamentoModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        onSubmit={handleAgendamentoSubmit}
+        flags={flags}
+        initialDate={selectedDate}
+      />
     </div>
   );
 };
