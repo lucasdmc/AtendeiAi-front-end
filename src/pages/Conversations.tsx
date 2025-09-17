@@ -563,18 +563,31 @@ export default function Conversations() {
                   </div>
                 </div>
                 
-                <Link to="/auth">
-                  <Button variant="ghost" size="sm" className="w-full mt-2 justify-start">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sair
-                  </Button>
-                </Link>
+                <div className="flex space-x-2 mt-2">
+                  <Link to="/settings" className="flex-1">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <SettingsIcon className="w-4 h-4 mr-2" />
+                      Configurações
+                    </Button>
+                  </Link>
+                  
+                  <Link to="/auth">
+                    <Button variant="ghost" size="sm" className="px-3" title="Sair">
+                      <LogOut className="w-4 h-4" />
+                    </Button>
+                  </Link>
+                </div>
               </>
             ) : (
               <div className="flex flex-col items-center space-y-2">
                 <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                   <Users className="w-4 h-4" />
                 </div>
+                <Link to="/settings">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Configurações">
+                    <SettingsIcon className="w-4 h-4" />
+                  </Button>
+                </Link>
                 <Link to="/auth">
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Sair">
                     <LogOut className="w-4 h-4" />
