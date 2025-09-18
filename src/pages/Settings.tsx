@@ -66,12 +66,12 @@ const templateCategories = [
 const mockFlags: Flag[] = [
   { id: '1', name: 'Urgente', color: '#EF4444', createdAt: '2024-01-15' },
   { id: '2', name: 'Retorno', color: '#3B82F6', createdAt: '2024-01-20' },
-  { id: '3', name: 'Primeira Consulta', color: '#10B981', createdAt: '2024-01-25' }
+  { id: '3', name: 'Primeira Consulta', color: '#E91E63', createdAt: '2024-01-25' }
 ];
 
 const colorOptions = [
   { name: 'Azul', value: '#3B82F6' },
-  { name: 'Verde', value: '#10B981' },
+  { name: 'Rosa', value: '#E91E63' },
   { name: 'Vermelho', value: '#EF4444' },
   { name: 'Amarelo', value: '#F59E0B' },
   { name: 'Roxo', value: '#8B5CF6' },
@@ -699,7 +699,7 @@ export default function Settings() {
             {/* Localização */}
             <div className="bg-white rounded-lg p-6 border border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <MapPin className="h-5 w-5 mr-2 text-green-500" />
+                <MapPin className="h-5 w-5 mr-2 text-pink-500" />
                 Localização
               </h3>
               <div className="text-sm space-y-2">
@@ -829,7 +829,7 @@ export default function Settings() {
                   <p className="text-xs text-gray-500">8+ anos em atenção primária e manejo de condições crônicas.</p>
                   <div className="mt-2 flex items-center space-x-2">
                     <Badge variant="outline" className="text-xs">Medicina de Família</Badge>
-                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700">Ativo</Badge>
+                    <Badge variant="outline" className="text-xs bg-pink-50 text-pink-700">Ativo</Badge>
                   </div>
                 </div>
                 
@@ -839,7 +839,7 @@ export default function Settings() {
                   <p className="text-xs text-gray-500">Atendimento ambulatorial e interconsultas.</p>
                   <div className="mt-2 flex items-center space-x-2">
                     <Badge variant="outline" className="text-xs">Clínica Geral</Badge>
-                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700">Ativo</Badge>
+                    <Badge variant="outline" className="text-xs bg-pink-50 text-pink-700">Ativo</Badge>
                   </div>
                 </div>
               </div>
@@ -859,7 +859,7 @@ export default function Settings() {
                     <span><strong>Duração:</strong> 30 minutos</span>
                     <span><strong>Preço:</strong> R$ 220,00</span>
                     <span><strong>Convênios:</strong> Unimed, Bradesco Saúde</span>
-                    <span><strong>Status:</strong> <Badge variant="outline" className="text-xs bg-green-50 text-green-700">Ativo</Badge></span>
+                    <span><strong>Status:</strong> <Badge variant="outline" className="text-xs bg-pink-50 text-pink-700">Ativo</Badge></span>
                   </div>
                 </div>
                 
@@ -870,7 +870,7 @@ export default function Settings() {
                     <span><strong>Duração:</strong> 25 minutos</span>
                     <span><strong>Preço:</strong> R$ 180,00</span>
                     <span><strong>Convênios:</strong> Particular apenas</span>
-                    <span><strong>Status:</strong> <Badge variant="outline" className="text-xs bg-green-50 text-green-700">Ativo</Badge></span>
+                    <span><strong>Status:</strong> <Badge variant="outline" className="text-xs bg-pink-50 text-pink-700">Ativo</Badge></span>
                   </div>
                 </div>
 
@@ -897,19 +897,19 @@ export default function Settings() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <span className="font-medium text-gray-700">Proativo:</span>
-                    <Badge variant="outline" className="ml-2 text-xs bg-green-50 text-green-700">Ativo</Badge>
+                    <Badge variant="outline" className="ml-2 text-xs bg-pink-50 text-pink-700">Ativo</Badge>
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Oferece Sugestões:</span>
-                    <Badge variant="outline" className="ml-2 text-xs bg-green-50 text-green-700">Ativo</Badge>
+                    <Badge variant="outline" className="ml-2 text-xs bg-pink-50 text-pink-700">Ativo</Badge>
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Solicita Feedback:</span>
-                    <Badge variant="outline" className="ml-2 text-xs bg-green-50 text-green-700">Ativo</Badge>
+                    <Badge variant="outline" className="ml-2 text-xs bg-pink-50 text-pink-700">Ativo</Badge>
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Escalação Automática:</span>
-                    <Badge variant="outline" className="ml-2 text-xs bg-green-50 text-green-700">Ativo</Badge>
+                    <Badge variant="outline" className="ml-2 text-xs bg-pink-50 text-pink-700">Ativo</Badge>
                   </div>
                 </div>
                 
@@ -983,19 +983,19 @@ export default function Settings() {
               </h3>
               <div className="grid grid-cols-3 gap-4 text-sm mb-4">
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <div className="w-3 h-3 bg-pink-500 rounded-full"></div>
                   <span>Dinheiro</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <div className="w-3 h-3 bg-pink-500 rounded-full"></div>
                   <span>Cartão de Crédito</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <div className="w-3 h-3 bg-pink-500 rounded-full"></div>
                   <span>Cartão de Débito</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <div className="w-3 h-3 bg-pink-500 rounded-full"></div>
                   <span>PIX</span>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -1047,11 +1047,11 @@ export default function Settings() {
                 </div>
                 <div>
                   <span className="font-medium text-gray-700">Backup Automático:</span>
-                  <Badge variant="outline" className="ml-2 text-xs bg-green-50 text-green-700">Ativo</Badge>
+                  <Badge variant="outline" className="ml-2 text-xs bg-pink-50 text-pink-700">Ativo</Badge>
                 </div>
                 <div>
                   <span className="font-medium text-gray-700">Logs de Atividade:</span>
-                  <Badge variant="outline" className="ml-2 text-xs bg-green-50 text-green-700">Ativo</Badge>
+                  <Badge variant="outline" className="ml-2 text-xs bg-pink-50 text-pink-700">Ativo</Badge>
                 </div>
               </div>
             </div>

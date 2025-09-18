@@ -297,8 +297,9 @@ export default function Clinics() {
       </div>
 
       {/* Conteúdo da tela */}
-      <div className="flex-1 bg-gray-50 overflow-y-auto">
-        <div className="p-6 space-y-6">
+      <div className="flex-1 bg-gray-50">
+        <div className="h-full overflow-y-auto">
+          <div className="p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-muted-foreground">
@@ -364,6 +365,91 @@ export default function Clinics() {
                     <SelectItem value="inactive">Inativa</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Campos extras para testar scroll no modal */}
+              <div className="space-y-2">
+                <Label htmlFor="address">Endereço Completo</Label>
+                <Input id="address" name="address" placeholder="Rua, número, complemento" />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="city">Cidade</Label>
+                <Input id="city" name="city" placeholder="Nome da cidade" />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="state">Estado</Label>
+                <Select name="state">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SC">Santa Catarina</SelectItem>
+                    <SelectItem value="RS">Rio Grande do Sul</SelectItem>
+                    <SelectItem value="PR">Paraná</SelectItem>
+                    <SelectItem value="SP">São Paulo</SelectItem>
+                    <SelectItem value="RJ">Rio de Janeiro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="specialties">Especialidades Oferecidas</Label>
+                <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded p-2 bg-gray-50">
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="specialties" value="clinica-geral" />
+                    <span className="text-sm">Clínica Geral</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="specialties" value="pediatria" />
+                    <span className="text-sm">Pediatria</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="specialties" value="cardiologia" />
+                    <span className="text-sm">Cardiologia</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="specialties" value="dermatologia" />
+                    <span className="text-sm">Dermatologia</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="specialties" value="ginecologia" />
+                    <span className="text-sm">Ginecologia</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="specialties" value="ortopedia" />
+                    <span className="text-sm">Ortopedia</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="specialties" value="psicologia" />
+                    <span className="text-sm">Psicologia</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="specialties" value="neurologia" />
+                    <span className="text-sm">Neurologia</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="opening-hours">Horário de Funcionamento</Label>
+                <textarea 
+                  id="opening-hours" 
+                  name="opening-hours" 
+                  placeholder="Ex: Segunda a Sexta: 08:00-18:00&#10;Sábado: 08:00-12:00" 
+                  className="w-full p-2 border border-gray-300 rounded-md resize-none h-16"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="description">Descrição da Clínica</Label>
+                <textarea 
+                  id="description" 
+                  name="description" 
+                  placeholder="Descreva os serviços e diferenciais da clínica..." 
+                  className="w-full p-2 border border-gray-300 rounded-md resize-none h-20"
+                />
               </div>
               
               <div className="flex justify-end space-x-2">
@@ -628,6 +714,7 @@ export default function Clinics() {
           </div>
         </DialogContent>
       </Dialog>
+          </div>
         </div>
       </div>
     </div>

@@ -1,9 +1,10 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Home, 
   MessageSquare, 
-  Calendar, 
+  Calendar,
+  CalendarCheck, 
   Users, 
   Settings,
   Menu,
@@ -19,15 +20,23 @@ interface LayoutProps {
 const menuItems = [
   { path: '/', icon: Home, label: 'Dashboard', description: 'Visão geral do sistema' },
   { path: '/conversations', icon: MessageSquare, label: 'Conversas', description: 'Chat e atendimento' },
-  { path: '/appointments', icon: Calendar, label: 'Agendamentos', description: 'Consultas e compromissos' },
+  { path: '/appointments', icon: CalendarCheck, label: 'Agendamentos', description: 'Consultas e compromissos' },
   { path: '/agenda', icon: Calendar, label: 'Agenda', description: 'Calendário completo' },
 ];
 
 export const Layout = ({ children }: LayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarMinimized, setSidebarMinimized] = useState(false);
+  const [sidebarMinimized, setSidebarMinimized] = useState(() => {
+    // Recupera o estado do localStorage, padrão é true (minimizado)
+    const saved = localStorage.getItem('sidebarMinimized');
+    return saved ? JSON.parse(saved) : true;
+  });
   const location = useLocation();
 
+  // Salva o estado do sidebar no localStorage sempre que mudar
+  useEffect(() => {
+    localStorage.setItem('sidebarMinimized', JSON.stringify(sidebarMinimized));
+  }, [sidebarMinimized]);
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -58,7 +67,11 @@ export const Layout = ({ children }: LayoutProps) => {
           {/* Logo/Header */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
             {!sidebarMinimized && (
-              <h1 className="text-xl font-bold text-gray-900">Atende AI</h1>
+              <img 
+                src="/images/lify-logo.png" 
+                alt="Lify" 
+                className="h-12 w-auto object-contain"
+              />
             )}
             <Button
               variant="ghost"
@@ -90,7 +103,7 @@ export const Layout = ({ children }: LayoutProps) => {
                     flex items-center rounded-lg text-sm font-medium transition-colors duration-200 relative
                     ${sidebarMinimized ? 'px-2 py-3 justify-center' : 'px-3 py-3'}
                     ${active 
-                      ? 'bg-orange-100 text-orange-900' + (sidebarMinimized ? '' : ' border-r-4 border-orange-500')
+                      ? 'bg-pink-100 text-pink-900' + (sidebarMinimized ? '' : ' border-r-4 border-pink-500')
                       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                     }
                   `}
@@ -98,7 +111,7 @@ export const Layout = ({ children }: LayoutProps) => {
                 >
                   <Icon className={`
                     flex-shrink-0 w-5 h-5 ${sidebarMinimized ? '' : 'mr-3'}
-                    ${active ? 'text-orange-600' : 'text-gray-400'}
+                    ${active ? 'text-pink-600' : 'text-gray-400'}
                   `} />
                   {!sidebarMinimized && (
                     <div className="flex-1">
@@ -164,11 +177,15 @@ export const Layout = ({ children }: LayoutProps) => {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Top bar for mobile */}
         <div className="lg:hidden h-16 bg-white border-b border-gray-200 flex items-center justify-center">
-          <h1 className="text-lg font-semibold text-gray-900">Atende AI</h1>
+          <img 
+            src="/images/lify-logo.png" 
+            alt="Lify" 
+            className="h-8 w-auto object-contain"
+          />
         </div>
 
         {/* Page content */}
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-y-auto">
           {children}
         </main>
       </div>

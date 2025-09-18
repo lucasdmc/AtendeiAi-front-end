@@ -40,7 +40,7 @@ const roleLabels = {
 const roleColors = {
   admin_lify: "bg-purple-100 text-purple-800 border-purple-200",
   suporte_lify: "bg-orange-100 text-orange-800 border-orange-200",
-  atendente: "bg-green-100 text-green-800 border-green-200",
+  atendente: "bg-pink-100 text-pink-800 border-pink-200",
   gestor: "bg-blue-100 text-blue-800 border-blue-200",
   administrador: "bg-red-100 text-red-800 border-red-200"
 }
@@ -253,8 +253,9 @@ export default function Users() {
       </div>
 
       {/* Conteúdo da tela */}
-      <div className="flex-1 bg-gray-50 overflow-y-auto">
-        <div className="p-6 space-y-6">
+      <div className="flex-1 bg-gray-50">
+        <div className="h-full overflow-y-auto">
+          <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-muted-foreground">
@@ -316,6 +317,71 @@ export default function Users() {
                     <SelectItem value="administrador">Administrador</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Campos extras para testar scroll no modal */}
+              <div className="space-y-2">
+                <Label htmlFor="department">Departamento</Label>
+                <Input id="department" name="department" placeholder="Ex: Atendimento, Administração" />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input id="phone" name="phone" placeholder="(48) 99999-9999" />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="address">Endereço</Label>
+                <Input id="address" name="address" placeholder="Rua, número, bairro" />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="notes">Observações</Label>
+                <textarea 
+                  id="notes" 
+                  name="notes" 
+                  placeholder="Observações sobre o usuário..." 
+                  className="w-full p-2 border border-gray-300 rounded-md resize-none h-20"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="start-date">Data de Início</Label>
+                <Input id="start-date" name="start-date" type="date" />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="permissions">Permissões Especiais</Label>
+                <div className="space-y-2 max-h-24 overflow-y-auto border border-gray-200 rounded p-2 bg-gray-50">
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="admin" />
+                    <span className="text-sm">Administração completa</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="reports" />
+                    <span className="text-sm">Visualizar relatórios</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="export" />
+                    <span className="text-sm">Exportar dados</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="backup" />
+                    <span className="text-sm">Fazer backup</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="settings" />
+                    <span className="text-sm">Alterar configurações</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="users" />
+                    <span className="text-sm">Gerenciar usuários</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" name="permissions" value="clinics" />
+                    <span className="text-sm">Gerenciar clínicas</span>
+                  </label>
+                </div>
               </div>
               
               <div className="flex justify-end space-x-2">
@@ -431,7 +497,7 @@ export default function Users() {
                     <Badge 
                       variant={user.status === 'active' ? 'default' : 'secondary'}
                       className={user.status === 'active' 
-                        ? 'bg-green-100 text-green-800 border-green-200' 
+                        ? 'bg-pink-100 text-pink-800 border-pink-200' 
                         : 'bg-gray-100 text-gray-800 border-gray-200'
                       }
                     >
@@ -546,6 +612,7 @@ export default function Users() {
           )}
         </DialogContent>
       </Dialog>
+          </div>
         </div>
       </div>
     </div>

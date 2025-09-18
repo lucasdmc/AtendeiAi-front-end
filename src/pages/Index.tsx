@@ -17,7 +17,7 @@ const Index = () => {
       description: "Controle os usuários e suas permissões",
       icon: Users,
       href: "/users",
-      color: "text-green-600"
+      color: "text-pink-600"
     },
     {
       title: "Agendamentos",
@@ -43,8 +43,9 @@ const Index = () => {
   ]
 
   return (
-    <div className="h-full bg-gray-50 overflow-y-auto">
-      <div className="p-6 space-y-8">
+    <div className="h-full bg-gray-50">
+      <div className="h-full overflow-y-auto">
+        <div className="p-6 space-y-8">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-foreground mb-2">
           Sistema de Gestão de Atendimento Virtual
@@ -78,6 +79,7 @@ const Index = () => {
           </Link>
         ))}
       </div>
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Link, useLocation } from 'react-router-dom';
 import { 
   MessageSquare, 
@@ -21,6 +21,7 @@ import {
   Download,
   Home,
   Calendar,
+  CalendarCheck,
   Menu,
   LogOut,
   Share,
@@ -137,15 +138,25 @@ interface Flag {
 const mockFlags: Flag[] = [
   { id: '1', name: 'Manual', color: '#3B82F6', description: 'Atendimento manual por humano', createdAt: '2024-01-15' },
   { id: '2', name: 'Urgente', color: '#EF4444', description: 'Conversa que precisa de atenção imediata', createdAt: '2024-01-15' },
-  { id: '3', name: 'Agendamento', color: '#10B981', description: 'Relacionado a agendamentos de consultas', createdAt: '2024-01-16' },
+  { id: '3', name: 'Agendamento', color: '#E91E63', description: 'Relacionado a agendamentos de consultas', createdAt: '2024-01-16' },
   { id: '4', name: 'Financeiro', color: '#F59E0B', description: 'Questões de pagamento e faturamento', createdAt: '2024-01-16' },
-  { id: '5', name: 'Suporte', color: '#8B5CF6', description: 'Suporte técnico e dúvidas', createdAt: '2024-01-17' }
+  { id: '5', name: 'Suporte', color: '#8B5CF6', description: 'Suporte técnico e dúvidas', createdAt: '2024-01-17' },
+  { id: '6', name: 'VIP', color: '#EC4899', description: 'Cliente VIP - atendimento prioritário', createdAt: '2024-01-18' },
+  { id: '7', name: 'Retorno', color: '#F97316', description: 'Paciente de retorno', createdAt: '2024-01-18' },
+  { id: '8', name: 'Primeira Consulta', color: '#06B6D4', description: 'Primeira vez na clínica', createdAt: '2024-01-19' },
+  { id: '9', name: 'Cancelamento', color: '#6B7280', description: 'Solicitação de cancelamento', createdAt: '2024-01-19' },
+  { id: '10', name: 'Reagendamento', color: '#84CC16', description: 'Solicitação de reagendamento', createdAt: '2024-01-20' },
+  { id: '11', name: 'Exames', color: '#A855F7', description: 'Relacionado a exames', createdAt: '2024-01-20' },
+  { id: '12', name: 'Receita', color: '#F59E0B', description: 'Solicitação de receita médica', createdAt: '2024-01-21' },
+  { id: '13', name: 'Emergência', color: '#DC2626', description: 'Situação de emergência', createdAt: '2024-01-21' },
+  { id: '14', name: 'Convênio', color: '#059669', description: 'Questões relacionadas ao convênio', createdAt: '2024-01-22' },
+  { id: '15', name: 'Satisfação', color: '#7C3AED', description: 'Pesquisa de satisfação', createdAt: '2024-01-22' }
 ];
 
 const colorOptions = [
   { name: 'Azul', value: '#3B82F6' },
   { name: 'Vermelho', value: '#EF4444' },
-  { name: 'Verde', value: '#10B981' },
+  { name: 'Rosa', value: '#E91E63' },
   { name: 'Amarelo', value: '#F59E0B' },
   { name: 'Roxo', value: '#8B5CF6' },
   { name: 'Rosa', value: '#EC4899' },
@@ -195,11 +206,91 @@ const mockTemplates: Template[] = [
     category: 'despedida',
     createdAt: '2024-01-18',
     usageCount: 28
+  },
+  {
+    id: '5',
+    name: 'Saudação Personalizada',
+    content: 'Olá {nome}! É um prazer falar com você novamente. Em que posso ajudá-lo(a) hoje?',
+    category: 'saudacao',
+    createdAt: '2024-01-19',
+    usageCount: 15
+  },
+  {
+    id: '6',
+    name: 'Confirmação de Consulta',
+    content: 'Sua consulta está confirmada para {data} às {hora} com {medico}. Por favor, chegue 15 minutos antes.',
+    category: 'agendamento',
+    createdAt: '2024-01-19',
+    usageCount: 67
+  },
+  {
+    id: '7',
+    name: 'Lembrete de Consulta',
+    content: 'Lembramos que você tem consulta marcada para amanhã às {hora}. Confirme sua presença.',
+    category: 'agendamento',
+    createdAt: '2024-01-20',
+    usageCount: 89
+  },
+  {
+    id: '8',
+    name: 'Informações de Convênio',
+    content: 'Para atendimento pelo convênio, favor trazer carteirinha atualizada, documento com foto e cartão de vacina (se menor de idade).',
+    category: 'financeiro',
+    createdAt: '2024-01-20',
+    usageCount: 25
+  },
+  {
+    id: '9',
+    name: 'Reagendamento',
+    content: 'Entendemos que imprevistos acontecem. Vamos reagendar sua consulta. Qual seria um melhor horário para você?',
+    category: 'agendamento',
+    createdAt: '2024-01-21',
+    usageCount: 12
+  },
+  {
+    id: '10',
+    name: 'Despedida com Agradecimento',
+    content: 'Obrigado(a) por escolher nossa clínica! Esperamos vê-lo(a) em breve. Cuide-se bem! 💙',
+    category: 'despedida',
+    createdAt: '2024-01-21',
+    usageCount: 34
+  },
+  {
+    id: '11',
+    name: 'Horário de Funcionamento',
+    content: 'Nossa clínica funciona de segunda a sexta das 8h às 18h, e aos sábados das 8h às 12h. Domingos fechado.',
+    category: 'outro',
+    createdAt: '2024-01-22',
+    usageCount: 8
+  },
+  {
+    id: '12',
+    name: 'Primeira Consulta',
+    content: 'Para sua primeira consulta, favor trazer RG, CPF, cartão do convênio (se houver) e lista de medicamentos em uso.',
+    category: 'outro',
+    createdAt: '2024-01-22',
+    usageCount: 19
+  },
+  {
+    id: '13',
+    name: 'Resultado de Exames',
+    content: 'Seus exames estão prontos! Você pode retirá-los na recepção ou agendar uma consulta para avaliação dos resultados.',
+    category: 'outro',
+    createdAt: '2024-01-23',
+    usageCount: 6
+  },
+  {
+    id: '14',
+    name: 'Cancelamento de Consulta',
+    content: 'Sua consulta foi cancelada conforme solicitado. Para reagendar, entre em contato conosco novamente.',
+    category: 'agendamento',
+    createdAt: '2024-01-23',
+    usageCount: 3
   }
 ];
 
 const templateCategories = [
-  { value: 'saudacao', label: 'Saudação', color: '#10B981' },
+  { value: 'saudacao', label: 'Saudação', color: '#E91E63' },
   { value: 'agendamento', label: 'Agendamento', color: '#3B82F6' },
   { value: 'financeiro', label: 'Financeiro', color: '#F59E0B' },
   { value: 'despedida', label: 'Despedida', color: '#8B5CF6' },
@@ -215,7 +306,11 @@ export default function Conversations() {
   const [activeFilter, setActiveFilter] = useState('Tudo')
   const [selectedFiles, setSelectedFiles] = useState<string[]>([])
   const [virtualAssistantActive, setVirtualAssistantActive] = useState(true)
-  const [sidebarMinimized, setSidebarMinimized] = useState(false)
+  const [sidebarMinimized, setSidebarMinimized] = useState(() => {
+    // Recupera o estado do localStorage, padrão é true (minimizado)
+    const saved = localStorage.getItem('sidebarMinimized');
+    return saved ? JSON.parse(saved) : true;
+  })
   const [filesModalOpen, setFilesModalOpen] = useState(false)
   const [flagsModalOpen, setFlagsModalOpen] = useState(false)
   const [newFlagName, setNewFlagName] = useState('')
@@ -234,13 +329,20 @@ export default function Conversations() {
   const [scheduledMessage, setScheduledMessage] = useState('')
   const [scheduleDate, setScheduleDate] = useState('')
   const [scheduleTime, setScheduleTime] = useState('')
+  const [searchInConversation, setSearchInConversation] = useState(false)
+  const [conversationSearchTerm, setConversationSearchTerm] = useState('')
   
   const location = useLocation()
+
+  // Salva o estado do sidebar no localStorage sempre que mudar
+  useEffect(() => {
+    localStorage.setItem('sidebarMinimized', JSON.stringify(sidebarMinimized));
+  }, [sidebarMinimized]);
 
   const menuItems = [
     { path: '/', icon: Home, label: 'Dashboard', description: 'Visão geral do sistema' },
     { path: '/conversations', icon: MessageSquare, label: 'Conversas', description: 'Chat e atendimento' },
-    { path: '/appointments', icon: Calendar, label: 'Agendamentos', description: 'Consultas e compromissos' },
+    { path: '/appointments', icon: CalendarCheck, label: 'Agendamentos', description: 'Consultas e compromissos' },
     { path: '/agenda', icon: Calendar, label: 'Agenda', description: 'Calendário completo' },
   ]
 
@@ -287,7 +389,7 @@ export default function Conversations() {
     } else {
       return {
         name: 'IA',
-        color: '#10B981', // Verde
+        color: '#E91E63', // Rosa Lify
         icon: Bot
       };
     }
@@ -341,6 +443,12 @@ export default function Conversations() {
     setScheduleTime('');
     setScheduleModalOpen(false);
   };
+
+  // Filtrar mensagens baseado na busca
+  const filteredMessages = conversationMessages.filter(message => {
+    if (!conversationSearchTerm.trim()) return true;
+    return message.content.toLowerCase().includes(conversationSearchTerm.toLowerCase());
+  });
 
   const handleFlagsClick = () => {
     setFlagsModalOpen(true);
@@ -513,7 +621,11 @@ export default function Conversations() {
           {/* Logo/Header */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
             {!sidebarMinimized && (
-              <h1 className="text-xl font-bold text-gray-900">Atende AI</h1>
+              <img 
+                src="/images/lify-logo.png" 
+                alt="Lify" 
+                className="h-12 w-auto object-contain"
+              />
             )}
             <Button
               variant="ghost"
@@ -618,24 +730,8 @@ export default function Conversations() {
       <div className="flex-1 flex bg-white">
       {/* Sidebar com lista de conversas */}
         <div className="w-96 bg-white border-r border-gray-200 flex flex-col">
-        {/* Header da sidebar */}
-          <div className="p-4 bg-gray-50 border-b border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">WhatsApp</h2>
-              <div className="flex items-center space-x-2">
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MessageSquare className="h-4 w-4" />
-                </Button>
-                <Link to="/settings">
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Configurações">
-                    <SettingsIcon className="h-4 w-4" />
-                  </Button>
-                </Link>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+        {/* Header da sidebar - Área de busca */}
+          <div className="p-4 bg-white border-b border-gray-200">
           <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
@@ -655,7 +751,7 @@ export default function Conversations() {
                     className={`
                       px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center space-x-1
                       ${activeFilter === filter 
-                        ? 'bg-green-100 text-green-800 border border-green-200' 
+                        ? 'bg-pink-100 text-pink-800 border border-pink-200' 
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
                       }
                     `}
@@ -721,7 +817,7 @@ export default function Conversations() {
                   key={conversation.id}
                   className={`
                     flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors
-                    ${selectedConversation?.id === conversation.id ? 'bg-gray-100 border-r-4 border-green-500' : ''}
+                    ${selectedConversation?.id === conversation.id ? 'bg-gray-100 border-r-4 border-orange-500' : ''}
                   `}
                   onClick={() => setSelectedConversation(conversation)}
                 >
@@ -799,8 +895,8 @@ export default function Conversations() {
         {selectedConversation ? (
           <>
             {/* Header do chat */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
-              <div className="flex items-center">
+              <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+              <div className="flex items-center h-10">
                   <Avatar className="h-10 w-10 mr-3">
                   <AvatarImage src={selectedConversation.avatar} />
                     <AvatarFallback className="bg-gray-300 text-gray-700">
@@ -839,6 +935,10 @@ export default function Conversations() {
                 <Button 
                   variant={selectedConversation.assigned_user_id ? "default" : "outline"}
                   size="sm"
+                  className={selectedConversation.assigned_user_id 
+                    ? "bg-orange-500 hover:bg-orange-600 text-white" 
+                    : "border-orange-500 text-orange-600 hover:bg-orange-50"
+                  }
                     onClick={() => {
                       // Toggle entre Manual e IA
                       setSelectedConversation(prev => ({
@@ -862,11 +962,14 @@ export default function Conversations() {
                     </>
                   )}
                 </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                    onClick={() => setSearchInConversation(!searchInConversation)}
+                    title="Buscar na conversa"
+                  >
                     <Search className="h-4 w-4" />
-                </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MoreVertical className="h-4 w-4" />
                 </Button>
                   <Button 
                     variant="ghost" 
@@ -879,11 +982,50 @@ export default function Conversations() {
               </div>
             </div>
 
+            {/* Campo de busca na conversa */}
+            {searchInConversation && (
+              <div className="p-3 bg-yellow-50 border-b border-yellow-200">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    className="pl-9 pr-10 bg-white border-gray-300 text-sm"
+                    placeholder="Buscar mensagens nesta conversa..."
+                    value={conversationSearchTerm}
+                    onChange={(e) => setConversationSearchTerm(e.target.value)}
+                    autoFocus
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                    onClick={() => {
+                      setSearchInConversation(false);
+                      setConversationSearchTerm('');
+                    }}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+                {conversationSearchTerm && (
+                  <div className="mt-2 text-xs text-gray-600">
+                    Buscando por "{conversationSearchTerm}" na conversa...
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Área de mensagens */}
               <div className="flex-1 flex flex-col bg-gray-50">
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4">
-                    {conversationMessages.map((message) => (
+                    {filteredMessages.length === 0 && conversationSearchTerm ? (
+                      <div className="text-center py-8">
+                        <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                        <p className="text-gray-500">Nenhuma mensagem encontrada para "{conversationSearchTerm}"</p>
+                        <p className="text-sm text-gray-400 mt-1">Tente usar outras palavras-chave</p>
+                  </div>
+                    ) : (
+                      filteredMessages.map((message) => (
                     <div
                       key={message.id}
                         className={`flex ${message.sender_type === 'customer' ? 'justify-end' : 'justify-start'}`}
@@ -900,7 +1042,7 @@ export default function Conversations() {
                         <div
                             className={`px-3 py-2 rounded-lg shadow-sm ${
                               message.sender_type === 'customer'
-                                ? 'bg-green-500 text-white rounded-br-none'
+                                ? 'bg-pink-500 text-white rounded-br-none'
                                 : 'bg-white text-gray-900 rounded-bl-none border'
                             }`}
                           >
@@ -916,7 +1058,7 @@ export default function Conversations() {
                         </div>
                       </div>
                     </div>
-                    ))}
+                    )))}
               </div>
             </ScrollArea>
 
@@ -944,7 +1086,7 @@ export default function Conversations() {
                   <Button 
                     onClick={sendMessage}
                     size="sm"
-                        className="h-8 w-8 p-0 bg-green-500 hover:bg-green-600"
+                        className="h-8 w-8 p-0 bg-pink-500 hover:bg-pink-600"
                   >
                     <Send className="h-4 w-4" />
                   </Button>
@@ -976,8 +1118,8 @@ export default function Conversations() {
         {showContactInfo && selectedConversation && (
           <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
             {/* Header */}
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
+            <div className="p-4 border-b border-gray-200 bg-white">
+              <div className="flex items-center justify-between h-10">
                 <h3 className="font-medium text-gray-900">Dados do Paciente</h3>
                   <Button 
                   variant="ghost" 
@@ -1056,20 +1198,27 @@ export default function Conversations() {
                 <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
                   <Bot className="h-5 w-5 text-orange-500" />
                   <div className="flex-1 flex items-center justify-between">
-                    <span className="text-sm text-gray-700 font-medium">Parar Atendente Virtual</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm text-gray-700 font-medium">Atendente Virtual</span>
+                      <span className={`text-xs ${virtualAssistantActive ? 'text-pink-600' : 'text-gray-500'}`}>
+                        {virtualAssistantActive ? 'Ativo' : 'Pausado'}
+                      </span>
+                    </div>
                     <button
                       onClick={() => setVirtualAssistantActive(!virtualAssistantActive)}
-                      className="relative"
+                      className={`
+                        relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none
+                        ${virtualAssistantActive ? 'bg-pink-500' : 'bg-gray-300'}
+                      `}
+                      role="switch"
+                      aria-checked={virtualAssistantActive}
                     >
-                      <div className={`
-                        w-10 h-5 rounded-full shadow-inner cursor-pointer transition-colors
-                        ${virtualAssistantActive ? 'bg-green-400' : 'bg-gray-300'}
-                      `}>
-                        <div className={`
-                          w-4 h-4 bg-white rounded-full shadow transform transition-transform
-                          ${virtualAssistantActive ? 'translate-x-5' : 'translate-x-0'}
-                        `}></div>
-                      </div>
+                      <span
+                        className={`
+                          inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out
+                          ${virtualAssistantActive ? 'translate-x-6' : 'translate-x-1'}
+                        `}
+                      />
                     </button>
                   </div>
                 </div>
@@ -1234,10 +1383,10 @@ export default function Conversations() {
 
       {/* Modal de Gerenciamento de Flags */}
       <Dialog open={flagsModalOpen} onOpenChange={setFlagsModalOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col">
+        <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
-              <Tag className="h-5 w-5 text-green-500" />
+              <Tag className="h-5 w-5 text-pink-500" />
               <span>Aplicar Flag</span>
             </DialogTitle>
             <DialogDescription>
@@ -1245,10 +1394,10 @@ export default function Conversations() {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="flex-1">
+          <div className="flex-1 overflow-y-auto">
             <div className="space-y-3 pr-4">
               
-              <ScrollArea className="max-h-[300px]">
+              <div className="max-h-[300px] overflow-y-auto">
                 <div className="space-y-2 pr-4">
                   {flags.map((flag) => (
                     <div 
@@ -1285,7 +1434,7 @@ export default function Conversations() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 text-green-500 hover:text-green-700"
+                          className="h-8 w-8 p-0 text-pink-500 hover:text-pink-700"
                           onClick={() => {
                             console.log('Aplicando flag:', flag.name);
                             setFlagsModalOpen(false);
@@ -1298,10 +1447,10 @@ export default function Conversations() {
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             </div>
 
-          </ScrollArea>
+          </div>
           
           {/* Botões de ação fixos */}
           <div className="flex justify-between items-center pt-4 border-t border-gray-200 bg-white">
@@ -1470,7 +1619,7 @@ export default function Conversations() {
 
       {/* Modal de Templates */}
       <Dialog open={templatesModalOpen} onOpenChange={setTemplatesModalOpen}>
-        <DialogContent className="sm:max-w-[800px] max-h-[85vh] flex flex-col">
+        <DialogContent className="sm:max-w-[800px] max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <FileText className="h-5 w-5 text-blue-500" />
@@ -1481,10 +1630,10 @@ export default function Conversations() {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="flex-1">
+          <div className="flex-1 overflow-y-auto">
             <div className="space-y-3 pr-4">
               
-              <ScrollArea className="max-h-[400px]">
+              <div className="max-h-[400px] overflow-y-auto">
                 <div className="space-y-3 pr-4">
                   {templates.map((template) => {
                     const category = templateCategories.find(c => c.value === template.category);
@@ -1536,10 +1685,10 @@ export default function Conversations() {
                     );
                   })}
                 </div>
-              </ScrollArea>
+              </div>
             </div>
 
-          </ScrollArea>
+          </div>
           
           {/* Botões de ação fixos */}
           <div className="flex justify-between items-center pt-4 border-t border-gray-200 bg-white">
