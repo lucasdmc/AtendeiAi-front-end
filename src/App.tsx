@@ -10,6 +10,7 @@ import Clinics from './pages/Clinics';
 import Users from './pages/Users';
 import Auth from './pages/Auth';
 import Settings from './pages/Settings';
+import Channels from './pages/Channels';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -57,6 +58,11 @@ function App() {
           <Route path="/settings" element={
             <Layout>
               <Settings />
+            </Layout>
+          } />
+          <Route path="/settings/channels" element={
+            <Layout>
+              <Channels />
             </Layout>
           } />
           <Route path="*" element={<NotFound />} />

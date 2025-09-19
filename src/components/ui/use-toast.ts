@@ -1,9 +1,19 @@
 // Hook minimalista - apenas para evitar erros de importação
 
+interface ToastProps {
+  title?: string;
+  description?: string;
+  variant?: 'default' | 'destructive';
+}
+
 export const useToast = () => {
   return {
-    toast: () => {}
+    toast: (props: ToastProps) => {
+      console.log('Toast:', props);
+    }
   };
 };
 
-export const toast = () => {};
+export const toast = (props: ToastProps) => {
+  console.log('Toast:', props);
+};

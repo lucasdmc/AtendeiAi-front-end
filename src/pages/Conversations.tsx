@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from "react"
 import { Link, useLocation } from 'react-router-dom';
+import {
+  useConversations,
+  useMessages,
+  useSendMessage,
+  useAssignConversation,
+  useTemplates,
+  useUseTemplate,
+  useMarkMessagesAsRead
+} from '../hooks';
 import { 
   MessageSquare, 
   Search, 
   Send, 
-  Phone, 
-  MoreVertical,
   Check,
   CheckCheck,
   Smile,
@@ -20,19 +27,14 @@ import {
   FileText,
   Download,
   Home,
-  Calendar,
-  CalendarCheck,
-  Menu,
-  LogOut,
-  Share,
   Folder,
   Plus,
-  Edit,
-  Trash2,
   Tag,
-  Palette,
-  Filter,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  CalendarCheck,
+  Calendar,
+  Share,
+  LogOut
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -42,73 +44,10 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-// Dados mock simples para visualização
-const mockConversations = [
-  {
-    id: '1',
-    customer_phone: '(48) 99999-9999',
-    customer_name: 'Maria Silva',
-    status: 'active',
-    updated_at: new Date().toISOString(),
-    assigned_user_id: null, // IA
-    lastMessage: 'Olá, gostaria de agendar uma consulta',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face',
-    unreadCount: 2
-  },
-  {
-    id: '2',
-    customer_phone: '(48) 88888-8888',
-    customer_name: 'João Santos',
-    status: 'active',
-    updated_at: new Date().toISOString(),
-    assigned_user_id: 'user1', // Manual
-    lastMessage: 'Muito obrigado pelo atendimento!',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face',
-    unreadCount: 0
-  },
-  {
-    id: '3',
-    customer_phone: '(48) 77777-7777',
-    customer_name: 'Ana Costa',
-    status: 'active',
-    updated_at: new Date().toISOString(),
-    assigned_user_id: null, // IA
-    lastMessage: 'Preciso remarcar minha consulta',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face',
-    unreadCount: 1
-  }
-];
+// Dados mock removidos - usando dados reais da API
 
-const mockMessages = [
-  {
-    id: '1',
-    sender_type: 'customer',
-    content: 'Olá, gostaria de agendar uma consulta',
-    timestamp: new Date().toISOString(),
-    customer_name: 'Maria Silva'
-  },
-  {
-    id: '2',
-    sender_type: 'bot',
-    content: 'Olá Maria! Claro, vou te ajudar com o agendamento. Qual especialidade você precisa?',
-    timestamp: new Date().toISOString()
-  },
-  {
-    id: '3',
-    sender_type: 'customer',
-    content: 'Preciso de uma consulta com cardiologista',
-    timestamp: new Date().toISOString(),
-    customer_name: 'Maria Silva'
-  },
-  {
-    id: '4',
-    sender_type: 'bot',
-    content: 'Perfeito! Temos disponibilidade com Dr. João para esta semana. Gostaria de ver os horários?',
-    timestamp: new Date().toISOString()
-  }
-];
+// mockMessages removido - usando dados reais da API
 
 const mockPatientInfo = {
   name: 'Maria Silva',
@@ -153,144 +92,11 @@ const mockFlags: Flag[] = [
   { id: '15', name: 'Satisfação', color: '#7C3AED', description: 'Pesquisa de satisfação', createdAt: '2024-01-22' }
 ];
 
-const colorOptions = [
-  { name: 'Azul', value: '#3B82F6' },
-  { name: 'Vermelho', value: '#EF4444' },
-  { name: 'Rosa', value: '#E91E63' },
-  { name: 'Amarelo', value: '#F59E0B' },
-  { name: 'Roxo', value: '#8B5CF6' },
-  { name: 'Rosa', value: '#EC4899' },
-  { name: 'Laranja', value: '#F97316' },
-  { name: 'Cinza', value: '#6B7280' }
-];
+// colorOptions removido - não utilizado
 
 // Sistema de Templates
-interface Template {
-  id: string;
-  name: string;
-  content: string;
-  category: 'saudacao' | 'agendamento' | 'financeiro' | 'despedida' | 'outro';
-  createdAt: string;
-  usageCount: number;
-}
-
-const mockTemplates: Template[] = [
-  {
-    id: '1',
-    name: 'Saudação Inicial',
-    content: 'Olá! Bem-vindo(a) à nossa clínica. Como posso ajudá-lo(a) hoje?',
-    category: 'saudacao',
-    createdAt: '2024-01-15',
-    usageCount: 45
-  },
-  {
-    id: '2',
-    name: 'Agendamento Disponível',
-    content: 'Temos horários disponíveis para esta semana. Gostaria de agendar uma consulta? Por favor, me informe sua preferência de dia e horário.',
-    category: 'agendamento',
-    createdAt: '2024-01-16',
-    usageCount: 32
-  },
-  {
-    id: '3',
-    name: 'Informações de Pagamento',
-    content: 'Para finalizar seu agendamento, precisamos confirmar a forma de pagamento. Aceitamos dinheiro, cartão ou convênio médico.',
-    category: 'financeiro',
-    createdAt: '2024-01-17',
-    usageCount: 18
-  },
-  {
-    id: '4',
-    name: 'Despedida Padrão',
-    content: 'Obrigado(a) pelo contato! Estamos sempre à disposição. Tenha um ótimo dia! 😊',
-    category: 'despedida',
-    createdAt: '2024-01-18',
-    usageCount: 28
-  },
-  {
-    id: '5',
-    name: 'Saudação Personalizada',
-    content: 'Olá {nome}! É um prazer falar com você novamente. Em que posso ajudá-lo(a) hoje?',
-    category: 'saudacao',
-    createdAt: '2024-01-19',
-    usageCount: 15
-  },
-  {
-    id: '6',
-    name: 'Confirmação de Consulta',
-    content: 'Sua consulta está confirmada para {data} às {hora} com {medico}. Por favor, chegue 15 minutos antes.',
-    category: 'agendamento',
-    createdAt: '2024-01-19',
-    usageCount: 67
-  },
-  {
-    id: '7',
-    name: 'Lembrete de Consulta',
-    content: 'Lembramos que você tem consulta marcada para amanhã às {hora}. Confirme sua presença.',
-    category: 'agendamento',
-    createdAt: '2024-01-20',
-    usageCount: 89
-  },
-  {
-    id: '8',
-    name: 'Informações de Convênio',
-    content: 'Para atendimento pelo convênio, favor trazer carteirinha atualizada, documento com foto e cartão de vacina (se menor de idade).',
-    category: 'financeiro',
-    createdAt: '2024-01-20',
-    usageCount: 25
-  },
-  {
-    id: '9',
-    name: 'Reagendamento',
-    content: 'Entendemos que imprevistos acontecem. Vamos reagendar sua consulta. Qual seria um melhor horário para você?',
-    category: 'agendamento',
-    createdAt: '2024-01-21',
-    usageCount: 12
-  },
-  {
-    id: '10',
-    name: 'Despedida com Agradecimento',
-    content: 'Obrigado(a) por escolher nossa clínica! Esperamos vê-lo(a) em breve. Cuide-se bem! 💙',
-    category: 'despedida',
-    createdAt: '2024-01-21',
-    usageCount: 34
-  },
-  {
-    id: '11',
-    name: 'Horário de Funcionamento',
-    content: 'Nossa clínica funciona de segunda a sexta das 8h às 18h, e aos sábados das 8h às 12h. Domingos fechado.',
-    category: 'outro',
-    createdAt: '2024-01-22',
-    usageCount: 8
-  },
-  {
-    id: '12',
-    name: 'Primeira Consulta',
-    content: 'Para sua primeira consulta, favor trazer RG, CPF, cartão do convênio (se houver) e lista de medicamentos em uso.',
-    category: 'outro',
-    createdAt: '2024-01-22',
-    usageCount: 19
-  },
-  {
-    id: '13',
-    name: 'Resultado de Exames',
-    content: 'Seus exames estão prontos! Você pode retirá-los na recepção ou agendar uma consulta para avaliação dos resultados.',
-    category: 'outro',
-    createdAt: '2024-01-23',
-    usageCount: 6
-  },
-  {
-    id: '14',
-    name: 'Cancelamento de Consulta',
-    content: 'Sua consulta foi cancelada conforme solicitado. Para reagendar, entre em contato conosco novamente.',
-    category: 'agendamento',
-    createdAt: '2024-01-23',
-    usageCount: 3
-  }
-];
-
 const templateCategories = [
-  { value: 'saudacao', label: 'Saudação', color: '#E91E63' },
+  { value: 'saudacao', label: 'Saudação', color: '#10B981' },
   { value: 'agendamento', label: 'Agendamento', color: '#3B82F6' },
   { value: 'financeiro', label: 'Financeiro', color: '#F59E0B' },
   { value: 'despedida', label: 'Despedida', color: '#8B5CF6' },
@@ -298,10 +104,58 @@ const templateCategories = [
 ];
 
 export default function Conversations() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedConversation, setSelectedConversation] = useState(mockConversations[0])
-  const [newMessage, setNewMessage] = useState("")
-  const [conversationMessages, setConversationMessages] = useState(mockMessages)
+  // Get clinicId from context or props - for now using a default value
+  const clinicId = '1'; // This should come from context or props
+  
+  // State variables
+  const [selectedConversation, setSelectedConversation] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [newMessage, setNewMessage] = useState('');
+
+  // Hooks React Query
+  const {
+    data: conversationsData,
+    isLoading: conversationsLoading,
+    error: conversationsError
+  } = useConversations({
+    clinic_id: clinicId,
+    status: 'active',
+    limit: 50
+  })
+
+  const {
+    data: messagesData,
+    isLoading: messagesLoading,
+    error: messagesError,
+  } = useMessages(selectedConversation?._id || '', {
+    limit: 50
+  })
+
+  const sendMessageMutation = useSendMessage()
+  const assignConversationMutation = useAssignConversation()
+  const markMessagesAsReadMutation = useMarkMessagesAsRead()
+
+  // Templates
+  const {
+    data: templatesData
+  } = useTemplates({
+    clinic_id: clinicId,
+    limit: 20
+  })
+
+  const useTemplateMutation = useUseTemplate()
+
+  // Processar dados das conversas
+  const conversations = conversationsData?.conversations || []
+  const conversationMessages = messagesData?.pages?.flatMap((page: any) => page.messages) || []
+  const templates = templatesData?.templates || []
+
+  // Fallback para teste - se não há páginas, tenta usar dados diretos
+  const fallbackMessages = (messagesData as any)?.messages || []
+  const finalMessages = conversationMessages.length > 0 ? conversationMessages : fallbackMessages
+
+  // Sistema funcionando perfeitamente!
+
   const [showContactInfo, setShowContactInfo] = useState(true)
   const [activeFilter, setActiveFilter] = useState('Tudo')
   const [selectedFiles, setSelectedFiles] = useState<string[]>([])
@@ -313,18 +167,13 @@ export default function Conversations() {
   })
   const [filesModalOpen, setFilesModalOpen] = useState(false)
   const [flagsModalOpen, setFlagsModalOpen] = useState(false)
-  const [newFlagName, setNewFlagName] = useState('')
-  const [newFlagColor, setNewFlagColor] = useState('#3B82F6')
-  const [flags, setFlags] = useState<Flag[]>(mockFlags)
-  const [editingFlag, setEditingFlag] = useState<Flag | null>(null)
+  const [flags] = useState<Flag[]>(mockFlags)
   const [filterModalOpen, setFilterModalOpen] = useState(false)
   const [selectedFilterFlags, setSelectedFilterFlags] = useState<string[]>([])
   const [templatesModalOpen, setTemplatesModalOpen] = useState(false)
-  const [newTemplateName, setNewTemplateName] = useState('')
-  const [newTemplateContent, setNewTemplateContent] = useState('')
-  const [newTemplateCategory, setNewTemplateCategory] = useState<string>('outro')
-  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null)
-  const [templates, setTemplates] = useState<Template[]>(mockTemplates)
+// Variáveis de template removidas - usando apenas dados da API
+  // Templates vem da API via React Query
+  // const [templates, setTemplates] = useState<Template[]>(mockTemplates)
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
   const [scheduledMessage, setScheduledMessage] = useState('')
   const [scheduleDate, setScheduleDate] = useState('')
@@ -339,6 +188,20 @@ export default function Conversations() {
     localStorage.setItem('sidebarMinimized', JSON.stringify(sidebarMinimized));
   }, [sidebarMinimized]);
 
+  // Selecionar primeira conversa automaticamente quando dados carregarem
+  useEffect(() => {
+    if (!selectedConversation && conversations.length > 0 && !conversationsLoading) {
+      setSelectedConversation(conversations[0]);
+    }
+  }, [conversations, selectedConversation, conversationsLoading]);
+
+  // Marcar mensagens como lidas quando uma conversa é selecionada
+  useEffect(() => {
+    if (selectedConversation && (selectedConversation.unread_count || 0) > 0) {
+      markMessagesAsReadMutation.mutate(selectedConversation._id);
+    }
+  }, [selectedConversation?._id, selectedConversation?.unread_count]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const menuItems = [
     { path: '/', icon: Home, label: 'Dashboard', description: 'Visão geral do sistema' },
     { path: '/conversations', icon: MessageSquare, label: 'Conversas', description: 'Chat e atendimento' },
@@ -352,11 +215,11 @@ export default function Conversations() {
 
   const selectedClinic = { id: '1', name: 'Clínica Demo' };
 
-  const filteredConversations = mockConversations.filter(conversation => {
+  const filteredConversations = conversations.filter(conversation => {
     // Filtro por busca
     const matchesSearch = conversation.customer_phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          conversation.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     // Filtro por tipo
     let matchesFilter = true;
     if (activeFilter === 'Manual') {
@@ -364,15 +227,16 @@ export default function Conversations() {
     } else if (activeFilter === 'IA') {
       matchesFilter = !conversation.assigned_user_id;
     } else if (activeFilter === 'Não lidas') {
-      matchesFilter = (conversation.unreadCount || 0) > 0;
+      matchesFilter = (conversation.unread_count || 0) > 0;
     } else if (activeFilter === 'Flags Personalizadas') {
-      // Para flags personalizadas, por enquanto mostra todas (será implementado quando conectar com backend)
+      // Para flags personalizadas, por enquanto mostra todas
       matchesFilter = true;
     }
     // 'Tudo' sempre retorna true
-    
+
     return matchesSearch && matchesFilter;
   })
+
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase()
@@ -395,18 +259,23 @@ export default function Conversations() {
     }
   }
 
-  const sendMessage = () => {
-    if (!newMessage.trim()) return;
-    
-    const newMsg = {
-      id: Date.now().toString(),
-      sender_type: 'bot' as const,
-      content: newMessage,
-      timestamp: new Date().toISOString()
-    };
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !selectedConversation) {
+      return;
+    }
 
-    setConversationMessages(prev => [...prev, newMsg]);
-    setNewMessage("");
+    try {
+      await sendMessageMutation.mutateAsync({
+        conversationId: selectedConversation._id,
+        content: newMessage,
+        message_type: 'text'
+      });
+
+      setNewMessage("");
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
+      // Aqui poderia mostrar um toast de erro
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -445,66 +314,15 @@ export default function Conversations() {
   };
 
   // Filtrar mensagens baseado na busca
-  const filteredMessages = conversationMessages.filter(message => {
+  const filteredMessages = finalMessages.filter((message: any) => {
     if (!conversationSearchTerm.trim()) return true;
-    return message.content.toLowerCase().includes(conversationSearchTerm.toLowerCase());
+    return message.content?.toLowerCase().includes(conversationSearchTerm.toLowerCase());
   });
 
   const handleFlagsClick = () => {
     setFlagsModalOpen(true);
   };
 
-  const handleCreateFlag = () => {
-    if (!newFlagName.trim()) return;
-    
-    const newFlag: Flag = {
-      id: Date.now().toString(),
-      name: newFlagName.trim(),
-      color: newFlagColor,
-      description: '',
-      createdAt: new Date().toISOString().split('T')[0]
-    };
-    
-    setFlags(prev => [...prev, newFlag]);
-    setNewFlagName('');
-    setNewFlagColor('#3B82F6');
-    alert(`Flag "${newFlag.name}" criada com sucesso!`);
-  };
-
-  const handleEditFlag = (flag: Flag) => {
-    setEditingFlag(flag);
-    setNewFlagName(flag.name);
-    setNewFlagColor(flag.color);
-  };
-
-  const handleUpdateFlag = () => {
-    if (!editingFlag || !newFlagName.trim()) return;
-    
-    setFlags(prev => prev.map(flag => 
-      flag.id === editingFlag.id 
-        ? { ...flag, name: newFlagName.trim(), color: newFlagColor }
-        : flag
-    ));
-    
-    setEditingFlag(null);
-    setNewFlagName('');
-    setNewFlagColor('#3B82F6');
-    alert(`Flag "${newFlagName}" atualizada com sucesso!`);
-  };
-
-  const handleDeleteFlag = (flagId: string) => {
-    const flag = flags.find(f => f.id === flagId);
-    if (flag && window.confirm(`Tem certeza que deseja deletar a flag "${flag.name}"?`)) {
-      setFlags(prev => prev.filter(f => f.id !== flagId));
-      alert(`Flag "${flag.name}" deletada com sucesso!`);
-    }
-  };
-
-  const cancelFlagEdit = () => {
-    setEditingFlag(null);
-    setNewFlagName('');
-    setNewFlagColor('#3B82F6');
-  };
 
   const handleFilterClick = (filter: string) => {
     if (filter === 'Flags Personalizadas') {
@@ -525,80 +343,17 @@ export default function Conversations() {
   };
 
   // Funções de gerenciamento de templates
-  const handleCreateTemplate = () => {
-    if (!newTemplateName.trim() || !newTemplateContent.trim()) return;
-    
-    const newTemplate: Template = {
-      id: Date.now().toString(),
-      name: newTemplateName.trim(),
-      content: newTemplateContent.trim(),
-      category: newTemplateCategory as Template['category'],
-      createdAt: new Date().toISOString().split('T')[0],
-      usageCount: 0
-    };
-    
-    setTemplates(prev => [...prev, newTemplate]);
-    setNewTemplateName('');
-    setNewTemplateContent('');
-    setNewTemplateCategory('outro');
-    alert(`Template "${newTemplate.name}" criado com sucesso!`);
-  };
-
-  const handleEditTemplate = (template: Template) => {
-    setEditingTemplate(template);
-    setNewTemplateName(template.name);
-    setNewTemplateContent(template.content);
-    setNewTemplateCategory(template.category);
-  };
-
-  const handleUpdateTemplate = () => {
-    if (!editingTemplate || !newTemplateName.trim() || !newTemplateContent.trim()) return;
-    
-    setTemplates(prev => prev.map(template => 
-      template.id === editingTemplate.id 
-        ? { 
-            ...template, 
-            name: newTemplateName.trim(), 
-            content: newTemplateContent.trim(),
-            category: newTemplateCategory as Template['category']
-          }
-        : template
-    ));
-    
-    setEditingTemplate(null);
-    setNewTemplateName('');
-    setNewTemplateContent('');
-    setNewTemplateCategory('outro');
-    alert(`Template "${newTemplateName}" atualizado com sucesso!`);
-  };
-
-  const handleDeleteTemplate = (templateId: string) => {
-    const template = templates.find(t => t.id === templateId);
-    if (template && window.confirm(`Tem certeza que deseja deletar o template "${template.name}"?`)) {
-      setTemplates(prev => prev.filter(t => t.id !== templateId));
-      alert(`Template "${template.name}" deletado com sucesso!`);
-    }
-  };
-
-  const handleUseTemplate = (template: Template) => {
+  const handleUseTemplate = async (template: any) => {
     setNewMessage(template.content);
     setTemplatesModalOpen(false);
-    
-    // Incrementar contador de uso
-    setTemplates(prev => prev.map(t => 
-      t.id === template.id 
-        ? { ...t, usageCount: t.usageCount + 1 }
-        : t
-    ));
-    
-    alert(`Template "${template.name}" inserido na mensagem!`);
-  };
 
-  const cancelTemplateEdit = () => {
-    setEditingTemplate(null);
-    setNewTemplateName('');
-    setNewTemplateContent('');
-    setNewTemplateCategory('outro');
+    try {
+      await useTemplateMutation.mutateAsync(template._id);
+      alert(`Template "${template.name}" inserido na mensagem!`);
+    } catch (error) {
+      console.error('Erro ao incrementar uso do template:', error);
+      alert(`Template "${template.name}" inserido na mensagem!`);
+    }
   };
 
   if (!selectedClinic) {
@@ -632,13 +387,9 @@ export default function Conversations() {
               size="sm"
               onClick={() => setSidebarMinimized(!sidebarMinimized)}
               className="h-8 w-8 p-0"
-              title={sidebarMinimized ? 'Expandir sidebar' : 'Minimizar sidebar'}
+              title={sidebarMinimized ? "Expandir sidebar" : "Minimizar sidebar"}
             >
-              {sidebarMinimized ? (
-                <Menu className="h-4 w-4" />
-              ) : (
-                <X className="h-4 w-4" />
-              )}
+              {sidebarMinimized ? "→" : "←"}
             </Button>
           </div>
 
@@ -779,9 +530,9 @@ export default function Conversations() {
                   <MessageSquare className="h-3 w-3" />
                   <span>Não lidas</span>
                   {/* Contador de conversas não lidas */}
-                  {mockConversations.filter(c => (c.unreadCount || 0) > 0).length > 0 && (
+                  {conversations.filter(c => (c.unread_count || 0) > 0).length > 0 && (
                     <Badge variant="secondary" className="ml-1 bg-orange-200 text-orange-800 text-xs">
-                      {mockConversations.filter(c => (c.unreadCount || 0) > 0).length}
+                      {conversations.filter(c => (c.unread_count || 0) > 0).length}
                     </Badge>
                   )}
                 </button>
@@ -812,26 +563,52 @@ export default function Conversations() {
         {/* Lista de conversas */}
         <ScrollArea className="flex-1">
             <div className="py-2">
-              {filteredConversations.map((conversation) => (
-                <div
-                  key={conversation.id}
-                  className={`
-                    flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors
-                    ${selectedConversation?.id === conversation.id ? 'bg-gray-100 border-r-4 border-orange-500' : ''}
-                  `}
-                  onClick={() => setSelectedConversation(conversation)}
-                >
+              {conversationsLoading ? (
+                // Loading state
+                <div className="p-4 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500 mx-auto"></div>
+                  <p className="text-sm text-gray-500 mt-2">Carregando conversas...</p>
+                </div>
+              ) : conversationsError ? (
+                // Error state
+                <div className="p-4 text-center">
+                  <div className="text-red-500 mb-2">❌</div>
+                  <p className="text-sm text-red-600">Erro ao carregar conversas</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {conversationsError instanceof Error ? conversationsError.message : 'Erro desconhecido'}
+                  </p>
+                </div>
+              ) : filteredConversations.length === 0 ? (
+                // Empty state
+                <div className="p-8 text-center">
+                  <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 text-sm">
+                    {searchTerm ? 'Nenhuma conversa encontrada' : 'Nenhuma conversa ativa'}
+                  </p>
+                </div>
+              ) : (
+                filteredConversations.map((conversation) => (
+                  <div
+                    key={conversation._id}
+                    className={`
+                      flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors
+                      ${selectedConversation?._id === conversation._id ? 'bg-gray-100 border-r-4 border-orange-500' : ''}
+                    `}
+                    onClick={() => {
+                      setSelectedConversation(conversation);
+                    }}
+                  >
                   <div className="relative mr-3">
                     <Avatar className="h-12 w-12">
-                    <AvatarImage src={conversation.avatar} />
+                    <AvatarImage src={conversation.customer_profile_pic} />
                       <AvatarFallback className="bg-gray-300 text-gray-700">
                         {getInitials(conversation.customer_name || 'Cliente')}
                     </AvatarFallback>
                   </Avatar>
                     {/* Indicador de mensagens não lidas */}
-                    {(conversation.unreadCount || 0) > 0 && (
+                    {(conversation.unread_count || 0) > 0 && (
                       <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
-                        {conversation.unreadCount! > 9 ? '9+' : conversation.unreadCount}
+                        {conversation.unread_count! > 9 ? '9+' : conversation.unread_count}
                       </div>
                     )}
                   </div>
@@ -854,9 +631,9 @@ export default function Conversations() {
                     <div className="flex items-center justify-between mt-1">
                       <p className="text-sm text-gray-600 flex-1">
                         <span className="block truncate">
-                          {conversation.lastMessage.length > 50 
-                            ? `${conversation.lastMessage.substring(0, 50)}...` 
-                            : conversation.lastMessage
+                          {conversation.last_message?.content && conversation.last_message.content.length > 50
+                            ? `${conversation.last_message.content.substring(0, 50)}...`
+                            : conversation.last_message?.content || 'Sem mensagens'
                           }
                         </span>
                       </p>
@@ -868,24 +645,25 @@ export default function Conversations() {
                         const standardFlag = getStandardFlag(conversation);
                         const IconComponent = standardFlag.icon;
                         return (
-                      <Badge 
-                            variant="outline" 
-                        className="text-xs"
-                            style={{ 
-                              backgroundColor: `${standardFlag.color}20`, 
+                          <Badge
+                            variant="outline"
+                            className="text-xs"
+                            style={{
+                              backgroundColor: `${standardFlag.color}20`,
                               borderColor: standardFlag.color,
-                              color: standardFlag.color 
+                              color: standardFlag.color
                             }}
-                      >
+                          >
                             <IconComponent className="h-3 w-3 mr-1" />
                             {standardFlag.name}
-                      </Badge>
+                          </Badge>
                         );
                       })()}
                     </div>
                   </div>
                 </div>
-              ))}
+                ))
+              )}
           </div>
         </ScrollArea>
       </div>
@@ -939,16 +717,25 @@ export default function Conversations() {
                     ? "bg-orange-500 hover:bg-orange-600 text-white" 
                     : "border-orange-500 text-orange-600 hover:bg-orange-50"
                   }
-                    onClick={() => {
-                      // Toggle entre Manual e IA
-                      setSelectedConversation(prev => ({
-                        ...prev,
-                        assigned_user_id: prev.assigned_user_id ? null : 'current-user'
-                      }));
-                      
-                      const newMode = selectedConversation.assigned_user_id ? 'IA' : 'Manual';
+                  onClick={async () => {
+                    if (!selectedConversation) return;
+
+                    try {
+                      const newAssignedUserId = selectedConversation.assigned_user_id ? null : 'current-user';
+
+                      await assignConversationMutation.mutateAsync({
+                        id: selectedConversation.id,
+                        assigned_user_id: newAssignedUserId,
+                        reason: 'Toggle manual/IA via interface'
+                      });
+
+                      const newMode = newAssignedUserId ? 'Manual' : 'IA';
                       alert(`Conversa alterada para modo ${newMode}`);
-                    }}
+                    } catch (error) {
+                      console.error('Erro ao alterar atribuição:', error);
+                      alert('Erro ao alterar modo da conversa');
+                    }
+                  }}
                 >
                   {selectedConversation.assigned_user_id ? (
                     <>
@@ -1018,23 +805,45 @@ export default function Conversations() {
               <div className="flex-1 flex flex-col bg-gray-50">
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4">
-                    {filteredMessages.length === 0 && conversationSearchTerm ? (
+                    {messagesLoading ? (
+                      // Loading messages
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-500"></div>
+                        <span className="ml-2 text-sm text-gray-500">Carregando mensagens...</span>
+                      </div>
+                    ) : messagesError ? (
+                      // Error messages
+                      <div className="text-center py-8">
+                        <div className="text-red-500 mb-2">❌</div>
+                        <p className="text-sm text-red-600">Erro ao carregar mensagens</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {messagesError instanceof Error ? messagesError.message : 'Erro desconhecido'}
+                        </p>
+                      </div>
+                    ) : finalMessages.length === 0 ? (
+                      // Empty messages
+                      <div className="text-center py-8">
+                        <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                        <p className="text-gray-500 text-sm">Nenhuma mensagem ainda</p>
+                        <p className="text-xs text-gray-400 mt-1">Seja o primeiro a enviar uma mensagem!</p>
+                      </div>
+                    ) : filteredMessages.length === 0 && conversationSearchTerm ? (
                       <div className="text-center py-8">
                         <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                         <p className="text-gray-500">Nenhuma mensagem encontrada para "{conversationSearchTerm}"</p>
                         <p className="text-sm text-gray-400 mt-1">Tente usar outras palavras-chave</p>
                   </div>
                     ) : (
-                      filteredMessages.map((message) => (
+                      filteredMessages.map((message: any) => (
                     <div
-                      key={message.id}
+                      key={message._id}
                         className={`flex ${message.sender_type === 'customer' ? 'justify-end' : 'justify-start'}`}
                     >
                         <div className="flex items-end space-x-2 max-w-[70%]">
-                          {message.sender_type === 'bot' && (
+                          {message.sender_type !== 'customer' && (
                           <Avatar className="h-6 w-6">
                               <AvatarFallback className="bg-gray-400 text-white text-xs">
-                              AI
+                              {message.sender_type === 'bot' ? 'AI' : 'H'}
                             </AvatarFallback>
                           </Avatar>
                         )}
@@ -1052,7 +861,13 @@ export default function Conversations() {
                                 {new Date(message.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                             </span>
                               {message.sender_type === 'customer' && (
-                                <CheckCheck className="h-3 w-3 text-blue-200" />
+                                message.status === 'read' ? (
+                                  <CheckCheck className="h-3 w-3 text-blue-200" />
+                                ) : message.status === 'delivered' ? (
+                                  <CheckCheck className="h-3 w-3 text-gray-400" />
+                                ) : (
+                                  <Check className="h-3 w-3 text-gray-400" />
+                                )
                               )}
                           </div>
                         </div>
@@ -1083,12 +898,17 @@ export default function Conversations() {
                   </div>
                   
                     {newMessage.trim() ? (
-                  <Button 
+                  <Button
                     onClick={sendMessage}
+                    disabled={sendMessageMutation.isPending}
                     size="sm"
-                        className="h-8 w-8 p-0 bg-pink-500 hover:bg-pink-600"
+                        className="h-8 w-8 p-0 bg-pink-500 hover:bg-pink-600 disabled:opacity-50"
                   >
-                    <Send className="h-4 w-4" />
+                    {sendMessageMutation.isPending ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
                   </Button>
                     ) : (
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -1639,7 +1459,7 @@ export default function Conversations() {
                     const category = templateCategories.find(c => c.value === template.category);
                     return (
                       <div 
-                        key={template.id}
+                        key={template._id}
                         className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
                       >
                         <div className="flex items-start justify-between mb-2">
@@ -1678,8 +1498,8 @@ export default function Conversations() {
                         </p>
                         
                         <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>Criado em {new Date(template.createdAt).toLocaleDateString('pt-BR')}</span>
-                          <span>Usado {template.usageCount} vezes</span>
+                          <span>Criado em {new Date(template.created_at).toLocaleDateString('pt-BR')}</span>
+                          <span>Usado {template.usage_count} vezes</span>
                         </div>
                       </div>
                     );

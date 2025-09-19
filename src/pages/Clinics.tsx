@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { Building2, MapPin, Phone, Mail, Plus, Edit, Trash2, Search, Brain, Upload, Loader2, AlertTriangle, ArrowLeft } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useClinics } from "@/hooks/useApi"
 
@@ -173,7 +172,7 @@ export default function Clinics() {
       
     } catch (error) {
       console.error('Erro ao atualizar clínica:', error)
-      alert(`Erro ao atualizar clínica: ${error.message}`)
+      alert(`Erro ao atualizar clínica: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     }
   }
 
@@ -220,7 +219,7 @@ export default function Clinics() {
         
       } catch (error) {
         console.error('❌ Erro ao deletar clínica:', error)
-        alert(`Erro ao deletar clínica: ${error.message}`)
+        alert(`Erro ao deletar clínica: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
       }
     } else {
       console.log('❌ Deleção cancelada pelo usuário')
@@ -265,7 +264,7 @@ export default function Clinics() {
         <AlertTriangle className="h-8 w-8 text-destructive" />
         <div className="ml-2 text-center">
           <p className="text-destructive font-medium">Erro ao carregar clínicas</p>
-          <p className="text-sm text-muted-foreground">{clinicsError}</p>
+          <p className="text-sm text-muted-foreground">{clinicsError?.message || 'Erro desconhecido'}</p>
           <Button 
             variant="outline" 
             size="sm" 

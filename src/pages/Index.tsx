@@ -1,7 +1,6 @@
 import { Building2, Users, Calendar, FileText, MessageSquare } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Link } from "react-router-dom"
-import { ScrollArea } from "@/components/ui/scroll-area"
 
 const Index = () => {
   const modules = [

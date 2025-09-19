@@ -1,19 +1,18 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { Users as UsersIcon, Plus, Edit, Trash2, Search, Filter, Building2, Shield, Mail, Phone, Loader2, AlertTriangle, ArrowLeft } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Users as UsersIcon, Plus, Edit, Trash2, Search, Filter, Building2, Shield, Mail, Loader2, AlertTriangle, ArrowLeft } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { useUsers } from "@/hooks/useApi"
 import { useClinic as useClinicContext } from "@/contexts/ClinicContext"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "../components/ui/use-toast"
 import { userApi } from "@/services/api"
 
 interface User {
@@ -71,11 +70,6 @@ export default function Users() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase()
   }
 
-  const formatLastLogin = (lastLogin?: string) => {
-    if (!lastLogin) return "Nunca"
-    const date = new Date(lastLogin)
-    return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-  }
 
   const handleEdit = (user: User) => {
     setEditingUser(user)
@@ -90,9 +84,10 @@ export default function Users() {
       const userData = {
         name: formData.get('name') as string,
         login: formData.get('email') as string,
-        role: formData.get('role') as string,
+        password: formData.get('password') as string,
+        role: formData.get('role') as 'admin_lify' | 'suporte_lify' | 'atendente' | 'gestor' | 'administrador',
         clinic_id: selectedClinic?.id || '',
-        status: 'active'
+        status: 'active' as 'active' | 'inactive'
       }
       
       console.log('Criando usuário:', userData)
@@ -131,8 +126,8 @@ export default function Users() {
       const updateData = {
         name: formData.get('edit-name') as string,
         login: formData.get('edit-email') as string,
-        role: formData.get('edit-role') as string,
-        status: formData.get('edit-status') as string
+        role: formData.get('edit-role') as 'admin_lify' | 'suporte_lify' | 'atendente' | 'gestor' | 'administrador',
+        status: formData.get('edit-status') as 'active' | 'inactive'
       }
       
       console.log('Atualizando usuário:', editingUser.id, updateData)
@@ -156,7 +151,7 @@ export default function Users() {
       console.error('Erro ao atualizar usuário:', error)
       toast({
         title: "Erro",
-        description: `Erro ao atualizar usuário: ${error.message}`,
+        description: `Erro ao atualizar usuário: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
         variant: "destructive"
       })
     }
@@ -182,7 +177,7 @@ export default function Users() {
         console.error('Erro ao deletar usuário:', error)
         toast({
           title: "Erro",
-          description: `Erro ao deletar usuário: ${error.message}`,
+          description: `Erro ao deletar usuário: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
           variant: "destructive"
         })
       }
@@ -221,7 +216,7 @@ export default function Users() {
         <AlertTriangle className="h-8 w-8 text-destructive" />
         <div className="ml-2 text-center">
           <p className="text-destructive font-medium">Erro ao carregar usuários</p>
-          <p className="text-sm text-muted-foreground">{usersError}</p>
+          <p className="text-sm text-muted-foreground">{usersError?.message || 'Erro desconhecido'}</p>
           <Button 
             variant="outline" 
             size="sm" 
