@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
 import { 
@@ -19,6 +19,7 @@ import {
 import { MessageInputProps } from '../../types';
 import { useConversationsContext } from '../../context';
 import { AudioRecorder } from './AudioRecorder';
+import { EmojiPicker } from './EmojiPicker';
 import { useSendAudio } from '../../../../hooks/useMessages';
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -30,6 +31,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 }) => {
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [showAudioRecorder, setShowAudioRecorder] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiButtonRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   
   const {
     selectedConversation,
@@ -135,6 +139,28 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     setShowAudioRecorder(false);
   };
 
+  // Função para inserir emoji no texto
+  const handleEmojiSelect = (emoji: string) => {
+    const input = inputRef.current;
+    if (!input) {
+      onChange(value + emoji);
+      return;
+    }
+
+    const start = input.selectionStart || 0;
+    const end = input.selectionEnd || 0;
+    const newValue = value.slice(0, start) + emoji + value.slice(end);
+    
+    onChange(newValue);
+    
+    // Restaurar posição do cursor após o emoji
+    setTimeout(() => {
+      const newCursorPos = start + emoji.length;
+      input.setSelectionRange(newCursorPos, newCursorPos);
+      input.focus();
+    }, 0);
+  };
+
   return (
     <div className="bg-white border-t border-gray-200 p-4 relative">
       {/* Menu flutuante do botão "+" */}
@@ -219,9 +245,11 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
             {/* Emoji */}
             <Button
+              ref={emojiButtonRef}
               variant="ghost"
               size="sm"
-              className="p-1 text-gray-700 hover:text-gray-900 h-7 w-7"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className={`p-1 h-7 w-7 ${showEmojiPicker ? 'text-green-600 bg-green-50' : 'text-gray-700 hover:text-gray-900'}`}
               title="Emoji"
             >
               <Smile className="h-4 w-4" />
@@ -230,6 +258,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
           {/* Campo de texto */}
           <Input
+            ref={inputRef}
             placeholder="Digite uma mensagem"
             value={value}
             onChange={(e) => onChange(e.target.value)}
@@ -269,6 +298,14 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           </div>
         </div>
       )}
+
+      {/* EmojiPicker */}
+      <EmojiPicker
+        isOpen={showEmojiPicker}
+        onClose={() => setShowEmojiPicker(false)}
+        onEmojiSelect={handleEmojiSelect}
+        anchorRef={emojiButtonRef}
+      />
     </div>
   );
 };
