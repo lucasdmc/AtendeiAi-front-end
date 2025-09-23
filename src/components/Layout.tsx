@@ -2,10 +2,10 @@ import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Home, 
+  BarChart3,
   MessageSquare, 
   Calendar,
   CalendarCheck, 
-  Users, 
   Settings,
   Menu,
   X,
@@ -18,7 +18,8 @@ interface LayoutProps {
 }
 
 const menuItems = [
-  { path: '/', icon: Home, label: 'Dashboard', description: 'Visão geral do sistema' },
+  { path: '/', icon: Home, label: 'Início', description: 'Página inicial' },
+  { path: '/dashboard', icon: BarChart3, label: 'Dashboard', description: 'Métricas e analytics' },
   { path: '/conversations', icon: MessageSquare, label: 'Conversas', description: 'Chat e atendimento' },
   { path: '/appointments', icon: CalendarCheck, label: 'Agendamentos', description: 'Consultas e compromissos' },
   { path: '/agenda', icon: Calendar, label: 'Agenda', description: 'Calendário completo' },

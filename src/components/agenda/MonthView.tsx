@@ -20,7 +20,7 @@ interface MonthViewProps {
   onDayClick: (date: Date) => void;
 }
 
-const MonthView: React.FC<MonthViewProps> = ({ monthData, currentDate, onDayClick }) => {
+const MonthView: React.FC<MonthViewProps> = ({ monthData, onDayClick }) => {
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   const today = new Date();
   today.setHours(0, 0, 0, 0);

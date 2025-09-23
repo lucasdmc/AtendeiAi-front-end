@@ -3,12 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import {
   Search,
   User,
-  MessageCircle,
-  Bell,
-  Keyboard,
-  HelpCircle,
+  Users,
+  Building2,
+  Shield,
   LogOut,
-  Lock,
   Radio
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -35,40 +33,28 @@ export default function Settings() {
       href: '/settings/channels'
     },
     {
+      icon: Users,
+      title: 'Atendentes',
+      subtitle: 'Gerenciar equipe de atendimento, permissões',
+      href: '/settings/attendants'
+    },
+    {
       icon: User,
-      title: 'Conta',
-      subtitle: 'Notificações de segurança, dados da conta',
-      href: '/settings/account'
+      title: 'Contatos',
+      subtitle: 'Gerenciar contatos, importação e exportação',
+      href: '/settings/contacts'
     },
     {
-      icon: Lock,
-      title: 'Privacidade',
-      subtitle: 'Contatos bloqueados, mensagens temporárias',
-      href: '/settings/privacy'
+      icon: Building2,
+      title: 'Departamentos',
+      subtitle: 'Organizar atendimento por setores e especialidades',
+      href: '/settings/departments'
     },
     {
-      icon: MessageCircle,
-      title: 'Conversas',
-      subtitle: 'Tema, papel de parede, configurações de conversas',
-      href: '/settings/chats'
-    },
-    {
-      icon: Bell,
-      title: 'Notificações',
-      subtitle: 'Notificações de mensagens',
-      href: '/settings/notifications'
-    },
-    {
-      icon: Keyboard,
-      title: 'Atalhos do teclado',
-      subtitle: 'Ações rápidas do teclado',
-      href: '/settings/keyboard'
-    },
-    {
-      icon: HelpCircle,
-      title: 'Ajuda',
-      subtitle: 'Central de Ajuda, fale conosco, Política de Privacidade',
-      href: '/settings/help'
+      icon: Shield,
+      title: 'Prestadores de serviço',
+      subtitle: 'Parceiros e provedores externos',
+      href: '/settings/service-providers'
     }
   ];
 
@@ -103,7 +89,10 @@ export default function Settings() {
 
         {/* Perfil do usuário */}
         <div className="px-6 py-4">
-          <div className="flex items-center space-x-4 cursor-pointer hover:bg-gray-50 -mx-6 px-6 py-2 rounded-lg transition-colors">
+          <div
+            className="flex items-center space-x-4 cursor-pointer hover:bg-gray-50 -mx-6 px-6 py-2 rounded-lg transition-colors"
+            onClick={() => navigate('/profile')}
+          >
             <Avatar className="h-16 w-16">
               <AvatarImage src={userProfile.avatar} alt={userProfile.name} />
               <AvatarFallback className="bg-gray-300 text-gray-700 text-lg font-medium">
@@ -151,16 +140,16 @@ export default function Settings() {
             })}
           </div>
 
-          {/* Linha separadora entre menu e desconectar */}
-          <div className="mx-6 border-t border-gray-200"></div>
-
           {/* Botão de desconectar */}
-          <div className="px-6 py-3">
-            <button className="flex items-center space-x-4 w-full text-left hover:bg-gray-50 -mx-6 px-6 py-2 rounded-lg transition-colors">
-              <LogOut className="h-5 w-5 text-red-500" />
-              <span className="font-medium text-red-500">Desconectar</span>
-            </button>
-          </div>
+        <div className="px-6 py-3">
+          <button className="flex items-center space-x-4 w-full text-left hover:bg-gray-50 -mx-6 px-6 py-2 rounded-lg transition-colors">
+            <LogOut className="h-5 w-5 text-red-500" />
+            <span className="font-medium text-red-500">Desconectar</span>
+          </button>
+        </div>
+
+        {/* Linha separadora após desconectar */}
+        <div className="mx-6 border-t border-gray-200"></div>
         </div>
       </div>
 

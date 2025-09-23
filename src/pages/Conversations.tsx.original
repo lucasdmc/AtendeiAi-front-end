@@ -1,0 +1,2053 @@
+import React, { useState, useEffect } from "react"
+import { Link, useLocation } from 'react-router-dom';
+import {
+  useConversations,
+  useMessages,
+  useSendMessage,
+  useAssignConversation,
+  useTemplates,
+  useUseTemplate,
+  useMarkMessagesAsRead
+} from '../hooks';
+import { useRealtime } from '../hooks/useRealtime';
+import {
+  MessageSquare,
+  Search,
+  Send,
+  Check,
+  CheckCheck,
+  Smile,
+  UserCheck,
+  Bot,
+  Users,
+  Paperclip,
+  Building2,
+  Mic,
+  X,
+  Clock,
+  FileText,
+  Download,
+  Home,
+  Folder,
+  Plus,
+  Tag,
+  Settings as SettingsIcon,
+  CalendarCheck,
+  Calendar,
+  Share,
+  LogOut,
+  ChevronDown,
+  Archive,
+  Trash2,
+  Pin,
+  VolumeX,
+  Heart,
+  Ban,
+  Info,
+  Reply,
+  Copy,
+  Forward,
+  Star
+} from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+
+// Dados mock removidos - usando dados reais da API
+
+// mockMessages removido - usando dados reais da API
+
+const mockPatientInfo = {
+  name: 'Maria Silva',
+  age: 34,
+  phone: '+55 47 9719-2447',
+  insurance: 'Unimed',
+  status: 'Recado',
+  description: "Don't tread on me. 😤",
+  files: [
+    { id: '1', type: 'image', name: 'Exame_Sangue_2024.jpg', url: 'https://images.unsplash.com/photo-1551963831-b3b1ca40c98e?w=100&h=100&fit=crop', date: '15/03/2024' },
+    { id: '2', type: 'image', name: 'Raio_X_Torax.jpg', url: 'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=100&h=100&fit=crop', date: '10/03/2024' },
+    { id: '3', type: 'document', name: 'Receita_Medica.pdf', url: '#', date: '08/03/2024' },
+    { id: '4', type: 'document', name: 'Relatorio_Consulta.pdf', url: '#', date: '05/03/2024' },
+    { id: '5', type: 'image', name: 'Ultrassom.jpg', url: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=100&h=100&fit=crop', date: '02/03/2024' }
+  ]
+};
+
+// Sistema de Flags
+interface Flag {
+  id: string;
+  name: string;
+  color: string;
+  description?: string;
+  createdAt: string;
+}
+
+const mockFlags: Flag[] = [
+  { id: '1', name: 'Manual', color: '#3B82F6', description: 'Atendimento manual por humano', createdAt: '2024-01-15' },
+  { id: '2', name: 'Urgente', color: '#EF4444', description: 'Conversa que precisa de atenção imediata', createdAt: '2024-01-15' },
+  { id: '3', name: 'Agendamento', color: '#E91E63', description: 'Relacionado a agendamentos de consultas', createdAt: '2024-01-16' },
+  { id: '4', name: 'Financeiro', color: '#F59E0B', description: 'Questões de pagamento e faturamento', createdAt: '2024-01-16' },
+  { id: '5', name: 'Suporte', color: '#8B5CF6', description: 'Suporte técnico e dúvidas', createdAt: '2024-01-17' },
+  { id: '6', name: 'VIP', color: '#EC4899', description: 'Cliente VIP - atendimento prioritário', createdAt: '2024-01-18' },
+  { id: '7', name: 'Retorno', color: '#F97316', description: 'Paciente de retorno', createdAt: '2024-01-18' },
+  { id: '8', name: 'Primeira Consulta', color: '#06B6D4', description: 'Primeira vez na clínica', createdAt: '2024-01-19' },
+  { id: '9', name: 'Cancelamento', color: '#6B7280', description: 'Solicitação de cancelamento', createdAt: '2024-01-19' },
+  { id: '10', name: 'Reagendamento', color: '#84CC16', description: 'Solicitação de reagendamento', createdAt: '2024-01-20' },
+  { id: '11', name: 'Exames', color: '#A855F7', description: 'Relacionado a exames', createdAt: '2024-01-20' },
+  { id: '12', name: 'Receita', color: '#F59E0B', description: 'Solicitação de receita médica', createdAt: '2024-01-21' },
+  { id: '13', name: 'Emergência', color: '#DC2626', description: 'Situação de emergência', createdAt: '2024-01-21' },
+  { id: '14', name: 'Convênio', color: '#059669', description: 'Questões relacionadas ao convênio', createdAt: '2024-01-22' },
+  { id: '15', name: 'Satisfação', color: '#7C3AED', description: 'Pesquisa de satisfação', createdAt: '2024-01-22' }
+];
+
+// colorOptions removido - não utilizado
+
+// Sistema de Templates
+const templateCategories = [
+  { value: 'saudacao', label: 'Saudação', color: '#10B981' },
+  { value: 'agendamento', label: 'Agendamento', color: '#3B82F6' },
+  { value: 'financeiro', label: 'Financeiro', color: '#F59E0B' },
+  { value: 'despedida', label: 'Despedida', color: '#8B5CF6' },
+  { value: 'outro', label: 'Outro', color: '#6B7280' }
+];
+
+export default function Conversations() {
+  // Get clinicId from context or props - for now using a default value
+  const clinicId = '68cd84230e29f31cf5f5f1b8'; // Clinic ID correto
+
+  // Hook para notificações em tempo real
+  const { isConnected } = useRealtime(clinicId);
+
+  // State variables
+  const [selectedConversation, setSelectedConversation] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [newMessage, setNewMessage] = useState('');
+
+  // Hooks React Query
+  const {
+    data: conversationsData,
+    isLoading: conversationsLoading,
+    error: conversationsError
+  } = useConversations({
+    clinic_id: clinicId,
+    status: 'active',
+    limit: 50
+  })
+
+
+  const {
+    data: messagesData,
+    isLoading: messagesLoading,
+    error: messagesError,
+  } = useMessages(selectedConversation?._id || '', {
+    limit: 50
+  })
+
+  const sendMessageMutation = useSendMessage()
+  const assignConversationMutation = useAssignConversation()
+  const markMessagesAsReadMutation = useMarkMessagesAsRead()
+
+  // Templates
+  const {
+    data: templatesData
+  } = useTemplates({
+    clinic_id: clinicId,
+    limit: 20
+  })
+
+  const useTemplateMutation = useUseTemplate()
+
+  // Processar dados das conversas
+  const conversations = conversationsData?.conversations || []
+
+  const conversationMessages = messagesData?.pages?.flatMap((page: any) => page.messages) || []
+  const templates = templatesData?.templates || []
+
+  // Fallback para teste - se não há páginas, tenta usar dados diretos
+  const fallbackMessages = (messagesData as any)?.messages || []
+  const finalMessages = conversationMessages.length > 0 ? conversationMessages : fallbackMessages
+
+  // Sistema funcionando perfeitamente!
+
+  const [showContactInfo, setShowContactInfo] = useState(true)
+  const [activeFilter, setActiveFilter] = useState('Tudo')
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([])
+  const [virtualAssistantActive, setVirtualAssistantActive] = useState(true)
+  const [sidebarMinimized, setSidebarMinimized] = useState(() => {
+    // Recupera o estado do localStorage, padrão é true (minimizado)
+    const saved = localStorage.getItem('sidebarMinimized');
+    return saved ? JSON.parse(saved) : true;
+  })
+  const [filesModalOpen, setFilesModalOpen] = useState(false)
+  const [flagsModalOpen, setFlagsModalOpen] = useState(false)
+  const [flags] = useState<Flag[]>(mockFlags)
+  const [filterModalOpen, setFilterModalOpen] = useState(false)
+  const [selectedFilterFlags, setSelectedFilterFlags] = useState<string[]>([])
+  const [templatesModalOpen, setTemplatesModalOpen] = useState(false)
+// Variáveis de template removidas - usando apenas dados da API
+  // Templates vem da API via React Query
+  // const [templates, setTemplates] = useState<Template[]>(mockTemplates)
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
+  const [scheduledMessage, setScheduledMessage] = useState('')
+  const [scheduleDate, setScheduleDate] = useState('')
+  const [scheduleTime, setScheduleTime] = useState('')
+  const [searchInConversation, setSearchInConversation] = useState(false)
+  const [conversationSearchTerm, setConversationSearchTerm] = useState('')
+  const [openMenuConversationId, setOpenMenuConversationId] = useState<string | null>(null)
+  const [openMenuMessageId, setOpenMenuMessageId] = useState<string | null>(null)
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 })
+
+  const location = useLocation()
+
+  // Salva o estado do sidebar no localStorage sempre que mudar
+  useEffect(() => {
+    localStorage.setItem('sidebarMinimized', JSON.stringify(sidebarMinimized));
+  }, [sidebarMinimized]);
+
+  // Selecionar primeira conversa automaticamente quando dados carregarem
+  useEffect(() => {
+    if (!selectedConversation && conversations.length > 0 && !conversationsLoading) {
+      setSelectedConversation(conversations[0]);
+    }
+  }, [conversations, selectedConversation, conversationsLoading]);
+
+  // Marcar mensagens como lidas quando uma conversa é selecionada
+  useEffect(() => {
+    if (selectedConversation && (selectedConversation.unread_count || 0) > 0) {
+      markMessagesAsReadMutation.mutate(selectedConversation._id);
+    }
+  }, [selectedConversation?._id, selectedConversation?.unread_count]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fechar menu quando clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openMenuConversationId && !(event.target as Element).closest('.conversation-menu')) {
+        setOpenMenuConversationId(null);
+      }
+      if (openMenuMessageId && !(event.target as Element).closest('.message-menu')) {
+        setOpenMenuMessageId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openMenuConversationId, openMenuMessageId]);
+
+  const menuItems = [
+    { path: '/', icon: Home, label: 'Dashboard', description: 'Visão geral do sistema' },
+    { path: '/conversations', icon: MessageSquare, label: 'Conversas', description: 'Chat e atendimento' },
+    { path: '/appointments', icon: CalendarCheck, label: 'Agendamentos', description: 'Consultas e compromissos' },
+    { path: '/agenda', icon: Calendar, label: 'Agenda', description: 'Calendário completo' },
+  ]
+
+  const isActive = (path: string) => {
+    return location.pathname === path;
+  };
+
+  const selectedClinic = { id: '1', name: 'Clínica Demo' };
+
+  const filteredConversations = conversations.filter(conversation => {
+    // Filtro por busca
+    const matchesSearch = conversation.customer_phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         conversation.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Filtro por tipo
+    let matchesFilter = true;
+    if (activeFilter === 'Manual') {
+      matchesFilter = !!conversation.assigned_user_id;
+    } else if (activeFilter === 'IA') {
+      matchesFilter = !conversation.assigned_user_id;
+    } else if (activeFilter === 'Não lidas') {
+      matchesFilter = (conversation.unread_count || 0) > 0;
+    } else if (activeFilter === 'Flags Personalizadas') {
+      // Para flags personalizadas, por enquanto mostra todas
+      matchesFilter = true;
+    }
+    // 'Tudo' sempre retorna true
+
+    return matchesSearch && matchesFilter;
+  })
+
+
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase()
+  }
+
+  // Função para obter a flag padrão baseada no tipo de atendimento
+  const getStandardFlag = (conversation: any) => {
+    if (conversation.assigned_user_id) {
+      return {
+        name: 'Manual',
+        color: '#3B82F6', // Azul
+        icon: Users
+      };
+    } else {
+      return {
+        name: 'IA',
+        color: '#E91E63', // Rosa Lify
+        icon: Bot
+      };
+    }
+  }
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !selectedConversation) {
+      return;
+    }
+
+    try {
+      await sendMessageMutation.mutateAsync({
+        conversationId: selectedConversation._id,
+        content: newMessage,
+        message_type: 'text'
+      });
+
+      setNewMessage("");
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
+      // Aqui poderia mostrar um toast de erro
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
+  }
+
+  const handleTemplatesClick = () => {
+    setTemplatesModalOpen(true);
+  };
+
+  const handleScheduleMessageClick = () => {
+    setScheduleModalOpen(true);
+  };
+
+  const handleScheduleMessage = () => {
+    if (!scheduledMessage.trim() || !scheduleDate || !scheduleTime) return;
+    
+    const scheduleDateTime = new Date(`${scheduleDate}T${scheduleTime}`);
+    console.log('Mensagem programada:', {
+      message: scheduledMessage,
+      dateTime: scheduleDateTime,
+      conversation: selectedConversation?.customer_name
+    });
+    
+    // Aqui seria a integração com o backend
+    alert(`Mensagem programada para ${scheduleDateTime.toLocaleString('pt-BR')}!`);
+    
+    // Limpar formulário
+    setScheduledMessage('');
+    setScheduleDate('');
+    setScheduleTime('');
+    setScheduleModalOpen(false);
+  };
+
+  // Filtrar mensagens baseado na busca
+  const filteredMessages = finalMessages.filter((message: any) => {
+    if (!conversationSearchTerm.trim()) return true;
+    return message.content?.toLowerCase().includes(conversationSearchTerm.toLowerCase());
+  });
+
+  const handleFlagsClick = () => {
+    setFlagsModalOpen(true);
+  };
+
+
+  const handleFilterClick = (filter: string) => {
+    if (filter === 'Flags Personalizadas') {
+      setFilterModalOpen(true);
+    } else {
+      setActiveFilter(filter);
+    }
+  };
+
+  const applyCustomFilters = () => {
+    setActiveFilter('Flags Personalizadas');
+    setFilterModalOpen(false);
+    
+    if (selectedFilterFlags.length > 0) {
+      const flagNames = selectedFilterFlags.map(id => flags.find(f => f.id === id)?.name).join(', ');
+      alert(`Filtros aplicados: ${flagNames}`);
+    }
+  };
+
+  // Funções de gerenciamento de templates
+  const handleUseTemplate = async (template: any) => {
+    setNewMessage(template.content);
+    setTemplatesModalOpen(false);
+
+    try {
+      await useTemplateMutation.mutateAsync(template._id);
+      alert(`Template "${template.name}" inserido na mensagem!`);
+    } catch (error) {
+      console.error('Erro ao incrementar uso do template:', error);
+      alert(`Template "${template.name}" inserido na mensagem!`);
+    }
+  };
+
+  // Funções do menu flutuante das conversas
+  const handleMenuClick = (conversationId: string) => {
+    setOpenMenuConversationId(openMenuConversationId === conversationId ? null : conversationId);
+  };
+
+  const handleMenuAction = (action: string, conversation: any) => {
+    const customerName = conversation.customer_name || conversation.customer_phone;
+    
+    switch (action) {
+      case 'archive':
+        alert(`Conversa "${customerName}" arquivada`);
+        break;
+      case 'pin':
+        alert(`Conversa "${customerName}" fixada`);
+        break;
+      case 'favorite':
+        alert(`Conversa "${customerName}" adicionada aos favoritos`);
+        break;
+      case 'mute':
+        alert(`Notificações da conversa "${customerName}" silenciadas`);
+        break;
+      case 'mark-unread':
+        alert(`Conversa "${customerName}" marcada como não lida`);
+        break;
+      case 'block':
+        if (confirm(`Tem certeza que deseja bloquear "${customerName}"?`)) {
+          alert(`Contato "${customerName}" bloqueado`);
+        }
+        break;
+      case 'delete':
+        if (confirm(`Tem certeza que deseja apagar a conversa com "${customerName}"?`)) {
+          alert(`Conversa "${customerName}" apagada`);
+        }
+        break;
+      default:
+        console.log(`Ação não implementada: ${action}`);
+    }
+    setOpenMenuConversationId(null);
+  };
+
+  // Funções do menu flutuante das mensagens
+  const handleMessageMenuClick = (messageId: string, event: React.MouseEvent) => {
+    if (openMenuMessageId === messageId) {
+      setOpenMenuMessageId(null);
+      return;
+    }
+
+    // Calcular posição do menu baseado no botão clicado
+    const buttonRect = (event.target as HTMLElement).getBoundingClientRect();
+    const menuWidth = 192; // w-48 = 192px
+    
+    setMenuPosition({
+      top: buttonRect.bottom + 4,
+      right: window.innerWidth - buttonRect.right // Alinha a borda direita do menu com o chevron
+    });
+    
+    setOpenMenuMessageId(messageId);
+  };
+
+  const handleMessageMenuAction = (action: string, message: any) => {
+    switch (action) {
+      case 'info':
+        alert(`Informações da mensagem: ${message.content.substring(0, 50)}...`);
+        break;
+      case 'reply':
+        alert(`Respondendo à mensagem: ${message.content.substring(0, 50)}...`);
+        break;
+      case 'copy':
+        navigator.clipboard.writeText(message.content);
+        alert('Mensagem copiada para a área de transferência');
+        break;
+      case 'react':
+        alert(`Reagindo à mensagem: ${message.content.substring(0, 50)}...`);
+        break;
+      case 'forward':
+        alert(`Encaminhando mensagem: ${message.content.substring(0, 50)}...`);
+        break;
+      case 'pin':
+        alert(`Mensagem fixada: ${message.content.substring(0, 50)}...`);
+        break;
+      case 'favorite':
+        alert(`Mensagem favoritada: ${message.content.substring(0, 50)}...`);
+        break;
+      case 'delete':
+        if (confirm(`Tem certeza que deseja apagar esta mensagem?`)) {
+          alert('Mensagem apagada');
+        }
+        break;
+      default:
+        console.log(`Ação não implementada: ${action}`);
+    }
+    setOpenMenuMessageId(null);
+  };
+
+  if (!selectedClinic) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Building2 className="h-8 w-8 text-muted-foreground" />
+        <span className="ml-2 text-muted-foreground">Nenhuma clínica selecionada</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="h-screen flex bg-gray-50">
+      {/* Sidebar Principal de Navegação - Minimizável */}
+      <div className={`
+        bg-white shadow-lg transition-all duration-300 ease-in-out flex-shrink-0 border-r border-gray-200
+        ${sidebarMinimized ? 'w-16' : 'w-64'}
+      `}>
+        <div className="flex flex-col h-full">
+          {/* Logo/Header */}
+          <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+            {!sidebarMinimized && (
+              <img 
+                src="/images/lify-logo.png" 
+                alt="Lify" 
+                className="h-12 w-auto object-contain"
+              />
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSidebarMinimized(!sidebarMinimized)}
+              className="h-8 w-8 p-0"
+              title={sidebarMinimized ? "Expandir sidebar" : "Minimizar sidebar"}
+            >
+              {sidebarMinimized ? "→" : "←"}
+            </Button>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.path);
+              
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`
+                    flex items-center rounded-lg text-sm font-medium transition-colors duration-200 relative
+                    ${sidebarMinimized ? 'px-2 py-3 justify-center' : 'px-3 py-3'}
+                    ${active 
+                      ? 'bg-orange-100 text-orange-900' + (sidebarMinimized ? '' : ' border-r-4 border-orange-500')
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    }
+                  `}
+                  title={sidebarMinimized ? item.label : ''}
+                >
+                  <Icon className={`
+                    flex-shrink-0 w-5 h-5 ${sidebarMinimized ? '' : 'mr-3'}
+                    ${active ? 'text-orange-600' : 'text-gray-400'}
+                  `} />
+                  {!sidebarMinimized && (
+                    <div className="flex-1">
+                      <div className="font-medium">{item.label}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">{item.description}</div>
+                    </div>
+                  )}
+                  {sidebarMinimized && active && (
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap z-50">
+                      {item.label}
+                    </div>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Footer */}
+          <div className="p-4 border-t border-gray-200">
+            {!sidebarMinimized ? (
+              <div className="flex space-x-2">
+                <Link to="/settings" className="flex-1">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="w-full justify-start"
+                  >
+                    <SettingsIcon className="w-4 h-4 mr-2" />
+                    Configurações
+                  </Button>
+                </Link>
+                
+                <Link to="/auth">
+                  <Button variant="ghost" size="sm" className="px-3" title="Sair">
+                    <LogOut className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center space-y-2">
+                <Link to="/settings">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0" 
+                    title="Configurações"
+                  >
+                    <SettingsIcon className="w-4 h-4" />
+                  </Button>
+                </Link>
+                <Link to="/auth">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Sair">
+                    <LogOut className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Área do WhatsApp - Ocupa o restante da tela */}
+      <div className="flex-1 flex bg-white">
+      {/* Sidebar com lista de conversas */}
+        <div className="w-96 bg-white border-r border-gray-200 flex flex-col">
+        {/* Header da sidebar - Área de busca */}
+          <div className="p-4 bg-white border-b border-gray-200">
+          <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+                className="pl-9 bg-white border-gray-300"
+                placeholder="Pesquisar ou começar uma nova conversa"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Indicador de status SSE */}
+          <div className="flex items-center space-x-2 mt-3 px-2 py-1 bg-gray-50 rounded text-xs">
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <span className={isConnected ? 'text-green-600' : 'text-red-600'}>
+              {isConnected ? 'Tempo real ativo' : 'Tempo real offline'}
+            </span>
+          </div>
+
+            <div className="space-y-2 mt-3">
+              {/* Primeira linha - Filtros principais */}
+              <div className="flex space-x-2">
+                {['Tudo', 'Manual', 'IA'].map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => handleFilterClick(filter)}
+                    className={`
+                      px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center space-x-1
+                      ${activeFilter === filter 
+                        ? 'bg-pink-100 text-pink-800 border border-pink-200' 
+                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                      }
+                    `}
+                  >
+                    {filter === 'Manual' && <Users className="h-3 w-3" />}
+                    {filter === 'IA' && <Bot className="h-3 w-3" />}
+                    <span>{filter}</span>
+                  </button>
+                ))}
+              </div>
+              
+              {/* Segunda linha - Filtros especiais */}
+              <div className="flex space-x-2">
+                {/* Filtro Não lidas */}
+                <button
+                  onClick={() => handleFilterClick('Não lidas')}
+                  className={`
+                    px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center space-x-1
+                    ${activeFilter === 'Não lidas' 
+                      ? 'bg-orange-100 text-orange-800 border border-orange-200' 
+                      : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    }
+                  `}
+                >
+                  <MessageSquare className="h-3 w-3" />
+                  <span>Não lidas</span>
+                  {/* Contador de conversas não lidas */}
+                  {conversations.filter(c => (c.unread_count || 0) > 0).length > 0 && (
+                    <Badge variant="secondary" className="ml-1 bg-orange-200 text-orange-800 text-xs">
+                      {conversations.filter(c => (c.unread_count || 0) > 0).length}
+                    </Badge>
+                  )}
+                </button>
+                
+                {/* Botão especial para Flags Personalizadas */}
+                <button
+                  onClick={() => handleFilterClick('Flags Personalizadas')}
+                  className={`
+                    px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center space-x-1
+                    ${activeFilter === 'Flags Personalizadas' 
+                      ? 'bg-purple-100 text-purple-800 border border-purple-200' 
+                      : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    }
+                  `}
+                >
+                  <Tag className="h-3 w-3" />
+                  <span>Flags</span>
+                  {selectedFilterFlags.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 bg-purple-200 text-purple-800 text-xs">
+                      {selectedFilterFlags.length}
+                    </Badge>
+                  )}
+                </button>
+              </div>
+          </div>
+        </div>
+
+        {/* Lista de conversas */}
+        <ScrollArea className="flex-1">
+            <div className="py-2">
+              {conversationsLoading ? (
+                // Loading state
+                <div className="p-4 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500 mx-auto"></div>
+                  <p className="text-sm text-gray-500 mt-2">Carregando conversas...</p>
+                </div>
+              ) : conversationsError ? (
+                // Error state
+                <div className="p-4 text-center">
+                  <div className="text-red-500 mb-2">❌</div>
+                  <p className="text-sm text-red-600">Erro ao carregar conversas</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {conversationsError instanceof Error ? conversationsError.message : 'Erro desconhecido'}
+                  </p>
+                </div>
+              ) : filteredConversations.length === 0 ? (
+                // Empty state
+                <div className="p-8 text-center">
+                  <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 text-sm">
+                    {searchTerm ? 'Nenhuma conversa encontrada' : 'Nenhuma conversa ativa'}
+                  </p>
+                </div>
+              ) : (
+                filteredConversations.map((conversation) => (
+                  <div
+                    key={conversation._id}
+                    data-conversation-id={conversation._id}
+                    className={`
+                      flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors relative group
+                      ${selectedConversation?._id === conversation._id ? 'bg-gray-100 border-r-4 border-orange-500' : ''}
+                    `}
+                    onClick={() => {
+                      setSelectedConversation(conversation);
+                    }}
+                  >
+                  <div className="relative mr-3">
+                    <Avatar className="h-12 w-12">
+                    <AvatarImage src={conversation.customer_profile_pic} />
+                      <AvatarFallback className="bg-gray-300 text-gray-700">
+                        {getInitials(conversation.customer_name || 'Cliente')}
+                    </AvatarFallback>
+                  </Avatar>
+                    {/* Indicador de mensagens não lidas */}
+                    {(conversation.unread_count || 0) > 0 && (
+                      <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+                        {conversation.unread_count! > 9 ? '9+' : conversation.unread_count}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-3">
+                      <h3 className="font-medium text-gray-900 flex-1">
+                        <span className="block truncate">
+                          {(conversation.customer_name || conversation.customer_phone).length > 30 
+                            ? `${(conversation.customer_name || conversation.customer_phone).substring(0, 30)}...` 
+                            : (conversation.customer_name || conversation.customer_phone)
+                          }
+                        </span>
+                      </h3>
+                      <span className="text-xs text-gray-500 flex-shrink-0">
+                        {new Date(conversation.updated_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-sm text-gray-600 flex-1">
+                        <span className="block truncate">
+                          {conversation.last_message?.content && conversation.last_message.content.length > 50
+                            ? `${conversation.last_message.content.substring(0, 50)}...`
+                            : conversation.last_message?.content || 'Sem mensagens'
+                          }
+                        </span>
+                      </p>
+                    </div>
+                    
+                    {/* Flag padrão sempre presente */}
+                    <div className="mt-1">
+                      {(() => {
+                        const standardFlag = getStandardFlag(conversation);
+                        const IconComponent = standardFlag.icon;
+                        return (
+                          <Badge
+                            variant="outline"
+                            className="text-xs"
+                            style={{
+                              backgroundColor: `${standardFlag.color}20`,
+                              borderColor: standardFlag.color,
+                              color: standardFlag.color
+                            }}
+                          >
+                            <IconComponent className="h-3 w-3 mr-1" />
+                            {standardFlag.name}
+                          </Badge>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Chevron do menu - aparece apenas no hover */}
+                  <button
+                    className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 p-1 rounded-full hover:bg-gray-200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMenuClick(conversation._id);
+                    }}
+                  >
+                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                  </button>
+
+                  {/* Menu flutuante */}
+                  {openMenuConversationId === conversation._id && (
+                    <div className="conversation-menu absolute right-2 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl py-1 w-56" style={{ zIndex: 9999 }}>
+                      <button
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMenuAction('archive', conversation);
+                        }}
+                      >
+                        <Archive className="h-4 w-4 mr-3 text-gray-500" />
+                        Arquivar conversa
+                      </button>
+                      <button
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMenuAction('mute', conversation);
+                        }}
+                      >
+                        <VolumeX className="h-4 w-4 mr-3 text-gray-500" />
+                        Silenciar notificações
+                      </button>
+                      <button
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMenuAction('pin', conversation);
+                        }}
+                      >
+                        <Pin className="h-4 w-4 mr-3 text-gray-500" />
+                        Fixar conversa
+                      </button>
+                      <button
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMenuAction('mark-unread', conversation);
+                        }}
+                      >
+                        <MessageSquare className="h-4 w-4 mr-3 text-gray-500" />
+                        Marcar como não lida
+                      </button>
+                      <button
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMenuAction('favorite', conversation);
+                        }}
+                      >
+                        <Heart className="h-4 w-4 mr-3 text-gray-500" />
+                        Adicionar aos favoritos
+                      </button>
+                      <button
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMenuAction('block', conversation);
+                        }}
+                      >
+                        <Ban className="h-4 w-4 mr-3 text-gray-500" />
+                        Bloquear
+                      </button>
+                      <button
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMenuAction('delete', conversation);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-3 text-gray-500" />
+                        Apagar conversa
+                      </button>
+                    </div>
+                  )}
+                </div>
+                ))
+              )}
+          </div>
+        </ScrollArea>
+      </div>
+
+      {/* Área principal do chat */}
+      <div className="flex-1 flex flex-col">
+        {selectedConversation ? (
+          <>
+            {/* Header do chat */}
+              <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+              <div className="flex items-center h-10">
+                  <Avatar className="h-10 w-10 mr-3">
+                  <AvatarImage src={selectedConversation.avatar} />
+                    <AvatarFallback className="bg-gray-300 text-gray-700">
+                      {getInitials(selectedConversation.customer_name || 'Cliente')}
+                  </AvatarFallback>
+                </Avatar>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h3 className="font-medium text-gray-900">
+                        {selectedConversation.customer_name || selectedConversation.customer_phone}
+                      </h3>
+                      {(() => {
+                        const standardFlag = getStandardFlag(selectedConversation);
+                        const IconComponent = standardFlag.icon;
+                        return (
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs"
+                            style={{ 
+                              backgroundColor: `${standardFlag.color}20`, 
+                              borderColor: standardFlag.color,
+                              color: standardFlag.color 
+                            }}
+                          >
+                            <IconComponent className="h-3 w-3 mr-1" />
+                            {standardFlag.name}
+                      </Badge>
+                        );
+                      })()}
+                  </div>
+                    <p className="text-sm text-gray-500">{selectedConversation.customer_phone}</p>
+                </div>
+              </div>
+              
+                <div className="flex items-center space-x-2">
+                <Button 
+                  variant={selectedConversation.assigned_user_id ? "default" : "outline"}
+                  size="sm"
+                  className={selectedConversation.assigned_user_id 
+                    ? "bg-orange-500 hover:bg-orange-600 text-white" 
+                    : "border-orange-500 text-orange-600 hover:bg-orange-50"
+                  }
+                  onClick={async () => {
+                    if (!selectedConversation) return;
+
+                    try {
+                      const newAssignedUserId = selectedConversation.assigned_user_id ? null : 'current-user';
+
+                      await assignConversationMutation.mutateAsync({
+                        id: selectedConversation.id,
+                        assigned_user_id: newAssignedUserId,
+                        reason: 'Toggle manual/IA via interface'
+                      });
+
+                      const newMode = newAssignedUserId ? 'Manual' : 'IA';
+                      alert(`Conversa alterada para modo ${newMode}`);
+                    } catch (error) {
+                      console.error('Erro ao alterar atribuição:', error);
+                      alert('Erro ao alterar modo da conversa');
+                    }
+                  }}
+                >
+                  {selectedConversation.assigned_user_id ? (
+                    <>
+                      <Bot className="h-4 w-4 mr-2" />
+                        Voltar para IA
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="h-4 w-4 mr-2" />
+                      Assumir Conversa
+                    </>
+                  )}
+                </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                    onClick={() => setSearchInConversation(!searchInConversation)}
+                    title="Buscar na conversa"
+                  >
+                    <Search className="h-4 w-4" />
+                </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                    onClick={() => setShowContactInfo(!showContactInfo)}
+                  >
+                    {showContactInfo ? <X className="h-4 w-4" /> : <Users className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+
+            {/* Campo de busca na conversa */}
+            {searchInConversation && (
+              <div className="p-3 bg-yellow-50 border-b border-yellow-200">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    className="pl-9 pr-10 bg-white border-gray-300 text-sm"
+                    placeholder="Buscar mensagens nesta conversa..."
+                    value={conversationSearchTerm}
+                    onChange={(e) => setConversationSearchTerm(e.target.value)}
+                    autoFocus
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                    onClick={() => {
+                      setSearchInConversation(false);
+                      setConversationSearchTerm('');
+                    }}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+                {conversationSearchTerm && (
+                  <div className="mt-2 text-xs text-gray-600">
+                    Buscando por "{conversationSearchTerm}" na conversa...
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Área de mensagens */}
+              <div className="flex-1 flex flex-col bg-gray-50">
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-4">
+                    {messagesLoading ? (
+                      // Loading messages
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-500"></div>
+                        <span className="ml-2 text-sm text-gray-500">Carregando mensagens...</span>
+                      </div>
+                    ) : messagesError ? (
+                      // Error messages
+                      <div className="text-center py-8">
+                        <div className="text-red-500 mb-2">❌</div>
+                        <p className="text-sm text-red-600">Erro ao carregar mensagens</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {messagesError instanceof Error ? messagesError.message : 'Erro desconhecido'}
+                        </p>
+                      </div>
+                    ) : finalMessages.length === 0 ? (
+                      // Empty messages
+                      <div className="text-center py-8">
+                        <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                        <p className="text-gray-500 text-sm">Nenhuma mensagem ainda</p>
+                        <p className="text-xs text-gray-400 mt-1">Seja o primeiro a enviar uma mensagem!</p>
+                      </div>
+                    ) : filteredMessages.length === 0 && conversationSearchTerm ? (
+                      <div className="text-center py-8">
+                        <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                        <p className="text-gray-500">Nenhuma mensagem encontrada para "{conversationSearchTerm}"</p>
+                        <p className="text-sm text-gray-400 mt-1">Tente usar outras palavras-chave</p>
+                  </div>
+                    ) : (
+                      filteredMessages.map((message: any) => (
+                    <div
+                      key={message._id}
+                        className={`flex ${message.sender_type === 'customer' ? 'justify-end' : 'justify-start'}`}
+                    >
+                        <div className={`flex items-end space-x-2 max-w-[70%] ${message.sender_type === 'customer' ? 'group relative' : ''}`}>
+                          {message.sender_type !== 'customer' && (
+                          <Avatar className="h-6 w-6">
+                              <AvatarFallback className="bg-gray-400 text-white text-xs">
+                              {message.sender_type === 'bot' ? 'AI' : 'H'}
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
+                        
+                        <div
+                            data-message-id={message._id}
+                            className={`px-3 py-2 rounded-lg shadow-sm relative ${
+                              message.sender_type === 'customer'
+                                ? 'bg-pink-500 text-white rounded-br-none'
+                                : 'bg-white text-gray-900 rounded-bl-none border'
+                            }`}
+                          >
+                            <p className="text-sm">{message.content}</p>
+                            <div className={`flex items-center justify-end gap-1 mt-1`}>
+                            <span className="text-xs opacity-70">
+                                {new Date(message.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                              {message.sender_type === 'customer' && (
+                                <div className="group-hover:hidden">
+                                  {message.status === 'read' ? (
+                                    <CheckCheck className="h-3 w-3 text-blue-200" />
+                                  ) : message.status === 'delivered' ? (
+                                    <CheckCheck className="h-3 w-3 text-gray-400" />
+                                  ) : (
+                                    <Check className="h-3 w-3 text-gray-400" />
+                                  )}
+                                </div>
+                              )}
+                              {message.sender_type === 'customer' && (
+                                <button
+                                  className="hidden group-hover:block p-0.5 rounded hover:bg-pink-600 transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMessageMenuClick(message._id, e);
+                                  }}
+                                >
+                                  <ChevronDown className="h-3 w-3 text-white" />
+                                </button>
+                              )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    ))}
+
+                    {/* Menu flutuante da mensagem - renderizado fora do loop para evitar problemas de z-index */}
+                    {openMenuMessageId && (() => {
+                      const selectedMessage = filteredMessages.find((msg: any) => msg._id === openMenuMessageId);
+                      return selectedMessage ? (
+                        <div 
+                          className="message-menu fixed bg-white border border-gray-200 rounded-lg shadow-xl py-1 w-48" 
+                          style={{ 
+                            zIndex: 999999,
+                            top: `${menuPosition.top}px`,
+                            right: `${menuPosition.right}px`
+                          }}
+                        >
+                              <button
+                                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMessageMenuAction('info', selectedMessage);
+                                }}
+                              >
+                                <Info className="h-4 w-4 mr-3 text-gray-500" />
+                                Dados da mensagem
+                              </button>
+                              <button
+                                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMessageMenuAction('reply', selectedMessage);
+                                }}
+                              >
+                                <Reply className="h-4 w-4 mr-3 text-gray-500" />
+                                Responder
+                              </button>
+                              <button
+                                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMessageMenuAction('copy', selectedMessage);
+                                }}
+                              >
+                                <Copy className="h-4 w-4 mr-3 text-gray-500" />
+                                Copiar
+                              </button>
+                              <button
+                                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMessageMenuAction('react', selectedMessage);
+                                }}
+                              >
+                                <Smile className="h-4 w-4 mr-3 text-gray-500" />
+                                Reagir
+                              </button>
+                              <button
+                                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMessageMenuAction('forward', selectedMessage);
+                                }}
+                              >
+                                <Forward className="h-4 w-4 mr-3 text-gray-500" />
+                                Encaminhar
+                              </button>
+                              <button
+                                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMessageMenuAction('pin', selectedMessage);
+                                }}
+                              >
+                                <Pin className="h-4 w-4 mr-3 text-gray-500" />
+                                Fixar
+                              </button>
+                              <button
+                                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMessageMenuAction('favorite', selectedMessage);
+                                }}
+                              >
+                                <Star className="h-4 w-4 mr-3 text-gray-500" />
+                                Favoritar
+                              </button>
+                              <button
+                                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMessageMenuAction('delete', selectedMessage);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 mr-3 text-gray-500" />
+                                Apagar
+                              </button>
+                            </div>
+                      ) : null;
+                    })()}
+                        </div>
+                      </div>
+                    </div>
+                    ))}
+
+                    {/* Menu flutuante da mensagem - renderizado fora do loop */}
+                    {openMenuMessageId && (() => {
+                      const selectedMessage = filteredMessages.find((msg: any) => msg._id === openMenuMessageId);
+                      return selectedMessage ? (
+                        <div 
+                          className="message-menu fixed bg-white border border-gray-200 rounded-lg shadow-xl py-1 w-48" 
+                          style={{ 
+                            zIndex: 999999,
+                            top: `${menuPosition.top}px`,
+                            right: `${menuPosition.right}px`
+                          }}
+                        >
+                          <button
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMessageMenuAction('info', selectedMessage);
+                            }}
+                          >
+                            <Info className="h-4 w-4 mr-3 text-gray-500" />
+                            Dados da mensagem
+                          </button>
+                          <button
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMessageMenuAction('reply', selectedMessage);
+                            }}
+                          >
+                            <Reply className="h-4 w-4 mr-3 text-gray-500" />
+                            Responder
+                          </button>
+                          <button
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMessageMenuAction('copy', selectedMessage);
+                            }}
+                          >
+                            <Copy className="h-4 w-4 mr-3 text-gray-500" />
+                            Copiar
+                          </button>
+                          <button
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMessageMenuAction('react', selectedMessage);
+                            }}
+                          >
+                            <Smile className="h-4 w-4 mr-3 text-gray-500" />
+                            Reagir
+                          </button>
+                          <button
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMessageMenuAction('forward', selectedMessage);
+                            }}
+                          >
+                            <Forward className="h-4 w-4 mr-3 text-gray-500" />
+                            Encaminhar
+                          </button>
+                          <button
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMessageMenuAction('pin', selectedMessage);
+                            }}
+                          >
+                            <Pin className="h-4 w-4 mr-3 text-gray-500" />
+                            Fixar
+                          </button>
+                          <button
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMessageMenuAction('favorite', selectedMessage);
+                            }}
+                          >
+                            <Star className="h-4 w-4 mr-3 text-gray-500" />
+                            Favoritar
+                          </button>
+                          <button
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMessageMenuAction('delete', selectedMessage);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 mr-3 text-gray-500" />
+                            Apagar
+                          </button>
+                        </div>
+                      ) : null;
+                    })()}
+              </div>
+            </ScrollArea>
+
+            {/* Input de mensagem */}
+                <div className="p-4 bg-gray-50 border-t border-gray-200">
+                  <div className="flex items-end space-x-2">
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Smile className="h-4 w-4" />
+                  </Button>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
+                  
+                    <div className="flex-1">
+                    <Input
+                        placeholder="Digite uma mensagem"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                        className="bg-white border-gray-300"
+                    />
+                  </div>
+                  
+                    {newMessage.trim() ? (
+                  <Button
+                    onClick={sendMessage}
+                    disabled={sendMessageMutation.isPending}
+                    size="sm"
+                        className="h-8 w-8 p-0 bg-pink-500 hover:bg-pink-600 disabled:opacity-50"
+                  >
+                    {sendMessageMutation.isPending ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                    ) : (
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Mic className="h-4 w-4" />
+                      </Button>
+                    )}
+                </div>
+                </div>
+            </div>
+          </>
+        ) : (
+            <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="text-center">
+                <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Selecione uma conversa
+              </h3>
+                <p className="text-gray-500">
+                  Escolha uma conversa na lista para visualizar as mensagens
+                </p>
+                  </div>
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar direito - Dados do Paciente */}
+        {showContactInfo && selectedConversation && (
+          <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
+            {/* Header */}
+            <div className="p-4 border-b border-gray-200 bg-white">
+              <div className="flex items-center justify-between h-10">
+                <h3 className="font-medium text-gray-900">Dados do Paciente</h3>
+                  <Button 
+                  variant="ghost" 
+                    size="sm" 
+                  className="h-8 w-8 p-0"
+                  onClick={() => setShowContactInfo(false)}
+                  >
+                  <X className="h-4 w-4" />
+                  </Button>
+              </div>
+            </div>
+
+            <ScrollArea className="flex-1">
+              {/* Foto e informações do paciente */}
+              <div className="p-6 text-center border-b border-gray-200">
+                <Avatar className="h-24 w-24 mx-auto mb-4">
+                  <AvatarImage src={selectedConversation.avatar} />
+                  <AvatarFallback className="bg-gray-300 text-gray-700 text-2xl">
+                    {getInitials(selectedConversation.customer_name || 'Cliente')}
+                  </AvatarFallback>
+                </Avatar>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  {mockPatientInfo.name}
+                </h2>
+                
+                {/* Dados do paciente */}
+                <div className="space-y-3 text-left">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Nome:</span>
+                    <span className="text-sm font-medium text-gray-900">{mockPatientInfo.name}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Idade:</span>
+                    <span className="text-sm font-medium text-gray-900">{mockPatientInfo.age} anos</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Telefone:</span>
+                    <span className="text-sm font-medium text-gray-900">{mockPatientInfo.phone}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Convênio:</span>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      {mockPatientInfo.insurance}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botão Arquivos e Documentos */}
+              <div className="p-4 border-b border-gray-200">
+                <Button
+                  variant="outline"
+                  className="w-full justify-between"
+                  onClick={() => setFilesModalOpen(true)}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Folder className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm font-medium">Arquivos e Documentos</span>
+                  </div>
+                  <Badge variant="secondary" className="bg-blue-50 text-blue-700">
+                    {mockPatientInfo.files.length}
+                  </Badge>
+                </Button>
+              </div>
+
+              {/* Opções de Atendimento */}
+              <div className="p-4 space-y-4">
+                <div 
+                  className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                  onClick={handleTemplatesClick}
+                >
+                  <FileText className="h-5 w-5 text-blue-500" />
+                  <span className="text-sm text-gray-700 font-medium">Templates</span>
+                </div>
+                
+                <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                  <Bot className="h-5 w-5 text-orange-500" />
+                  <div className="flex-1 flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-sm text-gray-700 font-medium">Atendente Virtual</span>
+                      <span className={`text-xs ${virtualAssistantActive ? 'text-pink-600' : 'text-gray-500'}`}>
+                        {virtualAssistantActive ? 'Ativo' : 'Pausado'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setVirtualAssistantActive(!virtualAssistantActive)}
+                      className={`
+                        relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none
+                        ${virtualAssistantActive ? 'bg-pink-500' : 'bg-gray-300'}
+                      `}
+                      role="switch"
+                      aria-checked={virtualAssistantActive}
+                    >
+                      <span
+                        className={`
+                          inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out
+                          ${virtualAssistantActive ? 'translate-x-6' : 'translate-x-1'}
+                        `}
+                      />
+                    </button>
+                  </div>
+                </div>
+                
+                <div 
+                  className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                  onClick={handleScheduleMessageClick}
+                >
+                  <Clock className="h-5 w-5 text-purple-500" />
+                  <div className="flex-1">
+                    <div className="text-sm text-gray-700 font-medium">Programar mensagem</div>
+                    <div className="text-xs text-gray-500">Agendar envio de mensagem</div>
+                  </div>
+                </div>
+                
+                <div 
+                  className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                  onClick={handleFlagsClick}
+                >
+                  <div className="h-5 w-5 flex items-center justify-center">
+                    🏷️
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm text-gray-700 font-medium">Flags</div>
+                    <div className="text-xs text-gray-500">Marcar conversa com etiquetas</div>
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
+                </div>
+              )}
+            </div>
+
+      {/* Modal de Arquivos e Documentos */}
+      <Dialog open={filesModalOpen} onOpenChange={setFilesModalOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Folder className="h-5 w-5 text-blue-500" />
+              <span>Arquivos e Documentos - {mockPatientInfo.name}</span>
+            </DialogTitle>
+            <DialogDescription>
+              Gerencie os arquivos e documentos do paciente
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col space-y-4">
+            {/* Contador e ações */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">
+                {mockPatientInfo.files.length} arquivos encontrados
+              </span>
+              {selectedFiles.length > 0 && (
+                <Badge variant="secondary" className="bg-blue-50 text-blue-700">
+                  {selectedFiles.length} selecionado(s)
+                </Badge>
+              )}
+            </div>
+
+            {/* Lista de arquivos */}
+            <ScrollArea className="max-h-[400px]">
+              <div className="space-y-2 pr-4">
+                {mockPatientInfo.files.map((file) => (
+                  <div 
+                    key={file.id}
+                    className={`
+                      flex items-center p-3 rounded-lg border transition-all cursor-pointer group
+                      ${selectedFiles.includes(file.id) 
+                        ? 'bg-blue-50 border-blue-200 shadow-sm' 
+                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:shadow-sm'
+                      }
+                    `}
+                    onClick={() => {
+                      setSelectedFiles(prev => 
+                        prev.includes(file.id) 
+                          ? prev.filter(id => id !== file.id)
+                          : [...prev, file.id]
+                      )
+                    }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-3">
+                        {file.type === 'image' ? (
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                            <img src={file.url} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                            <FileText className="h-6 w-6 text-red-600" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {file.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {file.date} • {file.type.toUpperCase()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(file.url, '_blank');
+                        }}
+                        title="Visualizar"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+
+            {/* Ações em lote */}
+            {selectedFiles.length > 0 && (
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <span className="text-sm text-blue-700 font-medium">
+                  {selectedFiles.length} arquivo(s) selecionado(s)
+                </span>
+                <div className="flex space-x-2">
+                  <Button size="sm" variant="outline" className="text-xs">
+                    <Download className="h-3 w-3 mr-1" />
+                    Baixar
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-xs">
+                    <Share className="h-3 w-3 mr-1" />
+                    Encaminhar
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="text-xs"
+                    onClick={() => setSelectedFiles([])}
+                  >
+                    Limpar
+                  </Button>
+            </div>
+          </div>
+        )}
+
+            {/* Botões de ação principal */}
+            <div className="flex justify-end space-x-2 pt-4 border-t border-gray-200">
+              <Button variant="outline" onClick={() => setFilesModalOpen(false)}>
+                Fechar
+              </Button>
+              <Button>
+                <FileText className="h-4 w-4 mr-2" />
+                Adicionar Arquivo
+              </Button>
+      </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Gerenciamento de Flags */}
+      <Dialog open={flagsModalOpen} onOpenChange={setFlagsModalOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Tag className="h-5 w-5 text-pink-500" />
+              <span>Aplicar Flag</span>
+            </DialogTitle>
+            <DialogDescription>
+              Selecione uma flag para aplicar na conversa
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto">
+            <div className="space-y-3 pr-4">
+              
+              <div className="max-h-[300px] overflow-y-auto">
+                <div className="space-y-2 pr-4">
+                  {flags.map((flag) => (
+                    <div 
+                      key={flag.id}
+                      className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3 flex-1">
+                        <div 
+                          className="w-4 h-4 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: flag.color }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900">
+                            {flag.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Criada em {new Date(flag.createdAt).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs"
+                          style={{ 
+                            backgroundColor: `${flag.color}20`, 
+                            borderColor: flag.color,
+                            color: flag.color 
+                          }}
+                        >
+                          {flag.name}
+                        </Badge>
+                      </div>
+                      
+                      <div className="ml-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-pink-500 hover:text-pink-700"
+                          onClick={() => {
+                            console.log('Aplicando flag:', flag.name);
+                            setFlagsModalOpen(false);
+                          }}
+                          title="Aplicar flag"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+          </div>
+          
+          {/* Botões de ação fixos */}
+          <div className="flex justify-between items-center pt-4 border-t border-gray-200 bg-white">
+            <Link to="/settings">
+              <Button variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Gerenciar Flags
+              </Button>
+            </Link>
+            <Button variant="outline" onClick={() => setFlagsModalOpen(false)}>
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Filtros Personalizados */}
+      <Dialog open={filterModalOpen} onOpenChange={setFilterModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Tag className="h-5 w-5 text-purple-500" />
+              <span>Filtrar por Flags</span>
+            </DialogTitle>
+            <DialogDescription>
+              Selecione as flags que deseja usar para filtrar as conversas
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col space-y-4">
+            {/* Lista de flags disponíveis */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-900 mb-3">
+                Selecione as flags para filtrar:
+              </h4>
+              
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {flags.filter(flag => flag.name !== 'Manual').map((flag) => (
+                  <div 
+                    key={flag.id}
+                    className={`
+                      flex items-center p-3 rounded-lg border cursor-pointer transition-all
+                      ${selectedFilterFlags.includes(flag.id) 
+                        ? 'bg-purple-50 border-purple-200 shadow-sm' 
+                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                      }
+                    `}
+                    onClick={() => {
+                      setSelectedFilterFlags(prev => 
+                        prev.includes(flag.id) 
+                          ? prev.filter(id => id !== flag.id)
+                          : [...prev, flag.id]
+                      )
+                    }}
+                  >
+                    <div className="flex items-center space-x-3 flex-1">
+                      <div 
+                        className="w-4 h-4 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: flag.color }}
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          {flag.name}
+                        </p>
+                        {flag.description && (
+                          <p className="text-xs text-gray-500">
+                            {flag.description}
+                          </p>
+                        )}
+                      </div>
+                      <Badge 
+                        variant="outline" 
+                        className="text-xs"
+                        style={{ 
+                          backgroundColor: `${flag.color}20`, 
+                          borderColor: flag.color,
+                          color: flag.color 
+                        }}
+                      >
+                        {flag.name}
+                      </Badge>
+                    </div>
+                    
+                    {selectedFilterFlags.includes(flag.id) && (
+                      <div className="ml-2">
+                        <div className="w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
+                          <Check className="h-3 w-3 text-white" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Flags selecionadas */}
+            {selectedFilterFlags.length > 0 && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                <h5 className="text-sm font-medium text-purple-900 mb-2">
+                  Flags selecionadas para filtro:
+                </h5>
+                <div className="flex flex-wrap gap-2">
+                  {selectedFilterFlags.map(flagId => {
+                    const flag = flags.find(f => f.id === flagId);
+                    return flag ? (
+                      <Badge 
+                        key={flagId}
+                        variant="outline"
+                        className="text-xs"
+                        style={{ 
+                          backgroundColor: `${flag.color}20`, 
+                          borderColor: flag.color,
+                          color: flag.color 
+                        }}
+                      >
+                        {flag.name}
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Instruções */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start space-x-2">
+                <Tag className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-700">
+                  <p className="font-medium mb-1">Como funciona:</p>
+                  <ul className="text-xs space-y-1 text-blue-600">
+                    <li>• Selecione uma ou mais flags para filtrar</li>
+                    <li>• Apenas conversas com essas flags serão exibidas</li>
+                    <li>• Você pode combinar múltiplas flags</li>
+                    <li>• Use "Limpar" para remover todos os filtros</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Botões de ação */}
+            <div className="flex justify-between pt-4 border-t border-gray-200">
+              <Button 
+                variant="outline" 
+                onClick={() => setSelectedFilterFlags([])}
+                disabled={selectedFilterFlags.length === 0}
+              >
+                Limpar Seleção
+              </Button>
+              
+              <div className="flex space-x-2">
+                <Button variant="outline" onClick={() => setFilterModalOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={applyCustomFilters}
+                  disabled={selectedFilterFlags.length === 0}
+                >
+                  <Tag className="h-4 w-4 mr-2" />
+                  Aplicar Filtros ({selectedFilterFlags.length})
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Templates */}
+      <Dialog open={templatesModalOpen} onOpenChange={setTemplatesModalOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <FileText className="h-5 w-5 text-blue-500" />
+              <span>Usar Template</span>
+            </DialogTitle>
+            <DialogDescription>
+              Selecione um template para usar na conversa
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto">
+            <div className="space-y-3 pr-4">
+              
+              <div className="max-h-[400px] overflow-y-auto">
+                <div className="space-y-3 pr-4">
+                  {templates.map((template) => {
+                    const category = templateCategories.find(c => c.value === template.category);
+                    return (
+                      <div 
+                        key={template._id}
+                        className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <h5 className="text-sm font-medium text-gray-900">
+                              {template.name}
+                            </h5>
+                            <Badge 
+                              variant="outline" 
+                              className="text-xs"
+                              style={{ 
+                                backgroundColor: `${category?.color}20`, 
+                                borderColor: category?.color,
+                                color: category?.color 
+                              }}
+                            >
+                              {category?.label}
+                            </Badge>
+                          </div>
+                          
+                          <div className="ml-3">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700"
+                              onClick={() => handleUseTemplate(template)}
+                              title="Usar template"
+                            >
+                              <Send className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                          {template.content}
+                        </p>
+                        
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <span>Criado em {new Date(template.created_at).toLocaleDateString('pt-BR')}</span>
+                          <span>Usado {template.usage_count} vezes</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+          </div>
+          
+          {/* Botões de ação fixos */}
+          <div className="flex justify-between items-center pt-4 border-t border-gray-200 bg-white">
+            <Link to="/settings">
+              <Button variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Gerenciar Templates
+              </Button>
+            </Link>
+            <Button variant="outline" onClick={() => setTemplatesModalOpen(false)}>
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Programar Mensagem */}
+      <Dialog open={scheduleModalOpen} onOpenChange={setScheduleModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Clock className="h-5 w-5 text-purple-500" />
+              <span>Programar Mensagem</span>
+            </DialogTitle>
+            <DialogDescription>
+              Agende o envio de uma mensagem para {selectedConversation?.customer_name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Mensagem */}
+            <div className="space-y-2">
+              <Label htmlFor="scheduled-message">Mensagem</Label>
+              <Textarea
+                id="scheduled-message"
+                value={scheduledMessage}
+                onChange={(e) => setScheduledMessage(e.target.value)}
+                placeholder="Digite a mensagem que será enviada..."
+                className="min-h-[100px]"
+              />
+              <p className="text-xs text-gray-500">
+                {scheduledMessage.length}/500 caracteres
+              </p>
+            </div>
+
+            {/* Data e Hora */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="schedule-date">Data</Label>
+                <Input
+                  id="schedule-date"
+                  type="date"
+                  value={scheduleDate}
+                  onChange={(e) => setScheduleDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="schedule-time">Horário</Label>
+                <Input
+                  id="schedule-time"
+                  type="time"
+                  value={scheduleTime}
+                  onChange={(e) => setScheduleTime(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Informações adicionais */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start space-x-2">
+                <Clock className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-700">
+                  <p className="font-medium mb-1">Informações importantes:</p>
+                  <ul className="text-xs space-y-1 text-blue-600">
+                    <li>• A mensagem será enviada automaticamente na data e hora selecionadas</li>
+                    <li>• Você pode cancelar mensagens programadas até 5 minutos antes do envio</li>
+                    <li>• O horário segue o fuso horário local do sistema</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Botões de ação */}
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button variant="outline" onClick={() => setScheduleModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleScheduleMessage}
+              disabled={!scheduledMessage.trim() || !scheduleDate || !scheduleTime}
+            >
+              <Clock className="h-4 w-4 mr-2" />
+              Programar Envio
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

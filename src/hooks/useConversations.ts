@@ -22,12 +22,17 @@ export const useConversations = (params: {
   return useQuery({
     queryKey: conversationKeys.list(params),
     queryFn: async () => {
+      console.log('🔍 Buscando conversas via API:', params);
       const response = await apiService.getConversations(params);
+      console.log('✅ Conversas recebidas:', response.data?.conversations?.length || 0, 'itens');
       return response.data;
     },
     enabled: !!params.clinic_id,
-    staleTime: 1000 * 30, // 30 segundos
+    staleTime: 0, // Sempre considerar stale para permitir invalidação
     gcTime: 1000 * 60 * 5, // 5 minutos
+    refetchOnWindowFocus: false,
+    retry: 3, // Tentar 3 vezes
+    retryDelay: 1000, // 1 segundo entre tentativas
   });
 };
 

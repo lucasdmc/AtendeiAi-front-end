@@ -25,12 +25,22 @@ export interface Conversation {
   customer_phone: string;
   customer_name?: string;
   customer_profile_pic?: string;
+  
+  // ✅ Campos para suporte a grupos
+  conversation_type: 'individual' | 'group';
+  group_id?: string;
+  group_name?: string;
+  last_participant_id?: string;
+  last_participant_name?: string;
+  
   status: 'active' | 'closed' | 'archived';
   assigned_user_id: string | null;
   last_message?: {
     content: string;
     timestamp: string;
     sender_type: 'customer' | 'bot' | 'human';
+    sender_id?: string; // ID do remetente (para grupos)
+    sender_name?: string; // Nome do remetente (para grupos)
   };
   unread_count: number;
   flags: Flag[];
@@ -164,6 +174,8 @@ class ApiService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+      credentials: 'include',
+      mode: 'cors',
       ...options,
     };
 
@@ -172,6 +184,7 @@ class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('API Error Response:', errorData);
         throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
       }
 
@@ -280,6 +293,32 @@ class ApiService {
     });
   }
 
+  async sendAudioMessage(conversationId: string, audioBlob: Blob, options?: {
+    reply_to?: string;
+    scheduled_at?: string;
+  }): Promise<ApiResponse<Message>> {
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'audio.webm');
+    formData.append('message_type', 'audio');
+    formData.append('content', '[Áudio]'); // Conteúdo textual para o áudio
+    
+    if (options?.reply_to) {
+      formData.append('reply_to', options.reply_to);
+    }
+    
+    if (options?.scheduled_at) {
+      formData.append('scheduled_at', options.scheduled_at);
+    }
+
+    // Usar a rota padrão de mensagens, não uma rota específica de áudio
+    return this.request(`/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      body: formData,
+      // Não definir Content-Type para FormData (o browser define automaticamente com boundary)
+      headers: {},
+    });
+  }
+
   async updateMessageStatus(id: string, status: string): Promise<ApiResponse<Message>> {
     return this.request(`/messages/${id}/status`, {
       method: 'PUT',
@@ -300,6 +339,22 @@ class ApiService {
     return this.request(`/conversations/${conversationId}/simulate-customer-message`, {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  // WhatsApp Profile API
+  async getContactProfile(phone: string, sessionId?: string): Promise<ApiResponse<{
+    name?: string;
+    profilePictureUrl?: string;
+  }>> {
+    const params = sessionId ? `?session_id=${sessionId}` : '';
+    return this.request(`/whatsapp/messages/profile/${phone}${params}`);
+  }
+
+  async updateConversationProfile(phone: string, sessionId?: string): Promise<ApiResponse<null>> {
+    return this.request(`/whatsapp/messages/profile/${phone}`, {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId }),
     });
   }
 

@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ClinicProvider } from './contexts/ClinicContext';
 import { Layout } from './components/Layout';
 import Index from './pages/Index';
+import Dashboard from './pages/Dashboard';
 import Agenda from './pages/Agenda';
 import ContextPage from './pages/ContextPage';
 import Conversations from './pages/Conversations';
@@ -11,6 +12,11 @@ import Users from './pages/Users';
 import Auth from './pages/Auth';
 import Settings from './pages/Settings';
 import Channels from './pages/Channels';
+import Attendants from './pages/Attendants';
+import Departments from './pages/Departments';
+import ServiceProviders from './pages/ServiceProviders';
+import Contacts from './pages/Contacts';
+import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -22,6 +28,11 @@ function App() {
           <Route path="/" element={
             <Layout>
               <Index />
+            </Layout>
+          } />
+          <Route path="/dashboard" element={
+            <Layout>
+              <Dashboard />
             </Layout>
           } />
           <Route path="/calendar" element={
@@ -65,6 +76,31 @@ function App() {
               <Channels />
             </Layout>
           } />
+        <Route path="/settings/attendants" element={
+          <Layout>
+            <Attendants />
+          </Layout>
+        } />
+        <Route path="/settings/departments" element={
+          <Layout>
+            <Departments />
+          </Layout>
+        } />
+        <Route path="/settings/service-providers" element={
+          <Layout>
+            <ServiceProviders />
+          </Layout>
+        } />
+        <Route path="/settings/contacts" element={
+          <Layout>
+            <Contacts />
+          </Layout>
+        } />
+        <Route path="/profile" element={
+          <Layout>
+            <Profile />
+          </Layout>
+        } />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
