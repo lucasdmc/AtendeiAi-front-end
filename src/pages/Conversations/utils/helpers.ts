@@ -17,8 +17,9 @@ export const getInitials = (name: string): string => {
 /**
  * Formata timestamp para exibição de hora
  */
-export const formatTime = (timestamp: string): string => {
-  return new Date(timestamp).toLocaleTimeString('pt-BR', { 
+export const formatTime = (timestamp: string | Date): string => {
+  const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+  return date.toLocaleTimeString('pt-BR', { 
     hour: '2-digit', 
     minute: '2-digit' 
   });
@@ -27,15 +28,17 @@ export const formatTime = (timestamp: string): string => {
 /**
  * Formata timestamp para exibição de data
  */
-export const formatDate = (timestamp: string): string => {
-  return new Date(timestamp).toLocaleDateString('pt-BR');
+export const formatDate = (timestamp: string | Date): string => {
+  const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+  return date.toLocaleDateString('pt-BR');
 };
 
 /**
  * Formata timestamp para exibição completa
  */
-export const formatDateTime = (timestamp: string): string => {
-  return new Date(timestamp).toLocaleString('pt-BR');
+export const formatDateTime = (timestamp: string | Date): string => {
+  const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+  return date.toLocaleString('pt-BR');
 };
 
 /**

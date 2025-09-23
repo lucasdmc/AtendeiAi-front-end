@@ -55,7 +55,7 @@ export interface Message {
   sender_type: 'customer' | 'bot' | 'human';
   sender_id?: string;
   content: string;
-  message_type: 'text' | 'image' | 'document' | 'audio' | 'location';
+  message_type: 'text' | 'image' | 'document' | 'audio' | 'video' | 'location';
   media_url?: string;
   media_filename?: string;
   media_size?: number;
@@ -628,6 +628,27 @@ class ApiService {
     return this.request(`/clinics/${id}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
+    });
+  }
+
+  // Scheduled Messages API
+  async getScheduledMessages(conversationId: string): Promise<ApiResponse<any[]>> {
+    return this.request(`/conversations/${conversationId}/scheduled-messages`);
+  }
+
+  async cancelScheduledMessage(messageId: string): Promise<ApiResponse<any>> {
+    return this.request(`/messages/scheduled/${messageId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async updateScheduledMessage(messageId: string, data: {
+    content?: string;
+    scheduled_at?: string;
+  }): Promise<ApiResponse<any>> {
+    return this.request(`/messages/scheduled/${messageId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
     });
   }
 }

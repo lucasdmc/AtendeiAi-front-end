@@ -13,6 +13,8 @@ import {
   User,
   MessageSquare
 } from 'lucide-react';
+import { apiService } from '../../../../services/api';
+import { useQueryClient } from '@tanstack/react-query';
 import { useConversationsContext } from '../../context';
 import { ScheduleMessageData } from '../../types';
 
@@ -22,6 +24,8 @@ export const ScheduleModal: React.FC = () => {
     setScheduleModalOpen,
     selectedConversation 
   } = useConversationsContext();
+
+  const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState<ScheduleMessageData>({
     message: '',
@@ -50,24 +54,45 @@ export const ScheduleModal: React.FC = () => {
     setIsScheduling(true);
 
     try {
-      // Simular agendamento
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Criar data no fuso horário local
+      const scheduledAt = new Date(`${formData.date}T${formData.time}`);
       
-      console.log('Mensagem agendada:', {
+      console.log('📅 [SCHEDULE MODAL] Enviando mensagem agendada:', {
         conversationId: selectedConversation._id,
-        ...formData,
-        scheduledAt: new Date(`${formData.date}T${formData.time}`)
+        message: formData.message,
+        localTime: `${formData.date}T${formData.time}`,
+        scheduledAtLocal: scheduledAt.toLocaleString('pt-BR'),
+        scheduledAtUTC: scheduledAt.toISOString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timezoneOffset: scheduledAt.getTimezoneOffset()
       });
 
-      // Reset form
-      setFormData({ message: '', date: '', time: '' });
-      setScheduleModalOpen(false);
-      
-      // Aqui poderia mostrar um toast de sucesso
-      alert('Mensagem agendada com sucesso!');
+      // Fazer requisição real para o backend (enviando como está - JavaScript já converte para UTC)
+      const response = await apiService.sendMessage(selectedConversation._id, {
+        content: formData.message,
+        message_type: 'text',
+        scheduled_at: scheduledAt.toISOString()
+      });
+
+      console.log('📅 [SCHEDULE MODAL] Resposta do backend:', response);
+
+      if (response.success) {
+        // Reset form
+        setFormData({ message: '', date: '', time: '' });
+        setScheduleModalOpen(false);
+        
+        alert('Mensagem agendada com sucesso!');
+        
+        // Invalidar cache para atualizar a lista
+        queryClient.invalidateQueries({ 
+          queryKey: ['scheduled-messages', selectedConversation._id] 
+        });
+      } else {
+        throw new Error(response.message || 'Erro ao agendar mensagem');
+      }
       
     } catch (error) {
-      console.error('Erro ao agendar mensagem:', error);
+      console.error('❌ [SCHEDULE MODAL] Erro ao agendar mensagem:', error);
       alert('Erro ao agendar mensagem. Tente novamente.');
     } finally {
       setIsScheduling(false);

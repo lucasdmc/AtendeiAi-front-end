@@ -32,8 +32,8 @@ export interface Message {
   content: string;
   timestamp: string;
   sender_type: 'customer' | 'bot' | 'human';
-  status?: 'sent' | 'delivered' | 'read';
-  message_type: 'text' | 'image' | 'document' | 'audio' | 'video';
+  status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
+  message_type: 'text' | 'image' | 'document' | 'audio' | 'video' | 'location';
   conversation_id: string;
   media_url?: string;
   media_filename?: string;

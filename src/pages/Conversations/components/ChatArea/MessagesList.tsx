@@ -3,10 +3,12 @@ import { ScrollArea } from '../../../../components/ui/scroll-area';
 import { Input } from '../../../../components/ui/input';
 import { Search, X, MessageSquare } from 'lucide-react';
 import { MessageItem } from './MessageItem';
+import { ScheduledMessageItem } from './ScheduledMessageItem';
 import { MessageMenu } from './MessageMenu';
 import { MessagesLoading, EmptyState } from '../ui';
 import { useConversationsContext } from '../../context';
 import { useMessageMenu } from '../../hooks';
+import { useScheduledMessages } from '../../../../hooks/useScheduledMessages';
 import { filterMessagesBySearch } from '../../utils';
 
 export const MessagesList: React.FC = () => {
@@ -16,8 +18,27 @@ export const MessagesList: React.FC = () => {
     searchInConversation,
     conversationSearchTerm,
     setConversationSearchTerm,
-    setSearchInConversation
+    setSearchInConversation,
+    selectedConversation
   } = useConversationsContext();
+
+  // Hook para mensagens agendadas
+  const { 
+    data: scheduledMessages = [],
+    isLoading: scheduledLoading,
+    error: scheduledError
+  } = useScheduledMessages(selectedConversation?._id || '');
+
+  // Log para debug
+  React.useEffect(() => {
+    console.log('📅 [MessagesList] Dados de mensagens agendadas:', {
+      conversationId: selectedConversation?._id,
+      scheduledMessages,
+      scheduledLoading,
+      scheduledError,
+      count: scheduledMessages.length
+    });
+  }, [selectedConversation?._id, scheduledMessages, scheduledLoading, scheduledError]);
 
   // Hook para gerenciar menu das mensagens
   const { openMenuId, menuPosition, handleMenuClick, handleMenuAction } = useMessageMenu();
@@ -125,6 +146,22 @@ export const MessagesList: React.FC = () => {
                 onMenuAction={handleMenuAction}
               />
             ))}
+
+            {/* Mensagens agendadas */}
+            {scheduledMessages.length > 0 && (
+              <div className="mt-4 space-y-4">
+                {scheduledMessages.map((scheduledMessage) => (
+                  <ScheduledMessageItem
+                    key={scheduledMessage._id}
+                    message={scheduledMessage}
+                    onEdit={(message) => {
+                      // TODO: Implementar modal de edição
+                      console.log('Editar mensagem:', message);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
             
             {/* Elemento para scroll automático */}
             <div ref={messagesEndRef} />

@@ -153,6 +153,31 @@ export const useRealtime = (clinicId: string, options?: {
         }
       });
 
+      // Evento de mensagem agendada enviada
+      eventSource.addEventListener('scheduledMessageSent', (event) => {
+        console.log('📅 SSE Evento scheduledMessageSent recebido!');
+        try {
+          const eventData = JSON.parse(event.data);
+          console.log('📅 Dados do evento scheduledMessageSent:', eventData);
+
+          if (eventData.conversationId) {
+            console.log('🔄 Invalidando cache de mensagens agendadas...');
+            queryClient.invalidateQueries({ 
+              queryKey: ['scheduled-messages', eventData.conversationId] 
+            });
+            
+            console.log('🔄 Invalidando cache de mensagens normais...');
+            queryClient.invalidateQueries({ 
+              queryKey: ['messages', eventData.conversationId] 
+            });
+            
+            console.log('✅ Mensagem agendada processada - caches invalidados');
+          }
+        } catch (error) {
+          console.error('❌ Erro ao processar evento scheduledMessageSent:', error);
+        }
+      });
+
       // Evento de erro
       eventSource.addEventListener('error', (event) => {
         console.error('❌ Erro na conexão SSE:', event);
