@@ -1,5 +1,5 @@
 import { Conversation, Message } from '../../../services/api';
-import { Users, Bot } from 'lucide-react';
+import { Users } from 'lucide-react';
 
 /**
  * Gera iniciais a partir de um nome
@@ -17,8 +17,18 @@ export const getInitials = (name: string): string => {
 /**
  * Formata timestamp para exibição de hora
  */
-export const formatTime = (timestamp: string | Date): string => {
+export const formatTime = (timestamp: string | Date | undefined | null): string => {
+  if (!timestamp) {
+    return '--:--';
+  }
+  
   const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+  
+  // Verificar se a data é válida
+  if (isNaN(date.getTime())) {
+    return '--:--';
+  }
+  
   return date.toLocaleTimeString('pt-BR', { 
     hour: '2-digit', 
     minute: '2-digit' 
@@ -28,16 +38,36 @@ export const formatTime = (timestamp: string | Date): string => {
 /**
  * Formata timestamp para exibição de data
  */
-export const formatDate = (timestamp: string | Date): string => {
+export const formatDate = (timestamp: string | Date | undefined | null): string => {
+  if (!timestamp) {
+    return '--/--/----';
+  }
+  
   const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+  
+  // Verificar se a data é válida
+  if (isNaN(date.getTime())) {
+    return '--/--/----';
+  }
+  
   return date.toLocaleDateString('pt-BR');
 };
 
 /**
  * Formata timestamp para exibição completa
  */
-export const formatDateTime = (timestamp: string | Date): string => {
+export const formatDateTime = (timestamp: string | Date | undefined | null): string => {
+  if (!timestamp) {
+    return '--/--/---- --:--';
+  }
+  
   const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+  
+  // Verificar se a data é válida
+  if (isNaN(date.getTime())) {
+    return '--/--/---- --:--';
+  }
+  
   return date.toLocaleString('pt-BR');
 };
 
@@ -61,11 +91,8 @@ export const getStandardFlag = (conversation: Conversation) => {
       icon: Users
     };
   } else {
-    return {
-      name: 'IA',
-      color: '#E91E63', // Rosa Lify
-      icon: Bot
-    };
+    // Não retorna mais flag para conversas automáticas
+    return null;
   }
 };
 
@@ -97,29 +124,115 @@ export const filterConversationsBySearch = (
 };
 
 /**
+ * Aplica filtros de configuração (newsletter, grupos)
+ */
+export const applyConfigurationFilters = (
+  conversations: Conversation[],
+  settings?: {
+    show_newsletter?: boolean;
+    show_groups?: boolean;
+  }
+): Conversation[] => {
+  console.log('🔍 [FILTERS] Aplicando filtros de configuração:', {
+    totalConversations: conversations.length,
+    settings,
+    conversationIds: conversations.map(c => c._id).slice(0, 3)
+  });
+
+  if (!settings) {
+    console.log('🔍 [FILTERS] Nenhuma configuração fornecida, retornando todas as conversas');
+    return conversations;
+  }
+
+  let filtered = conversations;
+
+  // Filtrar newsletters se desabilitado
+  if (settings.show_newsletter === false) {
+    console.log('🔍 [FILTERS] Filtro de newsletter ATIVO (show_newsletter = false)');
+    
+    const beforeCount = filtered.length;
+    filtered = filtered.filter(c => {
+      // Usar campo conversation_subtype se disponível, senão usar detecção por nome
+      const isNewsletter = 
+        (c as any).conversation_subtype === 'newsletter' ||
+        c.customer_name?.toLowerCase().includes('newsletter') ||
+        c.customer_phone?.toLowerCase().includes('newsletter') ||
+        c.group_name?.toLowerCase().includes('newsletter');
+      
+      if (isNewsletter) {
+        console.log('🔍 [FILTERS] Conversa identificada como NEWSLETTER e será REMOVIDA:', {
+          _id: c._id,
+          customer_name: c.customer_name,
+          customer_phone: c.customer_phone,
+          conversation_subtype: (c as any).conversation_subtype
+        });
+      }
+      
+      return !isNewsletter;
+    });
+    
+    console.log(`🔍 [FILTERS] Filtro newsletter: ${beforeCount} → ${filtered.length} conversas`);
+  }
+
+  // Filtrar grupos se desabilitado
+  if (settings.show_groups === false) {
+    console.log('🔍 [FILTERS] Filtro de grupos ATIVO (show_groups = false)');
+    
+    const beforeCount = filtered.length;
+    filtered = filtered.filter(c => {
+      const isGroup = c.conversation_type === 'group';
+      if (isGroup) {
+        console.log('🔍 [FILTERS] Conversa de GRUPO será REMOVIDA:', {
+          _id: c._id,
+          group_name: c.group_name,
+          conversation_type: c.conversation_type
+        });
+      }
+      return !isGroup;
+    });
+    
+    console.log(`🔍 [FILTERS] Filtro grupos: ${beforeCount} → ${filtered.length} conversas`);
+  }
+
+  console.log('🔍 [FILTERS] Resultado final:', {
+    totalOriginal: conversations.length,
+    totalFiltrado: filtered.length,
+    removidas: conversations.length - filtered.length
+  });
+
+  return filtered;
+};
+
+/**
  * Filtra conversas baseado no tipo de filtro
  */
 export const filterConversationsByType = (
   conversations: Conversation[], 
-  filterType: string
+  filterType: string,
+  settings?: {
+    show_newsletter?: boolean;
+    show_groups?: boolean;
+  }
 ): Conversation[] => {
+  // Primeiro aplicar filtros de configuração
+  const configFiltered = applyConfigurationFilters(conversations, settings);
+
+  // Depois aplicar filtros de tipo
   switch (filterType) {
     case 'Manual':
-      return conversations.filter(c => !!c.assigned_user_id);
-    case 'IA':
-      return conversations.filter(c => !c.assigned_user_id);
+      return configFiltered.filter(c => !!c.assigned_user_id);
     case 'Não lidas':
-      return conversations.filter(c => (c.unread_count || 0) > 0);
+      return configFiltered.filter(c => (c.unread_count || 0) > 0);
     case 'Grupos':
-      return conversations.filter(c => c.conversation_type === 'group');
+      return configFiltered.filter(c => c.conversation_type === 'group');
     case 'Individuais':
-      return conversations.filter(c => c.conversation_type === 'individual');
+      return configFiltered.filter(c => c.conversation_type === 'individual');
     case 'Flags Personalizadas':
       // Por enquanto retorna todas - será implementado com flags reais
-      return conversations;
+      return configFiltered;
     case 'Tudo':
     default:
-      return conversations;
+      return configFiltered;
   }
 };
 
@@ -255,4 +368,89 @@ export const hexToRgba = (hex: string, alpha: number = 1): string => {
   const b = parseInt(hex.slice(5, 7), 16);
   
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+/**
+ * Formata a exibição do remetente em mensagens de grupo
+ * Especificação:
+ * - Se nome e numero: mostrar os dois
+ * - Se só nome: mostrar só o nome  
+ * - Se só numero: mostrar só o número
+ * - Se nenhum nem outro: mostrar "Não identificado"
+ */
+export const formatGroupSender = (senderName?: string, senderPhone?: string): string => {
+  // Função para detectar se é um ID do WhatsApp
+  const isWhatsAppId = (value: string): boolean => {
+    return value.includes('@s.whatsapp.net') || 
+           value.includes('@g.us') || 
+           value.startsWith('+120') ||
+           /^\d{15,}$/.test(value); // IDs muito longos
+  };
+
+  // Limpar e validar nome
+  let cleanName = senderName?.trim();
+  let hasValidName = false;
+  
+  if (cleanName && cleanName.length > 0) {
+    // Se o nome é um ID do WhatsApp, considerar inválido
+    if (!isWhatsAppId(cleanName) && !cleanName.startsWith('+') && cleanName !== 'null') {
+      hasValidName = true;
+    } else {
+      cleanName = undefined; // Limpar nome inválido
+    }
+  }
+  
+  // Limpar e validar telefone
+  let cleanPhone = senderPhone?.trim();
+  let hasValidPhone = false;
+  
+  if (cleanPhone && cleanPhone.length > 0 && cleanPhone !== 'null') {
+    // Validar se é um telefone válido (apenas dígitos, não muito longo)
+    if (/^\d+$/.test(cleanPhone) && cleanPhone.length >= 10 && cleanPhone.length <= 15) {
+      hasValidPhone = true;
+    } else {
+      cleanPhone = undefined; // Limpar telefone inválido
+    }
+  }
+  
+  // Se temos nome e telefone válidos, mostrar ambos
+  if (hasValidName && hasValidPhone) {
+    const formattedPhone = formatPhoneNumberForGroup(cleanPhone!);
+    return `${cleanName} ${formattedPhone}`;
+  }
+  
+  // Se temos apenas o nome válido
+  if (hasValidName) {
+    return cleanName!;
+  }
+  
+  // Se temos apenas o telefone válido
+  if (hasValidPhone) {
+    return formatPhoneNumberForGroup(cleanPhone!);
+  }
+  
+  // Se não temos nem nome nem telefone válidos
+  return 'Não identificado';
+};
+
+/**
+ * Formata número de telefone para exibição em grupos (com código do país)
+ */
+export const formatPhoneNumberForGroup = (phone: string): string => {
+  if (!phone) return '';
+  
+  // Remove caracteres não numéricos
+  const cleanPhone = phone.replace(/\D/g, '');
+  
+  // Se começar com 55 (código do Brasil), formatar como brasileiro
+  if (cleanPhone.startsWith('55') && cleanPhone.length >= 13) {
+    const number = cleanPhone.substring(2); // Remove o 55
+    const ddd = number.substring(0, 2);
+    const firstPart = number.substring(2, 7);
+    const secondPart = number.substring(7);
+    return `+55 ${ddd} ${firstPart}-${secondPart}`;
+  }
+  
+  // Para outros formatos, apenas adicionar +
+  return `+${cleanPhone}`;
 };

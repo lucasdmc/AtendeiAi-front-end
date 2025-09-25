@@ -326,6 +326,14 @@ class ApiService {
     });
   }
 
+  async markConversationAsRead(conversationId: string): Promise<ApiResponse<{
+    messagesMarkedAsRead: number;
+  }>> {
+    return this.request(`/conversations/${conversationId}/mark-read`, {
+      method: 'PUT',
+    });
+  }
+
   async simulateCustomerMessage(conversationId: string, data: {
     content: string;
     message_type?: 'text' | 'image' | 'document' | 'audio';
@@ -649,6 +657,38 @@ class ApiService {
     return this.request(`/messages/scheduled/${messageId}`, {
       method: 'PUT',
       body: JSON.stringify(data)
+    });
+  }
+
+  // Clinic Settings API
+  async getClinicSettings(clinicId: string): Promise<ApiResponse<any>> {
+    return this.request(`/clinics/${clinicId}/settings`);
+  }
+
+  async updateClinicSettings(clinicId: string, settings: any): Promise<ApiResponse<any>> {
+    return this.request(`/clinics/${clinicId}/settings`, {
+      method: 'PUT',
+      body: JSON.stringify(settings)
+    });
+  }
+
+  async updateConversationSettings(clinicId: string, settings: {
+    show_newsletter?: boolean;
+    show_groups?: boolean;
+  }): Promise<ApiResponse<any>> {
+    return this.request(`/clinics/${clinicId}/settings/conversations`, {
+      method: 'PATCH',
+      body: JSON.stringify(settings)
+    });
+  }
+
+  async updateUISettings(clinicId: string, settings: {
+    sidebar_minimized?: boolean;
+    recent_emojis?: string[];
+  }): Promise<ApiResponse<any>> {
+    return this.request(`/clinics/${clinicId}/settings/ui`, {
+      method: 'PATCH',
+      body: JSON.stringify(settings)
     });
   }
 }

@@ -36,6 +36,21 @@ describe('Helper Functions', () => {
       const result = formatTime(timestamp);
       expect(result).toMatch(/\d{2}:\d{2}/);
     });
+
+    it('should handle undefined timestamp', () => {
+      const result = formatTime(undefined);
+      expect(result).toBe('--:--');
+    });
+
+    it('should handle null timestamp', () => {
+      const result = formatTime(null);
+      expect(result).toBe('--:--');
+    });
+
+    it('should handle invalid date string', () => {
+      const result = formatTime('invalid-date');
+      expect(result).toBe('--:--');
+    });
   });
 
   describe('formatDate', () => {
@@ -43,6 +58,21 @@ describe('Helper Functions', () => {
       const timestamp = '2024-01-15T14:30:00Z';
       const result = formatDate(timestamp);
       expect(result).toMatch(/\d{2}\/\d{2}\/\d{4}/);
+    });
+
+    it('should handle undefined timestamp', () => {
+      const result = formatDate(undefined);
+      expect(result).toBe('--/--/----');
+    });
+
+    it('should handle null timestamp', () => {
+      const result = formatDate(null);
+      expect(result).toBe('--/--/----');
+    });
+
+    it('should handle invalid date string', () => {
+      const result = formatDate('invalid-date');
+      expect(result).toBe('--/--/----');
     });
   });
 

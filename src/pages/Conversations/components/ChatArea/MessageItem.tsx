@@ -3,11 +3,12 @@ import { Avatar, AvatarFallback } from '../../../../components/ui/avatar';
 import { Button } from '../../../../components/ui/button';
 import { Check, CheckCheck, ChevronDown, UserCheck } from 'lucide-react';
 import { MessageItemProps } from '../../types';
-import { formatTime } from '../../utils';
+import { formatTime, formatGroupSender } from '../../utils';
 import { AudioPlayer } from './AudioPlayer';
 
 export const MessageItem: React.FC<MessageItemProps> = React.memo(({
   message,
+  conversation,
   onMenuClick
 }) => {
   const isInbound = message.sender_type === 'customer'; // Mensagem recebida (lado esquerdo)
@@ -30,13 +31,15 @@ export const MessageItem: React.FC<MessageItemProps> = React.memo(({
     );
   };
 
-  // Renderiza botão do menu (apenas para mensagens enviadas)
+  // Renderiza botão do menu (para mensagens enviadas e recebidas)
   const renderMenuButton = () => {
-    if (!isOutbound) return null;
-
     return (
       <Button
-        className="hidden group-hover:block p-0.5 rounded hover:bg-pink-600 transition-colors"
+        className={`hidden group-hover:block p-0.5 rounded transition-colors ${
+          isOutbound 
+            ? 'hover:bg-pink-600' 
+            : 'hover:bg-gray-200'
+        }`}
         onClick={(e) => {
           e.stopPropagation();
           onMenuClick(message._id, e);
@@ -45,7 +48,9 @@ export const MessageItem: React.FC<MessageItemProps> = React.memo(({
         variant="ghost"
         size="sm"
       >
-        <ChevronDown className="h-3 w-3 text-white" />
+        <ChevronDown className={`h-3 w-3 ${
+          isOutbound ? 'text-white' : 'text-gray-600'
+        }`} />
       </Button>
     );
   };
@@ -68,7 +73,7 @@ export const MessageItem: React.FC<MessageItemProps> = React.memo(({
       className={`flex ${isOutbound ? 'justify-end' : 'justify-start'} mb-4`}
       data-message-id={message._id}
     >
-      <div className={`flex items-end space-x-2 max-w-[70%] ${isOutbound ? 'group relative' : ''} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}>
+      <div className={`flex items-end space-x-2 max-w-[70%] group relative ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}>
         {/* Avatar para mensagens recebidas */}
         {isInbound && renderAvatar()}
 
@@ -78,6 +83,15 @@ export const MessageItem: React.FC<MessageItemProps> = React.memo(({
             ? 'bg-pink-500 text-white rounded-br-none' 
             : 'bg-white text-gray-900 rounded-bl-none border'
         }`}>
+          {/* Informações do remetente para grupos (apenas mensagens recebidas) */}
+          {isInbound && conversation?.conversation_type === 'group' && (
+            <div className="mb-2 pb-1 border-b border-gray-200">
+              <span className="text-xs font-medium text-blue-600">
+                {formatGroupSender(message.sender_name, message.sender_phone)}
+              </span>
+            </div>
+          )}
+
               {/* Debug: Log do tipo de mensagem */}
               {(() => {
                 console.log('🔍 MessageItem Debug:', {
@@ -90,7 +104,12 @@ export const MessageItem: React.FC<MessageItemProps> = React.memo(({
                   sender_type: message.sender_type,
                   isInbound: message.sender_type === 'customer',
                   isOutbound: message.sender_type === 'bot' || message.sender_type === 'human',
-                  whatsapp_message: (message as any).whatsapp_message
+                  whatsapp_message: (message as any).whatsapp_message,
+                  // Debug para grupos
+                  isGroup: conversation?.conversation_type === 'group',
+                  senderName: message.sender_name,
+                  senderPhone: message.sender_phone,
+                  formattedSender: formatGroupSender(message.sender_name, message.sender_phone)
                 });
 
                 // Debug específico para mensagens outbound
@@ -288,11 +307,14 @@ export const MessageItem: React.FC<MessageItemProps> = React.memo(({
             </span>
             
             {/* Status da mensagem ou botão do menu */}
-            {isOutbound && (
+            {isOutbound ? (
               <>
                 {renderMessageStatus()}
                 {renderMenuButton()}
               </>
+            ) : (
+              /* Botão do menu para mensagens recebidas */
+              renderMenuButton()
             )}
           </div>
         </div>

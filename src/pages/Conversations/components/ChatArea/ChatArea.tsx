@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ChatHeader } from './ChatHeader';
 import { MessagesList } from './MessagesList';
 import { MessageInput } from './MessageInput';
 import { useConversationsContext } from '../../context';
 import { useSendMessage } from '../../../../hooks/useMessages';
+import { MessageInputRef } from '../../types';
 
 export const ChatArea: React.FC = () => {
   const {
@@ -16,6 +17,9 @@ export const ChatArea: React.FC = () => {
 
   // Estado local para o input de mensagem
   const [messageText, setMessageText] = useState('');
+  
+  // Ref para o input de mensagem
+  const messageInputRef = useRef<MessageInputRef>(null);
 
   // Hook para enviar mensagens
   const { mutate: sendMessage, isPending: isSending, reset: resetSendMessage } = useSendMessage();
@@ -44,6 +48,10 @@ export const ChatArea: React.FC = () => {
       onSuccess: (data) => {
         console.log('✅ Mensagem enviada com sucesso:', data);
         setMessageText('');
+        // Focar no input após envio
+        setTimeout(() => {
+          messageInputRef.current?.focus();
+        }, 100);
         // Reset da mutação para permitir novos envios
         setTimeout(() => resetSendMessage(), 100);
       },
@@ -111,6 +119,7 @@ export const ChatArea: React.FC = () => {
 
       {/* Input de mensagem */}
       <MessageInput
+        ref={messageInputRef}
         value={messageText}
         onChange={setMessageText}
         onSend={handleSendMessage}

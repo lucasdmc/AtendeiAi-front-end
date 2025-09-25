@@ -2,13 +2,14 @@ import React from 'react';
 import { Input } from '../../../../components/ui/input';
 import { Badge } from '../../../../components/ui/badge';
 import { ScrollArea } from '../../../../components/ui/scroll-area';
-import { Search, Users, Bot, MessageCircle, Flag } from 'lucide-react';
+import { Search, Users, MessageCircle, Flag } from 'lucide-react';
 import { ConversationItem } from './ConversationItem';
 import { ConversationMenu } from './ConversationMenu';
 import { ConversationsLoading, EmptyState } from '../ui';
 import { useConversationsContext } from '../../context';
 import { useConversationMenu } from '../../hooks';
 import { useConversationFilters } from '../../hooks';
+import { Conversation } from '../../../../services/api';
 
 export const ConversationsList: React.FC = () => {
   const {
@@ -17,6 +18,7 @@ export const ConversationsList: React.FC = () => {
     searchTerm,
     activeFilter,
     conversationsLoading,
+    clinicSettings,
     setSelectedConversation,
     setSearchTerm,
     setActiveFilter,
@@ -30,11 +32,11 @@ export const ConversationsList: React.FC = () => {
   const {
     filteredConversations,
     handleFilterClick
-  } = useConversationFilters(conversations, searchTerm, activeFilter);
+  } = useConversationFilters(conversations, searchTerm, activeFilter, clinicSettings?.conversations);
 
 
   return (
-    <div className="w-[420px] bg-white border-r border-gray-200 flex flex-col">
+    <div className="w-[420px] min-w-[420px] max-w-[420px] bg-white border-r border-gray-200 flex flex-col">
       {/* Header com busca */}
       <div className="p-4 bg-white border-b border-gray-200">
         <div className="relative mb-4">
@@ -56,7 +58,7 @@ export const ConversationsList: React.FC = () => {
         <div className="space-y-2 mt-3">
           {/* Primeira linha - Filtros principais */}
           <div className="flex space-x-2">
-            {['Tudo', 'Manual', 'IA'].map((filter) => (
+            {['Tudo', 'Manual'].map((filter) => (
               <button
                 key={filter}
                 onClick={() => {
@@ -72,7 +74,6 @@ export const ConversationsList: React.FC = () => {
                 `}
               >
                 {filter === 'Manual' && <Users className="h-3 w-3" />}
-                {filter === 'IA' && <Bot className="h-3 w-3" />}
                 <span>{filter}</span>
               </button>
             ))}
@@ -161,7 +162,7 @@ export const ConversationsList: React.FC = () => {
             {filteredConversations.map((conversation, index) => (
               <div key={conversation._id || `conv-${index}`} className="relative">
                 <ConversationItem
-                  conversation={conversation}
+                  conversation={conversation as Conversation}
                   isSelected={selectedConversation?._id === conversation._id}
                   onSelect={setSelectedConversation}
                   onMenuClick={handleMenuClick}

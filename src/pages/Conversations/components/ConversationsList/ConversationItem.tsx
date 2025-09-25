@@ -15,10 +15,24 @@ interface ConversationItemProps {
   onMenuAction: (action: string, conversation: Conversation) => void;
 }
 
-// Função para truncar texto com ellipsis
-const truncateText = (text: string, maxLength: number = 80): string => {
-  if (!text || text.length <= maxLength) return text;
-  return text.substring(0, maxLength).trim() + '...';
+// Função para truncar texto com ellipsis - otimizada para mensagens
+const truncateText = (text: string, maxLength: number = 40): string => {
+  if (!text) return '';
+  
+  // Remove quebras de linha e espaços extras
+  const cleanText = text.replace(/\s+/g, ' ').trim();
+  
+  if (cleanText.length <= maxLength) return cleanText;
+  
+  // Trunca no último espaço antes do limite para evitar cortar palavras
+  const truncated = cleanText.substring(0, maxLength);
+  const lastSpaceIndex = truncated.lastIndexOf(' ');
+  
+  if (lastSpaceIndex > maxLength * 0.7) {
+    return truncated.substring(0, lastSpaceIndex) + '...';
+  }
+  
+  return truncated + '...';
 };
 
 export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
@@ -55,6 +69,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
       data-conversation-id={conversation._id}
       className={`
         flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors relative group
+        w-full max-w-full min-w-0
         ${isSelected ? 'bg-gray-100 border-r-4 border-orange-500' : ''}
       `}
       onClick={() => onSelect(conversation)}
@@ -88,57 +103,59 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
         )}
       </div>
       
-      <div className="flex-1 min-w-0 pr-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-medium text-gray-900 flex-1 min-w-0 flex items-center">
-            <span className="block truncate">
+      <div className="flex-1 min-w-0 pr-3 overflow-hidden">
+        <div className="flex items-center justify-between min-w-0">
+          <h3 className="font-medium text-gray-900 flex-1 min-w-0 flex items-center overflow-hidden">
+            <span className="block truncate flex-shrink">
               {displayName}
             </span>
             {/* ✅ Badge indicador de tipo (opcional, mais discreto) */}
             {conversation.conversation_type === 'group' && (
-              <Badge variant="outline" className="ml-2 text-xs bg-blue-50 text-blue-600 border-blue-200">
+              <Badge variant="outline" className="ml-2 text-xs bg-blue-50 text-blue-600 border-blue-200 flex-shrink-0">
                 Grupo
               </Badge>
             )}
           </h3>
-          <span className="text-xs text-gray-500 flex-shrink-0 ml-2">
+          <span className="text-xs text-gray-500 flex-shrink-0 ml-2 whitespace-nowrap">
             {formatTime(lastMessageTime)}
           </span>
         </div>
 
 
-        <div className="mt-1">
-          <p className="text-sm text-gray-600">
+        <div className="mt-1 min-w-0 overflow-hidden">
+          <p className="text-sm text-gray-600 truncate">
             {/* ✅ Para grupos, mostrar quem enviou a última mensagem */}
             {conversation.conversation_type === 'group' && conversation.last_message?.sender_name && (
               <span className="font-medium text-blue-600">
                 {conversation.last_message.sender_name}: 
               </span>
             )}
-            {truncateText(conversation.last_message?.content || 'Sem mensagens', 65)}
+            {truncateText(conversation.last_message?.content || 'Sem mensagens')}
           </p>
         </div>
         
-        {/* Flag padrão sempre presente */}
-        <div className="mt-1">
-          {(() => {
-            const IconComponent = standardFlag.icon;
-            return (
-              <Badge
-                variant="outline"
-                className="text-xs"
-                style={{
-                  backgroundColor: `${standardFlag.color}20`,
-                  borderColor: standardFlag.color,
-                  color: standardFlag.color
-                }}
-              >
-                <IconComponent className="h-3 w-3 mr-1" />
-                {standardFlag.name}
-              </Badge>
-            );
-          })()}
-        </div>
+        {/* Flag padrão - apenas para conversas manuais */}
+        {standardFlag && (
+          <div className="mt-1">
+            {(() => {
+              const IconComponent = standardFlag.icon;
+              return (
+                <Badge
+                  variant="outline"
+                  className="text-xs"
+                  style={{
+                    backgroundColor: `${standardFlag.color}20`,
+                    borderColor: standardFlag.color,
+                    color: standardFlag.color
+                  }}
+                >
+                  <IconComponent className="h-3 w-3 mr-1" />
+                  {standardFlag.name}
+                </Badge>
+              );
+            })()}
+          </div>
+        )}
       </div>
 
       {/* Chevron do menu - aparece apenas no hover */}

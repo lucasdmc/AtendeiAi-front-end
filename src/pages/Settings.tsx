@@ -7,7 +7,8 @@ import {
   Building2,
   Shield,
   LogOut,
-  Radio
+  Radio,
+  MessageSquare
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,12 @@ export default function Settings() {
 
   // Lista de configurações principais
   const settingsItems = [
+    {
+      icon: MessageSquare,
+      title: 'Conversas',
+      subtitle: 'Configurações de visualização e filtros de conversas',
+      href: '/settings/conversations'
+    },
     {
       icon: Radio,
       title: 'Canais',

@@ -1,15 +1,16 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useConversations } from '../../../hooks/useConversations';
-import { useMessages } from '../../../hooks/useMessages';
+import { useMessages, useMarkMessagesAsRead } from '../../../hooks/useMessages';
 import { useTemplates } from '../../../hooks/useTemplates';
 import { useRealtime } from '../../../hooks/useRealtime';
+import { useClinicSettings, useUpdateUISettings } from '../../../hooks/useClinicSettings';
 import { 
   ConversationsContextType, 
-  Conversation, 
   ConversationsState,
   ModalState
 } from '../types';
+import { Conversation } from '../../../services/api';
 import { mockPatientInfo, mockFlags, templateCategories, menuItems } from '../constants';
 
 // Criar contexto com valor padrão para evitar problemas de HMR
@@ -31,7 +32,6 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     searchTerm: '',
     activeFilter: 'Tudo',
     showContactInfo: false,
-    sidebarMinimized: localStorage.getItem('sidebarMinimized') === 'true',
     searchInConversation: false,
     conversationSearchTerm: ''
   });
@@ -63,22 +63,38 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     data: templatesData 
   } = useTemplates({ clinic_id: clinicId });
 
+  // Hook para configurações da clínica
+  const { 
+    data: clinicSettings 
+  } = useClinicSettings(clinicId);
+
+  // Hook para marcar mensagens como lidas
+  const { mutate: markMessagesAsRead } = useMarkMessagesAsRead();
+
+  // Hook para atualizar configurações de UI
+  const { mutate: updateUISettings } = useUpdateUISettings();
+
   // Realtime com callback para atualização direta das mensagens
+  console.log('🔌 [CONTEXT] Inicializando useRealtime com clinicId:', clinicId);
   const { isConnected } = useRealtime(clinicId, {
     onMessageReceived: (message, conversation) => {
-      console.log('🎯 Callback SSE: Nova mensagem recebida diretamente', {
+      console.log('🎯 [CONTEXT] Callback SSE: Nova mensagem recebida diretamente', {
         message: {
           _id: message._id,
           content: message.content?.substring(0, 50),
           message_type: message.message_type,
           media_url: message.media_url,
+          sender_type: message.sender_type,
           whatsapp_message: message.whatsapp_message
         },
         conversation: {
           _id: conversation._id,
-          customer_name: conversation.customer_name
+          customer_name: conversation.customer_name,
+          customer_phone: conversation.customer_phone,
+          conversation_type: conversation.conversation_type
         },
-        selectedConversation: conversationsState.selectedConversation?._id
+        selectedConversation: conversationsState.selectedConversation?._id,
+        clinicSettings: clinicSettings?.conversations
       });
 
       // Log específico para mensagens de texto
@@ -93,20 +109,23 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
 
       // Se a mensagem é para a conversa atualmente selecionada, atualizar diretamente
       if (conversationsState.selectedConversation?._id === conversation._id) {
-        console.log('🎯 Mensagem é para a conversa selecionada - atualizando estado diretamente');
+        console.log('🎯 [CONTEXT] Mensagem é para a conversa selecionada - atualizando estado diretamente');
 
         // Invalidar especificamente a query de mensagens desta conversa
+        const messagesQueryKey = ['messages', 'list', conversation._id, { limit: 50 }];
+        console.log('🎯 [CONTEXT] Invalidando query de mensagens:', messagesQueryKey);
+        
         queryClient.invalidateQueries({
-          queryKey: ['messages', 'list', conversation._id, { limit: 50 }],
+          queryKey: messagesQueryKey,
           refetchType: 'active' // Apenas refetch se a query estiver ativa
         });
 
         // Também tentar atualizar o cache diretamente se possível
-        const messagesQueryKey = ['messages', 'list', conversation._id, { limit: 50 }];
         const currentMessages = queryClient.getQueryData(messagesQueryKey);
+        console.log('🎯 [CONTEXT] Cache atual de mensagens:', currentMessages ? 'EXISTE' : 'NÃO EXISTE');
 
         if (currentMessages) {
-          console.log('🎯 Tentando atualizar cache diretamente');
+          console.log('🎯 [CONTEXT] Forçando refetch imediato...');
           // Forçar refetch imediato
           queryClient.refetchQueries({
             queryKey: messagesQueryKey,
@@ -114,6 +133,13 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
           });
         }
       }
+
+      // SEMPRE invalidar cache de conversas para atualizar last_message
+      console.log('🎯 [CONTEXT] Invalidando cache de conversas...');
+      queryClient.invalidateQueries({
+        queryKey: ['conversations', 'list'],
+        refetchType: 'active'
+      });
     }
   });
 
@@ -121,6 +147,21 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
   const conversations = conversationsData?.conversations || [];
   const messages = Array.isArray(messagesData) ? messagesData : (messagesData as any)?.pages?.flatMap((page: any) => page?.messages || []) || [];
   const templates = (templatesData as any)?.templates || [];
+
+  // ✅ Marcar mensagens como lidas quando uma conversa é selecionada
+  React.useEffect(() => {
+    if (conversationsState.selectedConversation && (conversationsState.selectedConversation.unread_count || 0) > 0) {
+      console.log('📖 [CONTEXT] Marcando conversa como lida:', {
+        conversationId: conversationsState.selectedConversation._id,
+        unreadCount: conversationsState.selectedConversation.unread_count,
+        customerName: conversationsState.selectedConversation.customer_name || conversationsState.selectedConversation.group_name
+      });
+      
+      markMessagesAsRead(conversationsState.selectedConversation._id);
+    }
+  }, [conversationsState.selectedConversation?._id, conversationsState.selectedConversation?.unread_count, markMessagesAsRead]);
+
+  // Configurações da clínica são gerenciadas pelo Layout principal
 
   // Actions para ConversationsState
   const setSelectedConversation = (conversation: Conversation | null) => {
@@ -139,10 +180,7 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     setConversationsState(prev => ({ ...prev, showContactInfo: show }));
   };
 
-  const setSidebarMinimized = (minimized: boolean) => {
-    localStorage.setItem('sidebarMinimized', minimized.toString());
-    setConversationsState(prev => ({ ...prev, sidebarMinimized: minimized }));
-  };
+  // setSidebarMinimized removido - agora gerenciado pelo Layout principal
 
   const setSearchInConversation = (search: boolean) => {
     setConversationsState(prev => ({ ...prev, searchInConversation: search }));
@@ -183,6 +221,7 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     messages,
     templates,
     flags: mockFlags,
+    clinicSettings,
     
     // Estados de loading
     conversationsLoading,
@@ -206,7 +245,6 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     setSearchTerm,
     setActiveFilter,
     setShowContactInfo,
-    setSidebarMinimized,
     setSearchInConversation,
     setConversationSearchTerm,
     

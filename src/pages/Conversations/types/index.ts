@@ -1,31 +1,4 @@
-export interface Conversation {
-  _id: string;
-  id?: string;
-  customer_name?: string;
-  customer_phone: string;
-  customer_profile_pic?: string;
-  
-  // ✅ Campos para suporte a grupos
-  conversation_type: 'individual' | 'group';
-  group_id?: string;
-  group_name?: string;
-  last_participant_id?: string;
-  last_participant_name?: string;
-  
-  last_message?: {
-    content: string;
-    timestamp: string;
-    sender_type: 'customer' | 'bot' | 'human';
-    sender_id?: string; // ID do remetente (para grupos)
-    sender_name?: string; // Nome do remetente (para grupos)
-  };
-  unread_count?: number;
-  assigned_user_id?: string | null;
-  updated_at: string;
-  created_at: string;
-  status: 'active' | 'archived' | 'closed';
-  avatar?: string;
-}
+// Interface Conversation removida - usando a de services/api.ts
 
 export interface Message {
   _id: string;
@@ -35,6 +8,12 @@ export interface Message {
   status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
   message_type: 'text' | 'image' | 'document' | 'audio' | 'video' | 'location';
   conversation_id: string;
+  
+  // Campos para informações do remetente (grupos)
+  sender_id?: string; // ID do remetente (para grupos)
+  sender_name?: string; // Nome do remetente (para grupos)
+  sender_phone?: string; // Telefone do remetente (para grupos)
+  
   media_url?: string;
   media_filename?: string;
   media_size?: number;
@@ -126,21 +105,19 @@ export interface FilterOption {
 }
 
 export interface ConversationsState {
-  selectedConversation: Conversation | null;
+  selectedConversation: import('../../../services/api').Conversation | null;
   searchTerm: string;
   activeFilter: string;
   showContactInfo: boolean;
-  sidebarMinimized: boolean;
   searchInConversation: boolean;
   conversationSearchTerm: string;
 }
 
 export interface ConversationsActions {
-  setSelectedConversation: (conversation: Conversation | null) => void;
+  setSelectedConversation: (conversation: import('../../../services/api').Conversation | null) => void;
   setSearchTerm: (term: string) => void;
   setActiveFilter: (filter: string) => void;
   setShowContactInfo: (show: boolean) => void;
-  setSidebarMinimized: (minimized: boolean) => void;
   setSearchInConversation: (search: boolean) => void;
   setConversationSearchTerm: (term: string) => void;
 }
@@ -169,10 +146,20 @@ export interface ScheduleMessageData {
 
 export interface ConversationsContextType extends ConversationsState, ConversationsActions, ModalState, ModalActions {
   // Dados da API
-  conversations: Conversation[];
+  conversations: import('../../../services/api').Conversation[];
   messages: Message[];
   templates: Template[];
   flags: Flag[];
+  clinicSettings?: {
+    conversations?: {
+      show_newsletter?: boolean;
+      show_groups?: boolean;
+    };
+    ui?: {
+      sidebar_minimized?: boolean;
+      recent_emojis?: string[];
+    };
+  };
   
   // Estados de loading
   conversationsLoading: boolean;
@@ -196,7 +183,7 @@ export interface ConversationsContextType extends ConversationsState, Conversati
 export interface UseConversationMenuReturn {
   openMenuId: string | null;
   handleMenuClick: (conversationId: string) => void;
-  handleMenuAction: (action: string, conversation: Conversation) => void;
+  handleMenuAction: (action: string, conversation: import('../../../services/api').Conversation) => void;
 }
 
 export interface UseMessageMenuReturn {
@@ -207,7 +194,7 @@ export interface UseMessageMenuReturn {
 }
 
 export interface UseConversationFiltersReturn {
-  filteredConversations: Conversation[];
+  filteredConversations: import('../../../services/api').Conversation[];
   filterOptions: FilterOption[];
   selectedFilterFlags: string[];
   handleFilterClick: (filter: string) => void;
@@ -217,23 +204,24 @@ export interface UseConversationFiltersReturn {
 
 // Tipos para componentes
 export interface ConversationItemProps {
-  conversation: Conversation;
+  conversation: import('../../../services/api').Conversation;
   isSelected: boolean;
-  onSelect: (conversation: Conversation) => void;
+  onSelect: (conversation: import('../../../services/api').Conversation) => void;
   onMenuClick: (conversationId: string) => void;
   showMenu: boolean;
-  onMenuAction: (action: string, conversation: Conversation) => void;
+  onMenuAction: (action: string, conversation: import('../../../services/api').Conversation) => void;
 }
 
 export interface MessageItemProps {
   message: Message;
+  conversation?: import('../../../services/api').Conversation; // Adicionar informação da conversa
   onMenuClick: (messageId: string, event: React.MouseEvent) => void;
   showMenu: boolean;
   onMenuAction: (action: string, message: Message) => void;
 }
 
 export interface ChatHeaderProps {
-  conversation: Conversation;
+  conversation: import('../../../services/api').Conversation;
   onToggleInfo: () => void;
   onToggleSearch: () => void;
   showContactInfo: boolean;
@@ -246,4 +234,8 @@ export interface MessageInputProps {
   onSend: () => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
   isLoading: boolean;
+}
+
+export interface MessageInputRef {
+  focus: () => void;
 }

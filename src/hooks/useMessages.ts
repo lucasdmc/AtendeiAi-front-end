@@ -510,41 +510,17 @@ export const useMarkMessagesAsRead = () => {
 
   return useMutation({
     mutationFn: async (conversationId: string) => {
-      // Buscar mensagens não lidas
-      const messagesQuery = queryClient.getQueryData(
-        messageKeys.list(conversationId)
-      ) as any;
-
-      if (!messagesQuery) return { conversationId };
-
-      const unreadMessages: Message[] = [];
-
-      if (messagesQuery.pages) {
-        // Paginação infinita
-        messagesQuery.pages.forEach((page: any) => {
-          page.messages.forEach((msg: Message) => {
-            if (msg.sender_type === 'customer' && msg.status !== 'read') {
-              unreadMessages.push(msg);
-            }
-          });
-        });
-      } else if (messagesQuery.messages) {
-        // Query simples
-        messagesQuery.messages.forEach((msg: Message) => {
-          if (msg.sender_type === 'customer' && msg.status !== 'read') {
-            unreadMessages.push(msg);
-          }
-        });
-      }
-
-      // Marcar como lidas via API (simulação)
-      await Promise.all(
-        unreadMessages.map(msg =>
-          apiService.updateMessageStatus(msg._id, 'read')
-        )
-      );
-
-      return { conversationId, messagesUpdated: unreadMessages.length };
+      console.log('📖 [FRONTEND] Chamando API para marcar conversa como lida:', conversationId);
+      
+      // Chamar novo endpoint para marcar conversa inteira como lida
+      const response = await apiService.markConversationAsRead(conversationId);
+      
+      console.log('✅ [FRONTEND] Resposta da API:', response);
+      
+      return { 
+        conversationId, 
+        messagesUpdated: response.data?.messagesMarkedAsRead || 0 
+      };
     },
     onSuccess: (result) => {
       // Atualizar status das mensagens no cache

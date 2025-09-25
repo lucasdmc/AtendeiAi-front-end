@@ -1,16 +1,21 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ClinicProvider } from './contexts/ClinicContext';
 import { Layout } from './components/Layout';
-import Index from './pages/Index';
+import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Agenda from './pages/Agenda';
 import ContextPage from './pages/ContextPage';
 import Conversations from './pages/Conversations';
 import Appointments from './pages/Appointments';
+import AppointmentsNew from './pages/AppointmentsNew';
+import ScheduledMessages from './pages/ScheduledMessages';
+import QuickReplies from './pages/QuickReplies';
+import Tasks from './pages/Tasks';
 import Clinics from './pages/Clinics';
 import Users from './pages/Users';
 import Auth from './pages/Auth';
 import Settings from './pages/Settings';
+import ConversationSettings from './pages/ConversationSettings';
 import Channels from './pages/Channels';
 import Attendants from './pages/Attendants';
 import Departments from './pages/Departments';
@@ -27,9 +32,36 @@ function App() {
           <Route path="/auth" element={<Auth />} />
           <Route path="/" element={
             <Layout>
-              <Index />
+              <Home />
             </Layout>
           } />
+          <Route path="/conversations" element={
+            <Layout>
+              <Conversations />
+            </Layout>
+          } />
+          <Route path="/appointments" element={
+            <Layout>
+              <AppointmentsNew />
+            </Layout>
+          } />
+          <Route path="/scheduled-messages" element={
+            <Layout>
+              <ScheduledMessages />
+            </Layout>
+          } />
+          <Route path="/quick-replies" element={
+            <Layout>
+              <QuickReplies />
+            </Layout>
+          } />
+          <Route path="/tasks" element={
+            <Layout>
+              <Tasks />
+            </Layout>
+          } />
+          
+          {/* Rotas antigas mantidas para compatibilidade */}
           <Route path="/dashboard" element={
             <Layout>
               <Dashboard />
@@ -50,8 +82,7 @@ function App() {
               <ContextPage />
             </Layout>
           } />
-          <Route path="/conversations" element={<Conversations />} />
-          <Route path="/appointments" element={
+          <Route path="/appointments-old" element={
             <Layout>
               <Appointments />
             </Layout>
@@ -69,6 +100,11 @@ function App() {
           <Route path="/settings" element={
             <Layout>
               <Settings />
+            </Layout>
+          } />
+          <Route path="/settings/conversations" element={
+            <Layout>
+              <ConversationSettings />
             </Layout>
           } />
           <Route path="/settings/channels" element={

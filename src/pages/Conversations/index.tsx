@@ -3,7 +3,6 @@ import { ConversationsProvider } from './context';
 import { ConversationsList } from './components/ConversationsList';
 import { ChatArea } from './components/ChatArea';
 import { PatientInfo } from './components/Sidebar';
-import { NavigationSidebar } from './components/Navigation';
 import { 
   FilesModal, 
   FlagsModal, 
@@ -18,8 +17,6 @@ const ConversationsContent: React.FC = () => {
   const {
     selectedConversation,
     showContactInfo,
-    sidebarMinimized,
-    setSidebarMinimized,
     filesModalOpen,
     flagsModalOpen,
     templatesModalOpen,
@@ -28,13 +25,7 @@ const ConversationsContent: React.FC = () => {
   } = useConversationsContext();
 
   return (
-    <div className="h-screen flex bg-gray-50">
-      {/* Sidebar de Navegação */}
-      <NavigationSidebar
-        isMinimized={sidebarMinimized}
-        onToggleMinimized={() => setSidebarMinimized(!sidebarMinimized)}
-      />
-
+    <div className="h-full flex bg-gray-50">
       {/* Lista de Conversas */}
       <ConversationsList />
 

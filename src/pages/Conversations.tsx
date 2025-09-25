@@ -3,7 +3,6 @@ import { ConversationsProvider } from './Conversations/context';
 import { ConversationsList } from './Conversations/components/ConversationsList';
 import { ChatArea } from './Conversations/components/ChatArea';
 import { PatientInfo } from './Conversations/components/Sidebar';
-import { NavigationSidebar } from './Conversations/components/Navigation';
 import { 
   FilesModal, 
   FlagsModal, 
@@ -18,27 +17,16 @@ const ConversationsContent: React.FC = () => {
   const {
     selectedConversation,
     showContactInfo,
-    setShowContactInfo,
-    sidebarMinimized,
-    setSidebarMinimized
+    setShowContactInfo
   } = useConversationsContext();
 
   return (
-    <div className="h-screen flex bg-gray-50">
-      {/* Sidebar de Navegação */}
-      <NavigationSidebar
-        isMinimized={sidebarMinimized}
-        onToggleMinimized={() => setSidebarMinimized(!sidebarMinimized)}
-      />
+    <div className="h-full flex bg-gray-50">
+      {/* Lista de Conversas */}
+      <ConversationsList />
 
-      {/* Área do WhatsApp - Ocupa o restante da tela */}
-      <div className="flex-1 flex bg-white">
-        {/* Lista de Conversas */}
-        <ConversationsList />
-
-        {/* Área Principal do Chat */}
-        <ChatArea />
-      </div>
+      {/* Área Principal do Chat */}
+      <ChatArea />
 
       {/* Sidebar de Informações do Paciente */}
       {selectedConversation && showContactInfo && (

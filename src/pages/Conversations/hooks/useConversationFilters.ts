@@ -1,35 +1,47 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Conversation, UseConversationFiltersReturn, FilterOption } from '../types';
+import { UseConversationFiltersReturn, FilterOption } from '../types';
+import { Conversation } from '../../../services/api';
 import { 
   filterConversationsBySearch, 
   filterConversationsByType, 
+  applyConfigurationFilters,
   getUnreadConversationsCount 
 } from '../utils';
 import { useDebounce } from '../utils/performance';
-import { Users, Bot, MessageCircle, Flag } from 'lucide-react';
+import { Users, MessageCircle, Flag } from 'lucide-react';
 
 export const useConversationFilters = (
   conversations: Conversation[],
   searchTerm: string,
-  activeFilter: string
+  activeFilter: string,
+  settings?: {
+    show_newsletter?: boolean;
+    show_groups?: boolean;
+  }
 ): UseConversationFiltersReturn => {
   const [selectedFilterFlags, setSelectedFilterFlags] = useState<string[]>([]);
   
   // Debounce do termo de busca para melhor performance
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
+  // Aplicar filtros de configuração primeiro
+  const configFilteredConversations = useMemo(() => {
+    return applyConfigurationFilters(conversations, settings);
+  }, [conversations, settings]);
+
   // Opções de filtro com contadores dinâmicos (memoizadas)
   const filterOptions: FilterOption[] = useMemo(() => {
-    const manualCount = conversations.filter(c => !!c.assigned_user_id).length;
-    const iaCount = conversations.filter(c => !c.assigned_user_id).length;
-    const unreadCount = getUnreadConversationsCount(conversations);
+    const manualCount = configFilteredConversations.filter(c => !!c.assigned_user_id).length;
+    const unreadCount = getUnreadConversationsCount(configFilteredConversations);
+    const groupsCount = configFilteredConversations.filter(c => c.conversation_type === 'group').length;
+    const individualsCount = configFilteredConversations.filter(c => c.conversation_type === 'individual').length;
 
-    return [
+    const baseOptions = [
       { 
         id: 'all', 
         label: 'Tudo', 
         value: 'Tudo', 
-        count: conversations.length 
+        count: configFilteredConversations.length 
       },
       { 
         id: 'manual', 
@@ -39,40 +51,57 @@ export const useConversationFilters = (
         count: manualCount 
       },
       { 
-        id: 'ia', 
-        label: 'IA', 
-        value: 'IA', 
-        icon: Bot, 
-        count: iaCount 
-      },
-      { 
         id: 'unread', 
         label: 'Não lidas', 
         value: 'Não lidas', 
         icon: MessageCircle, 
         count: unreadCount 
-      },
-      { 
-        id: 'flags', 
-        label: 'Flags Personalizadas', 
-        value: 'Flags Personalizadas', 
-        icon: Flag, 
-        count: 0 // Será atualizado quando implementarmos flags reais
       }
     ];
-  }, [conversations]);
+
+    // Adicionar filtros condicionalmente baseado nas configurações
+    if (settings?.show_groups !== false && groupsCount > 0) {
+      baseOptions.push({
+        id: 'groups',
+        label: 'Grupos',
+        value: 'Grupos',
+        icon: Users,
+        count: groupsCount
+      });
+    }
+
+    if (settings?.show_groups !== false && individualsCount > 0) {
+      baseOptions.push({
+        id: 'individuals',
+        label: 'Individuais',
+        value: 'Individuais',
+        icon: Users,
+        count: individualsCount
+      });
+    }
+
+    baseOptions.push({
+      id: 'flags', 
+      label: 'Flags Personalizadas', 
+      value: 'Flags Personalizadas', 
+      icon: Flag, 
+      count: 0 // Será atualizado quando implementarmos flags reais
+    });
+
+    return baseOptions;
+  }, [configFilteredConversations, settings]);
 
   // Conversas filtradas (otimizado com debounce)
   const filteredConversations = useMemo(() => {
-    let result = conversations;
+    let result = configFilteredConversations;
 
     // Aplica filtro de busca com debounce
     if (debouncedSearchTerm.trim()) {
       result = filterConversationsBySearch(result, debouncedSearchTerm);
     }
 
-    // Aplica filtro por tipo
-    result = filterConversationsByType(result, activeFilter);
+    // Aplica filtro por tipo (já com configurações aplicadas)
+    result = filterConversationsByType(result, activeFilter, settings);
 
     // Aplica filtros de flags personalizadas (quando implementado)
     if (activeFilter === 'Flags Personalizadas' && selectedFilterFlags.length > 0) {
@@ -81,7 +110,7 @@ export const useConversationFilters = (
     }
 
     return result;
-  }, [conversations, debouncedSearchTerm, activeFilter, selectedFilterFlags]);
+  }, [configFilteredConversations, debouncedSearchTerm, activeFilter, selectedFilterFlags, settings]);
 
   // Handler para clique em filtro
   const handleFilterClick = useCallback((filter: string) => {

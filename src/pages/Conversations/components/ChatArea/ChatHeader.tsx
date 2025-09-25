@@ -4,10 +4,7 @@ import { Button } from '../../../../components/ui/button';
 import { Badge } from '../../../../components/ui/badge';
 import { 
   Search, 
-  Info,
-  Phone,
-  Video,
-  MoreVertical
+  Info
 } from 'lucide-react';
 import { ChatHeaderProps } from '../../types';
 import { getInitials, getStandardFlag } from '../../utils';
@@ -23,7 +20,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const displayName = conversation.customer_name || conversation.customer_phone;
 
   return (
-    <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4">
+    <div 
+      className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 cursor-pointer hover:bg-gray-50 transition-colors"
+      onClick={onToggleInfo}
+      title="Clique para ver informações do contato"
+    >
       {/* Informações do contato */}
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {/* Avatar */}
@@ -44,19 +45,21 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               {displayName}
             </h2>
             
-            {/* Badge do tipo de atendimento */}
-            <Badge 
-              variant="secondary" 
-              className="text-xs px-2 py-0.5 flex items-center gap-1 flex-shrink-0"
-              style={{ 
-                backgroundColor: `${standardFlag.color}20`,
-                color: standardFlag.color,
-                borderColor: `${standardFlag.color}40`
-              }}
-            >
-              <standardFlag.icon className="h-3 w-3" />
-              {standardFlag.name}
-            </Badge>
+            {/* Badge do tipo de atendimento - apenas para conversas manuais */}
+            {standardFlag && (
+              <Badge 
+                variant="secondary" 
+                className="text-xs px-2 py-0.5 flex items-center gap-1 flex-shrink-0"
+                style={{ 
+                  backgroundColor: `${standardFlag.color}20`,
+                  color: standardFlag.color,
+                  borderColor: `${standardFlag.color}40`
+                }}
+              >
+                <standardFlag.icon className="h-3 w-3" />
+                {standardFlag.name}
+              </Badge>
+            )}
           </div>
 
           {/* Status online/offline */}
@@ -82,52 +85,28 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <Button
           variant={searchInConversation ? "default" : "ghost"}
           size="sm"
-          onClick={onToggleSearch}
+          onClick={(e) => {
+            e.stopPropagation(); // Evita que o clique no botão acione o onClick do header
+            onToggleSearch();
+          }}
           className="p-2"
           title="Buscar nesta conversa"
         >
           <Search className="h-4 w-4" />
         </Button>
 
-        {/* Chamada de voz */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="p-2"
-          title="Chamada de voz"
-        >
-          <Phone className="h-4 w-4" />
-        </Button>
-
-        {/* Chamada de vídeo */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="p-2"
-          title="Chamada de vídeo"
-        >
-          <Video className="h-4 w-4" />
-        </Button>
-
         {/* Informações do contato */}
         <Button
           variant={showContactInfo ? "default" : "ghost"}
           size="sm"
-          onClick={onToggleInfo}
+          onClick={(e) => {
+            e.stopPropagation(); // Evita que o clique no botão acione o onClick do header
+            onToggleInfo();
+          }}
           className="p-2"
           title="Informações do contato"
         >
           <Info className="h-4 w-4" />
-        </Button>
-
-        {/* Menu adicional */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="p-2"
-          title="Mais opções"
-        >
-          <MoreVertical className="h-4 w-4" />
         </Button>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
 import { 
@@ -16,19 +16,19 @@ import {
   Globe,
   X
 } from 'lucide-react';
-import { MessageInputProps } from '../../types';
+import { MessageInputProps, MessageInputRef } from '../../types';
 import { useConversationsContext } from '../../context';
 import { AudioRecorder } from './AudioRecorder';
 import { EmojiPicker } from './EmojiPicker';
 import { useSendAudio } from '../../../../hooks/useMessages';
 
-export const MessageInput: React.FC<MessageInputProps> = ({
+export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   value,
   onChange,
   onSend,
   onKeyPress,
   isLoading
-}) => {
+}, ref) => {
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [showAudioRecorder, setShowAudioRecorder] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -44,6 +44,13 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
   // Hook para enviar áudio
   const { mutate: sendAudio, isPending: isSendingAudio } = useSendAudio();
+
+  // Expor função de foco para o componente pai
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      inputRef.current?.focus();
+    }
+  }), []);
 
   // Itens do menu do botão "+"
   const plusMenuItems = [
@@ -308,4 +315,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       />
     </div>
   );
-};
+});
+
+MessageInput.displayName = 'MessageInput';

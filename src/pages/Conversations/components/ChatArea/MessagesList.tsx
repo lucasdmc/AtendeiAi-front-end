@@ -141,6 +141,7 @@ export const MessagesList: React.FC = () => {
               <MessageItem
                 key={message._id}
                 message={message}
+                conversation={selectedConversation || undefined}
                 onMenuClick={handleMenuClick}
                 showMenu={openMenuId === message._id}
                 onMenuAction={handleMenuAction}
