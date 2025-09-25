@@ -1,11 +1,11 @@
 import React from 'react';
 import { Input } from '../../../../components/ui/input';
-import { Badge } from '../../../../components/ui/badge';
 import { ScrollArea } from '../../../../components/ui/scroll-area';
-import { Search, Users, MessageCircle, Flag } from 'lucide-react';
+import { Search, MessageCircle } from 'lucide-react';
 import { ConversationItem } from './ConversationItem';
 import { ConversationMenu } from './ConversationMenu';
 import { ConversationsLoading, EmptyState } from '../ui';
+import { ConversationFilters } from '../ConversationFilters';
 import { useConversationsContext } from '../../context';
 import { useConversationMenu } from '../../hooks';
 import { useConversationFilters } from '../../hooks';
@@ -21,8 +21,7 @@ export const ConversationsList: React.FC = () => {
     clinicSettings,
     setSelectedConversation,
     setSearchTerm,
-    setActiveFilter,
-    setFilterModalOpen
+    setActiveFilter
   } = useConversationsContext();
 
   // Hook para gerenciar menu das conversas
@@ -33,6 +32,12 @@ export const ConversationsList: React.FC = () => {
     filteredConversations,
     handleFilterClick
   } = useConversationFilters(conversations, searchTerm, activeFilter, clinicSettings?.conversations);
+
+  // Handler para filtros avançados
+  const handleAdvancedFilter = (type: string, values: string[]) => {
+    console.log('Filtro avançado aplicado:', { type, values });
+    // TODO: Implementar lógica de filtros avançados
+  };
 
 
   return (
@@ -55,96 +60,17 @@ export const ConversationsList: React.FC = () => {
           <span className="text-green-600">Tempo real ativo</span>
         </div>
 
-        <div className="space-y-2 mt-3">
-          {/* Primeira linha - Filtros principais */}
-          <div className="flex space-x-2">
-            {['Tudo', 'Manual'].map((filter) => (
-              <button
-                key={filter}
-                onClick={() => {
-                  setActiveFilter(filter);
-                  handleFilterClick(filter);
-                }}
-                className={`
-                  px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center space-x-1
-                  ${activeFilter === filter 
-                    ? 'bg-pink-100 text-pink-800 border border-pink-200' 
-                    : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                  }
-                `}
-              >
-                {filter === 'Manual' && <Users className="h-3 w-3" />}
-                <span>{filter}</span>
-              </button>
-            ))}
-          </div>
-          
-          {/* ✅ Segunda linha - Filtros de tipo de conversa */}
-          <div className="flex space-x-2">
-            {['Grupos', 'Individuais'].map((filter) => (
-              <button
-                key={filter}
-                onClick={() => {
-                  setActiveFilter(filter);
-                  handleFilterClick(filter);
-                }}
-                className={`
-                  px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center space-x-1
-                  ${activeFilter === filter 
-                    ? 'bg-blue-100 text-blue-800 border border-blue-200' 
-                    : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                  }
-                `}
-              >
-                {filter === 'Grupos' && <Users className="h-3 w-3" />}
-                {filter === 'Individuais' && <MessageCircle className="h-3 w-3" />}
-                <span>{filter}</span>
-              </button>
-            ))}
-          </div>
-          
-          {/* Terceira linha - Filtros especiais */}
-          <div className="flex space-x-2">
-            {/* Filtro Não lidas */}
-            <button
-              onClick={() => {
-                setActiveFilter('Não lidas');
-                handleFilterClick('Não lidas');
-              }}
-              className={`
-                px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center space-x-1
-                ${activeFilter === 'Não lidas' 
-                  ? 'bg-orange-100 text-orange-800 border border-orange-200' 
-                  : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                }
-              `}
-            >
-              <MessageCircle className="h-3 w-3" />
-              <span>Não lidas</span>
-              {/* Contador de conversas não lidas */}
-              {conversations.filter(c => (c.unread_count || 0) > 0).length > 0 && (
-                <Badge variant="secondary" className="ml-1 bg-orange-200 text-orange-800 text-xs">
-                  {conversations.filter(c => (c.unread_count || 0) > 0).length}
-                </Badge>
-              )}
-            </button>
-            
-            {/* Botão especial para Flags Personalizadas */}
-            <button
-              onClick={() => setFilterModalOpen(true)}
-              className={`
-                px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center space-x-1
-                ${activeFilter === 'Flags Personalizadas' 
-                  ? 'bg-purple-100 text-purple-800 border border-purple-200' 
-                  : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                }
-              `}
-            >
-              <Flag className="h-3 w-3" />
-              <span>Flags</span>
-            </button>
-          </div>
-        </div>
+        {/* Componente de Filtros */}
+        <ConversationFilters
+          activeFilter={activeFilter}
+          conversations={conversations}
+          onFilterChange={(filter) => {
+            setActiveFilter(filter);
+            handleFilterClick(filter);
+          }}
+          onAdvancedFilter={handleAdvancedFilter}
+          clinicSettings={clinicSettings}
+        />
       </div>
 
       {/* Lista de conversas */}

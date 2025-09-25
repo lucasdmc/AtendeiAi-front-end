@@ -35,6 +35,8 @@ export interface Conversation {
   
   status: 'active' | 'closed' | 'archived';
   assigned_user_id: string | null;
+  assigned_to?: 'bot' | 'ai' | 'human' | string; // Para filtros BOT/AI
+  is_favorite?: boolean; // Para filtro de favoritas
   last_message?: {
     content: string;
     timestamp: string;
@@ -286,6 +288,7 @@ class ApiService {
     reply_to?: string;
     template_id?: string;
     scheduled_at?: string;
+    recurrence?: any;
   }): Promise<ApiResponse<Message>> {
     return this.request(`/conversations/${conversationId}/messages`, {
       method: 'POST',

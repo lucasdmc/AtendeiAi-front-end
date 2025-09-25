@@ -4,7 +4,8 @@ import { useConversations } from '../../../hooks/useConversations';
 import { useMessages, useMarkMessagesAsRead } from '../../../hooks/useMessages';
 import { useTemplates } from '../../../hooks/useTemplates';
 import { useRealtime } from '../../../hooks/useRealtime';
-import { useClinicSettings, useUpdateUISettings } from '../../../hooks/useClinicSettings';
+import { useClinicSettings } from '../../../hooks/useClinicSettings';
+import { useMarkAsRead, getSessionIdFromConversation, getUnreadMessageIds } from '../../../hooks/useReceipts';
 import { 
   ConversationsContextType, 
   ConversationsState,
@@ -45,6 +46,16 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     filterModalOpen: false
   });
 
+  // Callback para agendamento
+  // Estado para dados de agendamento
+  const [scheduleData, setScheduleData] = useState<any>(null);
+
+  // Função para definir agendamento
+  const setScheduleDataWithLogs = (data: any) => {
+    console.log('📅 [CONTEXT] Definindo dados de agendamento:', data);
+    setScheduleData(data);
+  };
+
   // Hooks da API
   const clinicId = '68cd84230e29f31cf5f5f1b8';
   const { 
@@ -68,11 +79,11 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     data: clinicSettings 
   } = useClinicSettings(clinicId);
 
-  // Hook para marcar mensagens como lidas
+  // Hook para marcar mensagens como lidas (antigo)
   const { mutate: markMessagesAsRead } = useMarkMessagesAsRead();
 
-  // Hook para atualizar configurações de UI
-  const { mutate: updateUISettings } = useUpdateUISettings();
+  // Hook para receipts do WhatsApp
+  const { mutate: markAsRead } = useMarkAsRead();
 
   // Realtime com callback para atualização direta das mensagens
   console.log('🔌 [CONTEXT] Inicializando useRealtime com clinicId:', clinicId);
@@ -157,9 +168,30 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
         customerName: conversationsState.selectedConversation.customer_name || conversationsState.selectedConversation.group_name
       });
       
+      // Marcar como lida no backend (antigo sistema)
       markMessagesAsRead(conversationsState.selectedConversation._id);
+
+      // Enviar read receipts para WhatsApp (novo sistema)
+      if (messages.length > 0) {
+        const unreadMessageIds = getUnreadMessageIds(messages);
+        if (unreadMessageIds.length > 0) {
+          const sessionId = getSessionIdFromConversation(conversationsState.selectedConversation);
+          
+          console.log('📨 [CONTEXT] Enviando read receipts:', {
+            conversationId: conversationsState.selectedConversation._id,
+            messageCount: unreadMessageIds.length,
+            sessionId
+          });
+
+          markAsRead({
+            messageIds: unreadMessageIds,
+            conversationId: conversationsState.selectedConversation._id,
+            sessionId
+          });
+        }
+      }
     }
-  }, [conversationsState.selectedConversation?._id, conversationsState.selectedConversation?.unread_count, markMessagesAsRead]);
+  }, [conversationsState.selectedConversation?._id, conversationsState.selectedConversation?.unread_count, markMessagesAsRead, markAsRead, messages]);
 
   // Configurações da clínica são gerenciadas pelo Layout principal
 
@@ -204,6 +236,7 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
   };
 
   const setScheduleModalOpen = (open: boolean) => {
+    console.log('📅 [CONTEXT] Abrindo modal de agendamento.');
     setModalState(prev => ({ ...prev, scheduleModalOpen: open }));
   };
 
@@ -254,6 +287,8 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     setTemplatesModalOpen,
     setScheduleModalOpen,
     setFilterModalOpen,
+    scheduleData,
+    setScheduleData: setScheduleDataWithLogs,
     
     // Estados dos modais
     ...modalState

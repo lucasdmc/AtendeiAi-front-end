@@ -5,6 +5,7 @@ import { Check, CheckCheck, ChevronDown, UserCheck } from 'lucide-react';
 import { MessageItemProps } from '../../types';
 import { formatTime, formatGroupSender } from '../../utils';
 import { AudioPlayer } from './AudioPlayer';
+import { ScheduledMessageBadge } from './ScheduledMessageBadge';
 
 export const MessageItem: React.FC<MessageItemProps> = React.memo(({
   message,
@@ -229,6 +230,8 @@ export const MessageItem: React.FC<MessageItemProps> = React.memo(({
                   <AudioPlayer
                     audioUrl={directAudioUrl}
                     isOutbound={isOutbound}
+                    messageId={message._id}
+                    conversation={conversation}
                     onError={(e) => {
                       console.error('❌ Erro ao carregar áudio:', {
                         url: directAudioUrl,
@@ -298,6 +301,25 @@ export const MessageItem: React.FC<MessageItemProps> = React.memo(({
             <p className="text-sm whitespace-pre-wrap break-words mt-2 pt-2 border-t border-gray-200">
               {message.media.caption}
             </p>
+          )}
+
+          {/* Badge de mensagem agendada */}
+          {(message as any).scheduled_at && (message as any).status === 'scheduled' && (
+            <div className="mt-2">
+              <ScheduledMessageBadge
+                scheduleDate={(message as any).scheduled_date || new Date((message as any).scheduled_at).toISOString().split('T')[0]}
+                scheduleTime={(message as any).scheduled_time || new Date((message as any).scheduled_at).toTimeString().slice(0, 5)}
+                recurrence={(message as any).recurrence}
+                onEdit={() => {
+                  console.log('Editar agendamento da mensagem:', message._id);
+                  // TODO: Implementar edição de agendamento
+                }}
+                onCancel={() => {
+                  console.log('Cancelar agendamento da mensagem:', message._id);
+                  // TODO: Implementar cancelamento de agendamento
+                }}
+              />
+            </div>
           )}
 
           {/* Footer com horário e status/menu */}

@@ -136,6 +136,8 @@ export interface ModalActions {
   setTemplatesModalOpen: (open: boolean) => void;
   setScheduleModalOpen: (open: boolean) => void;
   setFilterModalOpen: (open: boolean) => void;
+  scheduleData: any;
+  setScheduleData: (data: any) => void;
 }
 
 export interface ScheduleMessageData {
@@ -234,8 +236,10 @@ export interface MessageInputProps {
   onSend: () => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
   isLoading: boolean;
+  onSchedule?: (scheduleData: any) => void;
 }
 
 export interface MessageInputRef {
   focus: () => void;
+  handleSendMessage: () => void;
 }

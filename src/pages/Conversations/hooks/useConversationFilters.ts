@@ -8,7 +8,7 @@ import {
   getUnreadConversationsCount 
 } from '../utils';
 import { useDebounce } from '../utils/performance';
-import { Users, MessageCircle, Flag } from 'lucide-react';
+import { Users, MessageCircle } from 'lucide-react';
 
 export const useConversationFilters = (
   conversations: Conversation[],
@@ -31,7 +31,7 @@ export const useConversationFilters = (
 
   // Opções de filtro com contadores dinâmicos (memoizadas)
   const filterOptions: FilterOption[] = useMemo(() => {
-    const manualCount = configFilteredConversations.filter(c => !!c.assigned_user_id).length;
+    const botCount = configFilteredConversations.filter(c => c.assigned_to === 'bot' || c.assigned_to === 'ai').length;
     const unreadCount = getUnreadConversationsCount(configFilteredConversations);
     const groupsCount = configFilteredConversations.filter(c => c.conversation_type === 'group').length;
     const individualsCount = configFilteredConversations.filter(c => c.conversation_type === 'individual').length;
@@ -44,11 +44,11 @@ export const useConversationFilters = (
         count: configFilteredConversations.length 
       },
       { 
-        id: 'manual', 
-        label: 'Manual', 
-        value: 'Manual', 
+        id: 'bot', 
+        label: 'BOT', 
+        value: 'BOT', 
         icon: Users, 
-        count: manualCount 
+        count: botCount 
       },
       { 
         id: 'unread', 
@@ -80,13 +80,6 @@ export const useConversationFilters = (
       });
     }
 
-    baseOptions.push({
-      id: 'flags', 
-      label: 'Flags Personalizadas', 
-      value: 'Flags Personalizadas', 
-      icon: Flag, 
-      count: 0 // Será atualizado quando implementarmos flags reais
-    });
 
     return baseOptions;
   }, [configFilteredConversations, settings]);
@@ -103,11 +96,6 @@ export const useConversationFilters = (
     // Aplica filtro por tipo (já com configurações aplicadas)
     result = filterConversationsByType(result, activeFilter, settings);
 
-    // Aplica filtros de flags personalizadas (quando implementado)
-    if (activeFilter === 'Flags Personalizadas' && selectedFilterFlags.length > 0) {
-      // TODO: Implementar filtro por flags quando tiver integração real
-      console.log('Filtros de flags selecionados:', selectedFilterFlags);
-    }
 
     return result;
   }, [configFilteredConversations, debouncedSearchTerm, activeFilter, selectedFilterFlags, settings]);

@@ -66,8 +66,55 @@ export const ChatArea: React.FC = () => {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      // Chamar o handleSendMessage do MessageInput via ref
+      if (messageInputRef.current && (messageInputRef.current as any).handleSendMessage) {
+        (messageInputRef.current as any).handleSendMessage();
+      } else {
+        // Fallback para o método antigo
+        handleSendMessage();
+      }
     }
+  };
+
+  // Handler para agendamento
+  const handleSchedule = (data: any) => {
+    // Verificar se os dados são válidos
+    if (!data || !data.date || !data.time || !data.message) {
+      console.error('❌ Dados de agendamento inválidos:', data);
+      return;
+    }
+
+    if (!selectedConversation) {
+      console.error('❌ Nenhuma conversa selecionada para agendamento');
+      return;
+    }
+
+    console.log('📅 Processando agendamento no ChatArea:', data);
+
+    // Criar data de agendamento
+    const scheduledAt = new Date(`${data.date}T${data.time}`);
+
+    // Enviar mensagem agendada
+    sendMessage({
+      conversationId: selectedConversation._id,
+      content: data.message,
+      scheduled_at: scheduledAt.toISOString(),
+      recurrence: data.recurrence
+    }, {
+      onSuccess: (response) => {
+        console.log('✅ Mensagem agendada com sucesso:', response);
+        // Focar no input após agendamento
+        setTimeout(() => {
+          messageInputRef.current?.focus();
+        }, 100);
+        // Reset da mutação
+        setTimeout(() => resetSendMessage(), 100);
+      },
+      onError: (error) => {
+        console.error('❌ Erro ao agendar mensagem:', error);
+        // Aqui poderia mostrar um toast de erro
+      }
+    });
   };
 
   // Se não há conversa selecionada
@@ -122,9 +169,13 @@ export const ChatArea: React.FC = () => {
         ref={messageInputRef}
         value={messageText}
         onChange={setMessageText}
-        onSend={handleSendMessage}
+        onSend={() => {
+          // Este onSend é chamado pelo MessageInput para envio imediato
+          handleSendMessage();
+        }}
         onKeyPress={handleKeyPress}
         isLoading={isSending}
+        onSchedule={handleSchedule}
       />
     </div>
   );

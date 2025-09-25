@@ -1,22 +1,31 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause } from 'lucide-react';
+import { useMarkAsPlayed, getSessionIdFromConversation } from '../../../../hooks/useReceipts';
 
 interface AudioPlayerProps {
   audioUrl: string;
   isOutbound?: boolean;
   onError?: (error: any) => void;
+  messageId?: string;
+  conversation?: any;
 }
 
 export const AudioPlayer: React.FC<AudioPlayerProps> = ({ 
   audioUrl, 
   isOutbound = false,
-  onError 
+  onError,
+  messageId,
+  conversation
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [playedReceiptSent, setPlayedReceiptSent] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Hook para enviar played receipt
+  const { mutate: markAsPlayed } = useMarkAsPlayed();
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -36,6 +45,26 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       setCurrentTime(0);
     };
 
+    const handlePlay = () => {
+      // Enviar played receipt apenas uma vez por mensagem e apenas para mensagens recebidas
+      if (!playedReceiptSent && !isOutbound && messageId && conversation) {
+        const sessionId = getSessionIdFromConversation(conversation);
+        
+        console.log('🎵 Enviando played receipt para áudio:', {
+          messageId,
+          sessionId,
+          audioUrl
+        });
+
+        markAsPlayed({
+          messageId,
+          sessionId
+        });
+
+        setPlayedReceiptSent(true);
+      }
+    };
+
     const handleError = (e: any) => {
       setIsLoading(false);
       onError?.(e);
@@ -44,15 +73,17 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('play', handlePlay);
     audio.addEventListener('error', handleError);
 
     return () => {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('error', handleError);
     };
-  }, [onError]);
+  }, [onError, playedReceiptSent, isOutbound, messageId, conversation, audioUrl, markAsPlayed]);
 
   const togglePlayPause = () => {
     const audio = audioRef.current;

@@ -6,6 +6,7 @@ export * from './useSimulateMessage';
 export * from './useAudioRecorder';
 export * from './useScheduledMessages';
 export * from './useClinicSettings';
+export * from './useReceipts';
 
 // Re-exportar React Query hooks comuns para conveniência
 export { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';

@@ -47,7 +47,9 @@ const ConversationsContent: React.FC = () => {
       {filesModalOpen && <FilesModal />}
       {flagsModalOpen && <FlagsModal />}
       {templatesModalOpen && <TemplatesModal />}
-      {scheduleModalOpen && <ScheduleModal />}
+      {scheduleModalOpen && (
+        <ScheduleModal />
+      )}
       {filterModalOpen && <FiltersModal />}
     </div>
   );

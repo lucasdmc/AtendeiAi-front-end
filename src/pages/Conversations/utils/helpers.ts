@@ -219,17 +219,16 @@ export const filterConversationsByType = (
 
   // Depois aplicar filtros de tipo
   switch (filterType) {
-    case 'Manual':
-      return configFiltered.filter(c => !!c.assigned_user_id);
+    case 'BOT':
+      return configFiltered.filter(c => c.assigned_to === 'bot' || c.assigned_to === 'ai');
     case 'Não lidas':
       return configFiltered.filter(c => (c.unread_count || 0) > 0);
     case 'Grupos':
       return configFiltered.filter(c => c.conversation_type === 'group');
     case 'Individuais':
       return configFiltered.filter(c => c.conversation_type === 'individual');
-    case 'Flags Personalizadas':
-      // Por enquanto retorna todas - será implementado com flags reais
-      return configFiltered;
+    case 'Favoritas':
+      return configFiltered.filter(c => c.is_favorite);
     case 'Tudo':
     default:
       return configFiltered;

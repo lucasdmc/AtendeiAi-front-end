@@ -182,7 +182,8 @@ export const useSendMessage = () => {
       message_type = 'text',
       reply_to,
       template_id,
-      scheduled_at
+      scheduled_at,
+      recurrence
     }: {
       conversationId: string;
       content: string;
@@ -190,6 +191,7 @@ export const useSendMessage = () => {
       reply_to?: string;
       template_id?: string;
       scheduled_at?: string;
+      recurrence?: any;
     }) => {
       const response = await apiService.sendMessage(conversationId, {
         content,
@@ -197,6 +199,7 @@ export const useSendMessage = () => {
         reply_to,
         template_id,
         scheduled_at,
+        recurrence,
       });
       return { ...response.data, conversationId };
     },

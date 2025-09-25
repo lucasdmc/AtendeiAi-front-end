@@ -1,237 +1,402 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../../components/ui/dialog';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
-import { Textarea } from '../../../../components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select';
+import { RadioGroup, RadioGroupItem } from '../../../../components/ui/radio-group';
 import { 
   Calendar, 
   Clock, 
-  Send,
+  X,
   AlertCircle,
   CheckCircle,
-  User,
-  MessageSquare
+  ChevronUp,
+  Repeat
 } from 'lucide-react';
-import { apiService } from '../../../../services/api';
-import { useQueryClient } from '@tanstack/react-query';
 import { useConversationsContext } from '../../context';
-import { ScheduleMessageData } from '../../types';
 
-export const ScheduleModal: React.FC = () => {
+interface ScheduleData {
+  date: string;
+  time: string;
+  recurrence: {
+    type: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'weekdays' | 'custom';
+    interval?: number;
+    unit?: 'days' | 'weeks' | 'months' | 'years';
+    daysOfWeek?: string[];
+    end?: {
+      mode: 'never' | 'date' | 'after';
+      date?: string;
+      occurrences?: number;
+    };
+  };
+}
+
+interface ScheduleModalProps {
+  onSchedule?: (scheduleData: ScheduleData) => void;
+}
+
+export const ScheduleModal: React.FC<ScheduleModalProps> = ({ onSchedule }) => {
   const { 
     scheduleModalOpen, 
     setScheduleModalOpen,
-    selectedConversation 
+    setScheduleData
   } = useConversationsContext();
 
-  const queryClient = useQueryClient();
-
-  const [formData, setFormData] = useState<ScheduleMessageData>({
-    message: '',
+  const [formData, setFormData] = useState<ScheduleData>({
     date: '',
-    time: ''
+    time: '',
+    recurrence: {
+      type: 'none'
+    }
   });
 
-  const [isScheduling, setIsScheduling] = useState(false);
+  const [showCustomRecurrence, setShowCustomRecurrence] = useState(false);
 
   // Obter data mínima (hoje)
   const today = new Date().toISOString().split('T')[0];
   
-  // Obter horário atual para validação
+  // Obter horário atual + 5 minutos para pré-definição
   const now = new Date();
+  const futureTime = new Date(now.getTime() + 5 * 60000); // +5 minutos
   const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  const defaultTime = `${futureTime.getHours().toString().padStart(2, '0')}:${futureTime.getMinutes().toString().padStart(2, '0')}`;
+
+  // Inicializar valores padrão quando o modal abre
+  useEffect(() => {
+    if (scheduleModalOpen && !formData.date) {
+      setFormData(prev => ({
+        ...prev,
+        date: today,
+        time: defaultTime
+      }));
+    }
+  }, [scheduleModalOpen, today, defaultTime, formData.date]);
 
   // Validações
   const isValidDate = formData.date && formData.date >= today;
   const isValidTime = formData.time && (formData.date > today || formData.time > currentTime);
-  const isValidMessage = formData.message.trim().length > 0;
-  const canSchedule = isValidDate && isValidTime && isValidMessage;
+  const canSchedule = isValidDate && isValidTime;
 
-  const handleSchedule = async () => {
-    if (!canSchedule || !selectedConversation) return;
+  const handleSchedule = () => {
+    if (!canSchedule) return;
 
-    setIsScheduling(true);
-
-    try {
-      // Criar data no fuso horário local
-      const scheduledAt = new Date(`${formData.date}T${formData.time}`);
-      
-      console.log('📅 [SCHEDULE MODAL] Enviando mensagem agendada:', {
-        conversationId: selectedConversation._id,
-        message: formData.message,
-        localTime: `${formData.date}T${formData.time}`,
-        scheduledAtLocal: scheduledAt.toLocaleString('pt-BR'),
-        scheduledAtUTC: scheduledAt.toISOString(),
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        timezoneOffset: scheduledAt.getTimezoneOffset()
-      });
-
-      // Fazer requisição real para o backend (enviando como está - JavaScript já converte para UTC)
-      const response = await apiService.sendMessage(selectedConversation._id, {
-        content: formData.message,
-        message_type: 'text',
-        scheduled_at: scheduledAt.toISOString()
-      });
-
-      console.log('📅 [SCHEDULE MODAL] Resposta do backend:', response);
-
-      if (response.success) {
-        // Reset form
-        setFormData({ message: '', date: '', time: '' });
-        setScheduleModalOpen(false);
-        
-        alert('Mensagem agendada com sucesso!');
-        
-        // Invalidar cache para atualizar a lista
-        queryClient.invalidateQueries({ 
-          queryKey: ['scheduled-messages', selectedConversation._id] 
-        });
-      } else {
-        throw new Error(response.message || 'Erro ao agendar mensagem');
-      }
-      
-    } catch (error) {
-      console.error('❌ [SCHEDULE MODAL] Erro ao agendar mensagem:', error);
-      alert('Erro ao agendar mensagem. Tente novamente.');
-    } finally {
-      setIsScheduling(false);
-    }
+    console.log('📅 [SCHEDULE MODAL] Definindo agendamento:', formData);
+    
+    // Definir dados de agendamento no contexto
+    setScheduleData(formData);
+    
+    // Fechar modal
+    handleCancel();
   };
 
   const handleCancel = () => {
-    setFormData({ message: '', date: '', time: '' });
+    setFormData({
+      date: '',
+      time: '',
+      recurrence: { type: 'none' }
+    });
+    setShowCustomRecurrence(false);
     setScheduleModalOpen(false);
   };
 
-  // Sugestões de horário
-  const timeSuggestions = [
-    '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'
-  ];
+  const handleRecurrenceChange = (value: string) => {
+    const newRecurrence = { ...formData.recurrence, type: value as any };
+    
+    // Se selecionou "custom", mostrar área personalizada
+    if (value === 'custom') {
+      setShowCustomRecurrence(true);
+      newRecurrence.interval = 1;
+      newRecurrence.unit = 'weeks';
+      newRecurrence.daysOfWeek = [getDayOfWeek(formData.date)];
+      newRecurrence.end = { mode: 'never' };
+    } else {
+      setShowCustomRecurrence(false);
+      // Limpar campos personalizados
+      delete newRecurrence.interval;
+      delete newRecurrence.unit;
+      delete newRecurrence.daysOfWeek;
+      delete newRecurrence.end;
+    }
 
-  // Templates de mensagem rápida
-  const messageTemplates = [
-    'Olá! Este é um lembrete sobre seu agendamento.',
-    'Boa tarde! Gostaríamos de confirmar sua consulta.',
-    'Lembrete: Sua consulta está marcada para hoje.',
-    'Olá! Por favor, confirme sua presença na consulta.'
+    setFormData(prev => ({ ...prev, recurrence: newRecurrence }));
+  };
+
+  const getDayOfWeek = (dateString: string): string => {
+    if (!dateString) return 'DOM';
+    const date = new Date(dateString);
+    const days = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
+    return days[date.getDay()];
+  };
+
+  const getRecurrenceLabel = (type: string, date: string): string => {
+    switch (type) {
+      case 'daily': return 'Todos os dias';
+      case 'weekly': return `Semanal: ${getDayOfWeek(date) === 'DOM' ? 'Domingo' : 
+                                       getDayOfWeek(date) === 'SEG' ? 'Segunda' :
+                                       getDayOfWeek(date) === 'TER' ? 'Terça' :
+                                       getDayOfWeek(date) === 'QUA' ? 'Quarta' :
+                                       getDayOfWeek(date) === 'QUI' ? 'Quinta' :
+                                       getDayOfWeek(date) === 'SEX' ? 'Sexta' : 'Sábado'}`;
+      case 'monthly': return 'Mensal: no mesmo dia';
+      case 'yearly': return 'Anual: mesma data';
+      case 'weekdays': return 'Todos os dias úteis (segunda a sexta-feira)';
+      case 'custom': return 'Personalizar...';
+      default: return 'Não se repete';
+    }
+  };
+
+  const daysOfWeek = [
+    { key: 'DOM', label: 'D', full: 'Domingo' },
+    { key: 'SEG', label: 'S', full: 'Segunda' },
+    { key: 'TER', label: 'T', full: 'Terça' },
+    { key: 'QUA', label: 'Q', full: 'Quarta' },
+    { key: 'QUI', label: 'Q', full: 'Quinta' },
+    { key: 'SEX', label: 'S', full: 'Sexta' },
+    { key: 'SAB', label: 'S', full: 'Sábado' }
   ];
 
   return (
     <Dialog open={scheduleModalOpen} onOpenChange={setScheduleModalOpen}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-lg">
+        <DialogHeader className="flex flex-row items-center justify-between">
           <DialogTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Agendar Mensagem
+            Agendar envio da mensagem
           </DialogTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCancel}
+            className="h-6 w-6 p-0"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Informações do destinatário */}
-          {selectedConversation && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <User className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">
-                    {selectedConversation.customer_name || selectedConversation.customer_phone}
-                  </h4>
-                  <p className="text-sm text-gray-600">
-                    {selectedConversation.customer_phone}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Mensagem */}
-          <div className="space-y-3">
-            <Label htmlFor="message">Mensagem</Label>
-            
-            {/* Templates rápidos */}
-            <div className="flex flex-wrap gap-2 mb-2">
-              {messageTemplates.map((template, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setFormData(prev => ({ ...prev, message: template }))}
-                  className="text-xs"
-                >
-                  {template.substring(0, 20)}...
-                </Button>
-              ))}
-            </div>
-
-            <Textarea
-              id="message"
-              placeholder="Digite a mensagem que será enviada..."
-              value={formData.message}
-              onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
-              className="min-h-[100px]"
+          {/* Data */}
+          <div className="space-y-2">
+            <Label htmlFor="date" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Data
+            </Label>
+            <Input
+              id="date"
+              type="date"
+              min={today}
+              value={formData.date}
+              onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+              className="w-full"
             />
-            
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <MessageSquare className="h-4 w-4" />
-              {formData.message.length} caracteres
-            </div>
+            {formData.date && !isValidDate && (
+              <div className="flex items-center gap-2 text-sm text-red-600">
+                <AlertCircle className="h-4 w-4" />
+                Data não pode ser no passado
+              </div>
+            )}
           </div>
 
-          {/* Data e Hora */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Data */}
-            <div className="space-y-2">
-              <Label htmlFor="date">Data</Label>
-              <Input
-                id="date"
-                type="date"
-                min={today}
-                value={formData.date}
-                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-              />
-              {formData.date && !isValidDate && (
-                <div className="flex items-center gap-2 text-sm text-red-600">
-                  <AlertCircle className="h-4 w-4" />
-                  Data deve ser hoje ou no futuro
-                </div>
-              )}
-            </div>
-
-            {/* Hora */}
-            <div className="space-y-2">
-              <Label htmlFor="time">Horário</Label>
-              <Input
-                id="time"
-                type="time"
-                value={formData.time}
-                onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
-              />
-              
-              {/* Sugestões de horário */}
-              <div className="flex flex-wrap gap-1">
-                {timeSuggestions.map((time) => (
-                  <Button
-                    key={time}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setFormData(prev => ({ ...prev, time }))}
-                    className="text-xs px-2 py-1"
-                  >
-                    {time}
-                  </Button>
-                ))}
+          {/* Hora */}
+          <div className="space-y-2">
+            <Label htmlFor="time" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Hora
+            </Label>
+            <Input
+              id="time"
+              type="time"
+              value={formData.time}
+              onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
+              className="w-full"
+            />
+            {formData.time && formData.date && !isValidTime && (
+              <div className="flex items-center gap-2 text-sm text-red-600">
+                <AlertCircle className="h-4 w-4" />
+                Hora não pode ser no passado
               </div>
+            )}
+          </div>
 
-              {formData.time && formData.date && !isValidTime && (
-                <div className="flex items-center gap-2 text-sm text-red-600">
-                  <AlertCircle className="h-4 w-4" />
-                  Horário deve ser no futuro
+          {/* Recorrência */}
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2">
+              <Repeat className="h-4 w-4" />
+              Recorrência
+            </Label>
+            <Select
+              value={formData.recurrence.type}
+              onValueChange={handleRecurrenceChange}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a recorrência" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Não se repete</SelectItem>
+                <SelectItem value="daily">Todos os dias</SelectItem>
+                <SelectItem value="weekly">{getRecurrenceLabel('weekly', formData.date)}</SelectItem>
+                <SelectItem value="monthly">Mensal: no mesmo dia</SelectItem>
+                <SelectItem value="yearly">Anual: mesma data</SelectItem>
+                <SelectItem value="weekdays">Todos os dias úteis (segunda a sexta-feira)</SelectItem>
+                <SelectItem value="custom">Personalizar...</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Área de Recorrência Personalizada */}
+            {showCustomRecurrence && (
+              <div className="border border-gray-200 rounded-lg p-4 space-y-4 bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-gray-900">Recorrência Personalizada</h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowCustomRecurrence(false)}
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </Button>
                 </div>
-              )}
-            </div>
+
+                {/* Repetir a cada */}
+                <div className="space-y-2">
+                  <Label>Repetir a cada</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      min="1"
+                      value={formData.recurrence.interval || 1}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        recurrence: {
+                          ...prev.recurrence,
+                          interval: parseInt(e.target.value) || 1
+                        }
+                      }))}
+                      className="w-20"
+                    />
+                    <Select
+                      value={formData.recurrence.unit || 'weeks'}
+                      onValueChange={(value) => setFormData(prev => ({
+                        ...prev,
+                        recurrence: {
+                          ...prev.recurrence,
+                          unit: value as any
+                        }
+                      }))}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="days">dias</SelectItem>
+                        <SelectItem value="weeks">semanas</SelectItem>
+                        <SelectItem value="months">meses</SelectItem>
+                        <SelectItem value="years">anos</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Repetir em (se unidade = semanas) */}
+                {formData.recurrence.unit === 'weeks' && (
+                  <div className="space-y-2">
+                    <Label>Repetir em</Label>
+                    <div className="flex gap-1">
+                      {daysOfWeek.map((day, index) => (
+                        <Button
+                          key={index}
+                          variant={formData.recurrence.daysOfWeek?.includes(day.key) ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => {
+                            const currentDays = formData.recurrence.daysOfWeek || [];
+                            const newDays = currentDays.includes(day.key)
+                              ? currentDays.filter(d => d !== day.key)
+                              : [...currentDays, day.key];
+                            
+                            setFormData(prev => ({
+                              ...prev,
+                              recurrence: {
+                                ...prev.recurrence,
+                                daysOfWeek: newDays
+                              }
+                            }));
+                          }}
+                          className="w-8 h-8 p-0"
+                        >
+                          {day.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Término da recorrência */}
+                <div className="space-y-3">
+                  <Label>Término da recorrência</Label>
+                  <RadioGroup
+                    value={formData.recurrence.end?.mode || 'never'}
+                    onValueChange={(value) => setFormData(prev => ({
+                      ...prev,
+                      recurrence: {
+                        ...prev.recurrence,
+                        end: { ...prev.recurrence.end, mode: value as any }
+                      }
+                    }))}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="never" id="never" />
+                      <Label htmlFor="never">Nunca</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="date" id="end-date" />
+                      <Label htmlFor="end-date">Em</Label>
+                      <Input
+                        type="date"
+                        min={formData.date}
+                        value={formData.recurrence.end?.date || ''}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          recurrence: {
+                            ...prev.recurrence,
+                            end: { 
+                              mode: prev.recurrence.end?.mode || 'never',
+                              ...prev.recurrence.end, 
+                              date: e.target.value 
+                            }
+                          }
+                        }))}
+                        disabled={formData.recurrence.end?.mode !== 'date'}
+                        className="flex-1"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="after" id="after" />
+                      <Label htmlFor="after">Após</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={formData.recurrence.end?.occurrences || ''}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          recurrence: {
+                            ...prev.recurrence,
+                            end: { 
+                              mode: prev.recurrence.end?.mode || 'never',
+                              ...prev.recurrence.end, 
+                              occurrences: parseInt(e.target.value) || 1 
+                            }
+                          }
+                        }))}
+                        disabled={formData.recurrence.end?.mode !== 'after'}
+                        className="w-20"
+                      />
+                      <Label>ocorrências</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Preview do agendamento */}
@@ -241,17 +406,18 @@ export const ScheduleModal: React.FC = () => {
                 <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
                 <div className="flex-1">
                   <h4 className="font-medium text-green-900 mb-2">
-                    Preview do Agendamento
+                    Configuração do Agendamento
                   </h4>
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-1 text-sm text-green-800">
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-green-600" />
+                      <Calendar className="h-4 w-4" />
                       <span>
                         {new Date(formData.date).toLocaleDateString('pt-BR')} às {formData.time}
                       </span>
                     </div>
-                    <div className="bg-white p-3 rounded border border-green-200">
-                      <p className="text-gray-900">{formData.message}</p>
+                    <div className="flex items-center gap-2">
+                      <Repeat className="h-4 w-4" />
+                      <span>{getRecurrenceLabel(formData.recurrence.type, formData.date)}</span>
                     </div>
                   </div>
                 </div>
@@ -264,38 +430,18 @@ export const ScheduleModal: React.FC = () => {
             <Button
               variant="outline"
               onClick={handleCancel}
-              disabled={isScheduling}
             >
               Cancelar
             </Button>
             
             <Button
               onClick={handleSchedule}
-              disabled={!canSchedule || isScheduling}
+              disabled={!canSchedule}
               className="flex items-center gap-2"
             >
-              {isScheduling ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Agendando...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4" />
-                  Agendar Mensagem
-                </>
-              )}
+              <Clock className="h-4 w-4" />
+              Definir envio
             </Button>
-          </div>
-
-          {/* Informações adicionais */}
-          <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
-            <p className="mb-1">
-              <strong>Importante:</strong> A mensagem será enviada automaticamente no horário agendado.
-            </p>
-            <p>
-              Você pode cancelar mensagens agendadas na seção de mensagens programadas.
-            </p>
           </div>
         </div>
       </DialogContent>

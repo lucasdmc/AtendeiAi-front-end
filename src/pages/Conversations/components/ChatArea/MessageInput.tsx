@@ -1,4 +1,4 @@
-import React, { useState, useRef, useImperativeHandle, forwardRef } from 'react';
+import { useState, useRef, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
 import { 
@@ -14,7 +14,8 @@ import {
   BarChart3,
   CalendarDays,
   Globe,
-  X
+  X,
+  Clock
 } from 'lucide-react';
 import { MessageInputProps, MessageInputRef } from '../../types';
 import { useConversationsContext } from '../../context';
@@ -22,16 +23,34 @@ import { AudioRecorder } from './AudioRecorder';
 import { EmojiPicker } from './EmojiPicker';
 import { useSendAudio } from '../../../../hooks/useMessages';
 
+interface ScheduleData {
+  date: string;
+  time: string;
+  recurrence: {
+    type: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'weekdays' | 'custom';
+    interval?: number;
+    unit?: 'days' | 'weeks' | 'months' | 'years';
+    daysOfWeek?: string[];
+    end?: {
+      mode: 'never' | 'date' | 'after';
+      date?: string;
+      occurrences?: number;
+    };
+  };
+}
+
 export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   value,
   onChange,
   onSend,
   onKeyPress,
-  isLoading
+  isLoading,
+  onSchedule
 }, ref) => {
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [showAudioRecorder, setShowAudioRecorder] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   
@@ -39,18 +58,99 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
     selectedConversation,
     setTemplatesModalOpen,
     setScheduleModalOpen,
-    setFilesModalOpen
+    setFilesModalOpen,
+    scheduleData: contextScheduleData,
+    setScheduleData: setContextScheduleData
   } = useConversationsContext();
 
   // Hook para enviar áudio
   const { mutate: sendAudio, isPending: isSendingAudio } = useSendAudio();
 
-  // Expor função de foco para o componente pai
+  // Monitorar mudanças nos dados de agendamento do contexto
+  useEffect(() => {
+    if (contextScheduleData) {
+      console.log('📅 [MESSAGE INPUT] Recebendo dados de agendamento do contexto:', contextScheduleData);
+      setScheduleData(contextScheduleData);
+      // Limpar dados do contexto após usar
+      setContextScheduleData(null);
+    }
+  }, [contextScheduleData, setContextScheduleData]);
+
+  // Focar no input quando agendamento for definido
+  useEffect(() => {
+    if (scheduleData) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [scheduleData]);
+
+  // Função para cancelar agendamento
+  const handleCancelSchedule = () => {
+    setScheduleData(null);
+  };
+
+  // Função para enviar mensagem (agendada ou imediata)
+  const handleSendMessage = () => {
+    console.log('🚀 [MESSAGE INPUT] handleSendMessage chamado. scheduleData:', scheduleData);
+    
+    if (scheduleData) {
+      // Enviar mensagem agendada
+      console.log('📅 [MESSAGE INPUT] Enviando mensagem agendada:', {
+        message: value,
+        schedule: scheduleData
+      });
+      
+      const agendamentoCompleto = {
+        message: value,
+        ...scheduleData
+      };
+      
+      console.log('📅 [MESSAGE INPUT] Dados completos para agendamento:', agendamentoCompleto);
+      
+      // Chamar onSchedule com os dados completos
+      if (onSchedule) {
+        console.log('📅 [MESSAGE INPUT] Chamando onSchedule...');
+        onSchedule(agendamentoCompleto);
+        
+        // Limpar estado após agendar
+        setScheduleData(null);
+        
+        // Limpar input manualmente (não chamar onSend para evitar envio duplo)
+        onChange('');
+      } else {
+        console.log('❌ [MESSAGE INPUT] onSchedule não disponível!');
+        // Fallback: limpar estado e chamar onSend
+        setScheduleData(null);
+        onSend();
+      }
+    } else {
+      // Enviar mensagem imediata
+      console.log('📤 [MESSAGE INPUT] Enviando mensagem imediata');
+      onSend();
+    }
+  };
+
+  // Expor funções para o componente pai
   useImperativeHandle(ref, () => ({
     focus: () => {
       inputRef.current?.focus();
+    },
+    handleSendMessage: () => {
+      handleSendMessage();
     }
-  }), []);
+  }), [handleSendMessage]);
+
+  // Formatar data/hora para exibição
+  const formatScheduleDisplay = (data: ScheduleData): string => {
+    const date = new Date(`${data.date}T${data.time}`);
+    return date.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   // Itens do menu do botão "+"
   const plusMenuItems = [
@@ -125,8 +225,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
             content: data.content,
             media_url: data.media_url,
             media_filename: data.media_filename,
-            media_size: data.media_size,
-            media_mime_type: data.media_mime_type
+            media_size: data.media_size
           });
           setShowAudioRecorder(false);
         },
@@ -244,10 +343,10 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
               variant="ghost"
               size="sm"
               onClick={() => setScheduleModalOpen(true)}
-              className="p-1 text-gray-700 hover:text-gray-900 h-7 w-7"
-              title="Agendar resposta"
+              className={`p-1 h-7 w-7 ${scheduleData ? 'text-blue-600 bg-blue-50' : 'text-gray-700 hover:text-gray-900'}`}
+              title={scheduleData ? `Agendada para ${formatScheduleDisplay(scheduleData)}` : "Agendar resposta"}
             >
-              <Calendar className="h-4 w-4" />
+              {scheduleData ? <Clock className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
             </Button>
 
             {/* Emoji */}
@@ -279,18 +378,44 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
           <div className="absolute right-6 top-1/2 transform -translate-y-1/2 flex items-center">
             {/* Botão de áudio ou enviar */}
             {value.trim() ? (
-              <Button
-                onClick={onSend}
-                disabled={isLoading}
-                className="p-1 bg-green-500 hover:bg-green-600 text-white rounded-full h-7 w-7"
-                title="Enviar mensagem"
-              >
-                {isLoading ? (
-                  <div className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
+              <div className="flex items-center gap-2">
+                {/* Indicador de agendamento */}
+                {scheduleData && (
+                  <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                    <Clock className="h-3 w-3" />
+                    <span>{formatScheduleDisplay(scheduleData)}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCancelSchedule}
+                      className="p-0 h-4 w-4 text-blue-600 hover:text-blue-800"
+                      title="Cancelar agendamento"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
                 )}
-              </Button>
+                
+                {/* Botão de envio */}
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={isLoading}
+                  className={`p-1 rounded-full h-7 w-7 ${
+                    scheduleData 
+                      ? 'bg-blue-500 hover:bg-blue-600 text-white' 
+                      : 'bg-green-500 hover:bg-green-600 text-white'
+                  }`}
+                  title={scheduleData ? `Agendar para ${formatScheduleDisplay(scheduleData)}` : "Enviar mensagem"}
+                >
+                  {isLoading ? (
+                    <div className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : scheduleData ? (
+                    <Clock className="h-4 w-4" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             ) : (
               <Button
                 variant="ghost"
