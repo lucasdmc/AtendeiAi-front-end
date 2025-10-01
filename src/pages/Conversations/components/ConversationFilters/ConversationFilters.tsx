@@ -8,6 +8,8 @@ import {
   Tag,
   Activity
 } from 'lucide-react';
+import { Button } from '../../../../components/ui/button';
+import { Badge } from '../../../../components/ui/badge';
 import { FilterChip } from './FilterChip';
 import { FilterDropdown } from './FilterDropdown';
 import { Conversation } from '../../../../services/api';
@@ -15,8 +17,10 @@ import { applyConfigurationFilters } from '../../utils/helpers';
 
 interface ConversationFiltersProps {
   activeFilter: string;
+  activeTab: string; // Nova prop para controlar as abas
   conversations: Conversation[];
   onFilterChange: (filter: string) => void;
+  onTabChange: (tab: string) => void; // Nova prop para mudança de aba
   onAdvancedFilter: (type: string, values: string[]) => void;
   clinicSettings?: any;
 }
@@ -85,8 +89,10 @@ const tagOptions = [
 
 export const ConversationFilters: React.FC<ConversationFiltersProps> = ({
   activeFilter,
+  activeTab,
   conversations,
   onFilterChange,
+  onTabChange,
   onAdvancedFilter,
   clinicSettings
 }) => {
@@ -99,6 +105,36 @@ export const ConversationFilters: React.FC<ConversationFiltersProps> = ({
   const configFilteredConversations = React.useMemo(() => {
     return applyConfigurationFilters(conversations, clinicSettings?.conversations);
   }, [conversations, clinicSettings?.conversations]);
+
+  // Função para determinar o status da conversa baseado em lógica de negócio
+  const getConversationStatus = (conversation: Conversation): 'inbox' | 'waiting' | 'finished' => {
+    // Lógica baseada no status atual da conversa
+    if (conversation.status === 'closed' || conversation.status === 'archived') {
+      return 'finished';
+    }
+    // Para determinar "waiting", podemos usar uma lógica baseada em assigned_to ou outros campos
+    // Por enquanto, vamos considerar que conversas sem assigned_to ou com assigned_to === 'waiting' estão esperando
+    if (!conversation.assigned_to || conversation.assigned_to === 'waiting') {
+      return 'waiting';
+    }
+    return 'inbox'; // conversas ativas e atribuídas
+  };
+
+  // Calcular contadores das abas
+  const getTabCount = (tab: string): number => {
+    switch (tab) {
+      case 'inbox':
+        return configFilteredConversations.filter(c => getConversationStatus(c) === 'inbox').length;
+      case 'waiting':
+        return configFilteredConversations.filter(c => getConversationStatus(c) === 'waiting').length;
+      case 'finished':
+        return configFilteredConversations.filter(c => getConversationStatus(c) === 'finished').length;
+      default:
+        return 0;
+    }
+  };
+
+  const inboxCount = getTabCount('inbox');
 
   // Calcular contadores usando conversas já filtradas pelas configurações
   const getFilterCount = (filterKey: string): number => {
@@ -209,6 +245,61 @@ export const ConversationFilters: React.FC<ConversationFiltersProps> = ({
             />
           </div>
         </div>
+      </div>
+
+      {/* Abas de Status das Conversas - Posicionadas ABAIXO dos filtros */}
+      <div className="flex items-center gap-2">
+        <Button
+          variant={activeTab === 'inbox' ? 'default' : 'ghost'}
+          size="sm"
+          className={`rounded-full px-4 ${
+            activeTab === 'inbox' 
+              ? 'bg-blue-500 hover:bg-blue-600 text-white' 
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+          onClick={() => onTabChange('inbox')}
+        >
+          Entrada
+          {activeTab === 'inbox' && (
+            <Badge className="ml-2 bg-white text-blue-500 hover:bg-white px-2 py-0.5 text-xs">
+              {inboxCount}
+            </Badge>
+          )}
+        </Button>
+        <Button
+          variant={activeTab === 'waiting' ? 'default' : 'ghost'}
+          size="sm"
+          className={`rounded-full px-4 ${
+            activeTab === 'waiting' 
+              ? 'bg-blue-500 hover:bg-blue-600 text-white' 
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+          onClick={() => onTabChange('waiting')}
+        >
+          Esperando
+          {activeTab === 'waiting' && (
+            <Badge className="ml-2 bg-white text-blue-500 hover:bg-white px-2 py-0.5 text-xs">
+              {getTabCount('waiting')}
+            </Badge>
+          )}
+        </Button>
+        <Button
+          variant={activeTab === 'finished' ? 'default' : 'ghost'}
+          size="sm"
+          className={`rounded-full px-4 ${
+            activeTab === 'finished' 
+              ? 'bg-blue-500 hover:bg-blue-600 text-white' 
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+          onClick={() => onTabChange('finished')}
+        >
+          Finalizados
+          {activeTab === 'finished' && (
+            <Badge className="ml-2 bg-white text-blue-500 hover:bg-white px-2 py-0.5 text-xs">
+              {getTabCount('finished')}
+            </Badge>
+          )}
+        </Button>
       </div>
 
       {/* Indicador de filtros ativos */}

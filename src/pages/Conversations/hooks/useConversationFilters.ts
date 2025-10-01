@@ -14,6 +14,7 @@ export const useConversationFilters = (
   conversations: Conversation[],
   searchTerm: string,
   activeFilter: string,
+  activeTab: string, // Nova prop para controlar as abas
   settings?: {
     show_newsletter?: boolean;
     show_groups?: boolean;
@@ -23,6 +24,20 @@ export const useConversationFilters = (
   
   // Debounce do termo de busca para melhor performance
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Função para determinar o status da conversa baseado em lógica de negócio
+  const getConversationStatus = useCallback((conversation: Conversation): 'inbox' | 'waiting' | 'finished' => {
+    // Lógica baseada no status atual da conversa
+    if (conversation.status === 'closed' || conversation.status === 'archived') {
+      return 'finished';
+    }
+    // Para determinar "waiting", podemos usar uma lógica baseada em assigned_to ou outros campos
+    // Por enquanto, vamos considerar que conversas sem assigned_to ou com assigned_to === 'waiting' estão esperando
+    if (!conversation.assigned_to || conversation.assigned_to === 'waiting') {
+      return 'waiting';
+    }
+    return 'inbox'; // conversas ativas e atribuídas
+  }, []);
 
   // Aplicar filtros de configuração primeiro
   const configFilteredConversations = useMemo(() => {
@@ -88,6 +103,12 @@ export const useConversationFilters = (
   const filteredConversations = useMemo(() => {
     let result = configFilteredConversations;
 
+    // Primeiro, aplica filtro por aba (status da conversa)
+    result = result.filter(conversation => {
+      const conversationStatus = getConversationStatus(conversation);
+      return conversationStatus === activeTab;
+    });
+
     // Aplica filtro de busca com debounce
     if (debouncedSearchTerm.trim()) {
       result = filterConversationsBySearch(result, debouncedSearchTerm);
@@ -96,9 +117,8 @@ export const useConversationFilters = (
     // Aplica filtro por tipo (já com configurações aplicadas)
     result = filterConversationsByType(result, activeFilter, settings);
 
-
     return result;
-  }, [configFilteredConversations, debouncedSearchTerm, activeFilter, selectedFilterFlags, settings]);
+  }, [configFilteredConversations, debouncedSearchTerm, activeFilter, activeTab, selectedFilterFlags, settings, getConversationStatus]);
 
   // Handler para clique em filtro
   const handleFilterClick = useCallback((filter: string) => {

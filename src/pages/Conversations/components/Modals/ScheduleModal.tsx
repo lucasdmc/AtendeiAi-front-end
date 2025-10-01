@@ -36,7 +36,7 @@ interface ScheduleModalProps {
   onSchedule?: (scheduleData: ScheduleData) => void;
 }
 
-export const ScheduleModal: React.FC<ScheduleModalProps> = ({ onSchedule }) => {
+export const ScheduleModal: React.FC<ScheduleModalProps> = () => {
   const { 
     scheduleModalOpen, 
     setScheduleModalOpen,

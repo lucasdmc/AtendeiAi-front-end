@@ -647,6 +647,28 @@ class ApiService {
     return this.request(`/conversations/${conversationId}/scheduled-messages`);
   }
 
+  // Nova função para buscar todas as mensagens programadas
+  async getAllScheduledMessages(params: {
+    clinic_id?: string;
+    status?: 'pending' | 'sent' | 'cancelled' | 'failed';
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<ApiResponse<{
+    messages: any[];
+    total: number;
+    hasMore: boolean;
+  }>> {
+    const searchParams = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    return this.request(`/messages/scheduled?${searchParams}`);
+  }
+
   async cancelScheduledMessage(messageId: string): Promise<ApiResponse<any>> {
     return this.request(`/messages/scheduled/${messageId}`, {
       method: 'DELETE'
@@ -656,11 +678,34 @@ class ApiService {
   async updateScheduledMessage(messageId: string, data: {
     content?: string;
     scheduled_at?: string;
+    recurrence?: any;
   }): Promise<ApiResponse<any>> {
     return this.request(`/messages/scheduled/${messageId}`, {
       method: 'PUT',
       body: JSON.stringify(data)
     });
+  }
+
+  async createScheduledMessage(data: {
+    recipients: Array<{ id?: string; name?: string; phone: string }>;
+    content: string;
+    scheduled_at: string;
+    recurrence?: any;
+  }): Promise<ApiResponse<any>> {
+    return this.request('/messages/scheduled', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async duplicateScheduledMessage(messageId: string): Promise<ApiResponse<any>> {
+    return this.request(`/messages/scheduled/${messageId}/duplicate`, {
+      method: 'POST'
+    });
+  }
+
+  async getScheduledMessageHistory(messageId: string): Promise<ApiResponse<any[]>> {
+    return this.request(`/messages/scheduled/${messageId}/history`);
   }
 
   // Clinic Settings API

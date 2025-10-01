@@ -108,6 +108,7 @@ export interface ConversationsState {
   selectedConversation: import('../../../services/api').Conversation | null;
   searchTerm: string;
   activeFilter: string;
+  activeTab: string; // Nova propriedade para controlar as abas (inbox, waiting, finished)
   showContactInfo: boolean;
   searchInConversation: boolean;
   conversationSearchTerm: string;
@@ -117,6 +118,7 @@ export interface ConversationsActions {
   setSelectedConversation: (conversation: import('../../../services/api').Conversation | null) => void;
   setSearchTerm: (term: string) => void;
   setActiveFilter: (filter: string) => void;
+  setActiveTab: (tab: string) => void; // Nova action para controlar as abas
   setShowContactInfo: (show: boolean) => void;
   setSearchInConversation: (search: boolean) => void;
   setConversationSearchTerm: (term: string) => void;
@@ -179,6 +181,16 @@ export interface ConversationsContextType extends ConversationsState, Conversati
   patientInfo: PatientInfo;
   templateCategories: TemplateCategory[];
   menuItems: MenuItem[];
+  
+  // Filter column control
+  filterColumnOpen: boolean;
+  setFilterColumnOpen: (open: boolean) => void;
+  
+  // Contact drawer control
+  contactDrawerOpen: boolean;
+  setContactDrawerOpen: (open: boolean) => void;
+  contactDrawerTab: 'contact' | 'conversation';
+  setContactDrawerTab: (tab: 'contact' | 'conversation') => void;
 }
 
 // Tipos para hooks

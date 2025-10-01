@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useConversations } from '../../../hooks/useConversations';
 import { useMessages, useMarkMessagesAsRead } from '../../../hooks/useMessages';
@@ -32,10 +32,18 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     selectedConversation: null,
     searchTerm: '',
     activeFilter: 'Tudo',
+    activeTab: 'inbox', // Nova propriedade para controlar as abas (inbox, waiting, finished)
     showContactInfo: false,
     searchInConversation: false,
     conversationSearchTerm: ''
   });
+
+  // Estado para controlar a coluna de filtros
+  const [filterColumnOpen, setFilterColumnOpen] = useState(false);
+
+  // Estado para controlar o drawer de contato
+  const [contactDrawerOpen, setContactDrawerOpen] = useState(false);
+  const [contactDrawerTab, setContactDrawerTab] = useState<'contact' | 'conversation'>('contact');
 
   // Estados dos modais
   const [modalState, setModalState] = useState<ModalState>({
@@ -84,6 +92,9 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
 
   // Hook para receipts do WhatsApp
   const { mutate: markAsRead } = useMarkAsRead();
+
+  // Ref para evitar chamadas duplicadas
+  const lastProcessedConversationRef = useRef<string | null>(null);
 
   // Realtime com callback para atualização direta das mensagens
   console.log('🔌 [CONTEXT] Inicializando useRealtime com clinicId:', clinicId);
@@ -162,6 +173,16 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
   // ✅ Marcar mensagens como lidas quando uma conversa é selecionada
   React.useEffect(() => {
     if (conversationsState.selectedConversation && (conversationsState.selectedConversation.unread_count || 0) > 0) {
+      const conversationKey = `${conversationsState.selectedConversation._id}-${conversationsState.selectedConversation.unread_count}`;
+      
+      // Evitar chamadas duplicadas
+      if (lastProcessedConversationRef.current === conversationKey) {
+        console.log('📖 [CONTEXT] Conversa já processada, ignorando:', conversationKey);
+        return;
+      }
+      
+      lastProcessedConversationRef.current = conversationKey;
+      
       console.log('📖 [CONTEXT] Marcando conversa como lida:', {
         conversationId: conversationsState.selectedConversation._id,
         unreadCount: conversationsState.selectedConversation.unread_count,
@@ -191,7 +212,7 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
         }
       }
     }
-  }, [conversationsState.selectedConversation?._id, conversationsState.selectedConversation?.unread_count, markMessagesAsRead, markAsRead, messages]);
+  }, [conversationsState.selectedConversation?._id, conversationsState.selectedConversation?.unread_count]);
 
   // Configurações da clínica são gerenciadas pelo Layout principal
 
@@ -206,6 +227,10 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
 
   const setActiveFilter = (filter: string) => {
     setConversationsState(prev => ({ ...prev, activeFilter: filter }));
+  };
+
+  const setActiveTab = (tab: string) => {
+    setConversationsState(prev => ({ ...prev, activeTab: tab }));
   };
 
   const setShowContactInfo = (show: boolean) => {
@@ -277,9 +302,20 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     setSelectedConversation,
     setSearchTerm,
     setActiveFilter,
+    setActiveTab,
     setShowContactInfo,
     setSearchInConversation,
     setConversationSearchTerm,
+    
+    // Filter column control
+    filterColumnOpen,
+    setFilterColumnOpen,
+    
+    // Contact drawer control
+    contactDrawerOpen,
+    setContactDrawerOpen,
+    contactDrawerTab,
+    setContactDrawerTab,
     
     // Modal actions (expostas através do contexto para facilitar acesso)
     setFilesModalOpen,

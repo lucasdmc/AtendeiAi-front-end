@@ -1,4 +1,4 @@
-import { Building2, Users, Calendar, FileText, MessageSquare } from "lucide-react"
+import { Building2, Users, Calendar, FileText, MessageSquare, Clock } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Link } from "react-router-dom"
 
@@ -38,6 +38,13 @@ const Index = () => {
       icon: MessageSquare,
       href: "/conversations",
       color: "text-pink-600"
+    },
+    {
+      title: "Mensagens Programadas",
+      description: "Agende e gerencie mensagens automáticas",
+      icon: Clock,
+      href: "/scheduled-messages",
+      color: "text-indigo-600"
     }
   ]
 

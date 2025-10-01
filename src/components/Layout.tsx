@@ -29,6 +29,7 @@ interface LayoutProps {
 const menuItems = [
   { path: '/', icon: Home, label: 'Página inicial', description: 'Visão geral do sistema' },
   { path: '/conversations', icon: MessageSquare, label: 'Conversas', description: 'Chat e atendimento' },
+  { path: '/chats', icon: MessageSquare, label: 'Chats', description: 'Interface de mensagens' },
   { path: '/appointments', icon: CalendarCheck, label: 'Agendamentos', description: 'Consultas e compromissos' },
   { path: '/scheduled-messages', icon: Clock, label: 'Mensagens programadas', description: 'Agende mensagens automáticas' },
   { path: '/quick-replies', icon: Zap, label: 'Respostas rápidas', description: 'Templates de resposta' },

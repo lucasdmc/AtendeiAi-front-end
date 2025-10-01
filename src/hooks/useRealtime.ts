@@ -1,14 +1,15 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { conversationKeys } from './useConversations';
-import { messageKeys } from './useMessages';
+// import { messageKeys } from './useMessages'; // Removido pois não está sendo usado
 import { useToast } from '@/components/ui/use-toast';
 
-interface RealtimeEvent {
-  event: string;
-  data: any;
-  timestamp: string;
-}
+// Interface removida pois não está sendo usada
+// interface RealtimeEvent {
+//   event: string;
+//   data: any;
+//   timestamp: string;
+// }
 
 export const useRealtime = (clinicId: string, options?: {
   onMessageReceived?: (message: any, conversation: any) => void;
@@ -17,6 +18,8 @@ export const useRealtime = (clinicId: string, options?: {
   const eventSourceRef = useRef<EventSource | null>(null);
   const { toast } = useToast();
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     if (!clinicId) return;
@@ -48,6 +51,8 @@ export const useRealtime = (clinicId: string, options?: {
           url: eventSource.url,
           withCredentials: eventSource.withCredentials
         });
+        setIsConnected(true);
+        setReconnectAttempts(0); // Reset tentativas quando conectar com sucesso
       });
 
       eventSource.addEventListener('message', (event) => {
@@ -117,7 +122,7 @@ export const useRealtime = (clinicId: string, options?: {
           }
 
           // Se for evento de conversa atualizada, também invalidar cache
-          if (event.event === 'conversationUpdated') {
+          if (event.type === 'conversationUpdated') {
             console.log('🔄 Recebido evento conversationUpdated, invalidando cache...');
           }
 
@@ -267,11 +272,18 @@ export const useRealtime = (clinicId: string, options?: {
           console.log('🔌 SSE connecting...');
         }
 
-        // Tentar reconectar após 5 segundos
+        // Tentar reconectar após delay progressivo (evitar loop infinito)
+        const delay = Math.min(5000 * Math.pow(2, reconnectAttempts), 30000); // Max 30s
         reconnectTimeoutRef.current = setTimeout(() => {
-          console.log('🔄 Tentando reconectar ao SSE...');
-          connectSSE();
-        }, 5000);
+          if (reconnectAttempts < 5) { // Máximo 5 tentativas
+            console.log(`🔄 Tentando reconectar ao SSE... (tentativa ${reconnectAttempts + 1}/5)`);
+            setReconnectAttempts(prev => prev + 1);
+            connectSSE();
+          } else {
+            console.log('❌ Máximo de tentativas de reconexão atingido. Parando reconexão automática.');
+            setIsConnected(false);
+          }
+        }, delay);
       });
 
       // Evento de desconexão
@@ -304,12 +316,14 @@ export const useRealtime = (clinicId: string, options?: {
   }, [clinicId, queryClient, toast]);
 
   return {
-    isConnected: eventSourceRef.current?.readyState === EventSource.OPEN,
+    isConnected,
     reconnect: () => {
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
-    }
+      setReconnectAttempts(0); // Reset tentativas para reconexão manual
+    },
+    reconnectAttempts
   };
 };

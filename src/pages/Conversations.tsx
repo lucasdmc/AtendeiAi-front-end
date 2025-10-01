@@ -2,7 +2,8 @@ import React from 'react';
 import { ConversationsProvider } from './Conversations/context';
 import { ConversationsList } from './Conversations/components/ConversationsList';
 import { ChatArea } from './Conversations/components/ChatArea';
-import { PatientInfo } from './Conversations/components/Sidebar';
+import { FilterColumn } from './Conversations/components/FilterDrawer';
+import { ContactDrawer } from './Conversations/components/ContactDrawer';
 import { 
   FilesModal, 
   FlagsModal, 
@@ -16,25 +17,34 @@ import { useConversationsContext } from './Conversations/context';
 const ConversationsContent: React.FC = () => {
   const {
     selectedConversation,
-    showContactInfo,
-    setShowContactInfo
+    filterColumnOpen,
+    contactDrawerOpen,
+    contactDrawerTab,
+    setFilterColumnOpen,
+    setContactDrawerOpen
   } = useConversationsContext();
 
   return (
     <div className="h-full flex bg-gray-50">
+      {/* Coluna de Filtros */}
+      <FilterColumn 
+        isOpen={filterColumnOpen}
+        onClose={() => setFilterColumnOpen(false)}
+      />
+
       {/* Lista de Conversas */}
       <ConversationsList />
 
       {/* Área Principal do Chat */}
       <ChatArea />
 
-      {/* Sidebar de Informações do Paciente */}
-      {selectedConversation && showContactInfo && (
-        <PatientInfo
-          conversation={selectedConversation}
-          onClose={() => setShowContactInfo(false)}
-        />
-      )}
+      {/* Contact Drawer */}
+      <ContactDrawer
+        isOpen={contactDrawerOpen}
+        onClose={() => setContactDrawerOpen(false)}
+        conversation={selectedConversation}
+        initialTab={contactDrawerTab}
+      />
 
       {/* Modais - Renderizados pelos próprios componentes baseado no contexto */}
       <FilesModal />

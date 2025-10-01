@@ -23,6 +23,7 @@ import ServiceProviders from './pages/ServiceProviders';
 import Contacts from './pages/Contacts';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
+import Chats from './pages/Chats';
 
 function App() {
   return (
@@ -38,6 +39,11 @@ function App() {
           <Route path="/conversations" element={
             <Layout>
               <Conversations />
+            </Layout>
+          } />
+          <Route path="/chats" element={
+            <Layout>
+              <Chats />
             </Layout>
           } />
           <Route path="/appointments" element={
