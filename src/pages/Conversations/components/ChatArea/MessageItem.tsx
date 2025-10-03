@@ -1,5 +1,5 @@
-import React from 'react';
-import { Avatar, AvatarFallback } from '../../../../components/ui/avatar';
+import React, { useState } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '../../../../components/ui/avatar';
 import { Button } from '../../../../components/ui/button';
 import { Check, CheckCheck, ChevronDown, UserCheck } from 'lucide-react';
 import { MessageItemProps } from '../../types';
@@ -12,8 +12,39 @@ export const MessageItem: React.FC<MessageItemProps> = React.memo(({
   conversation,
   onMenuClick
 }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  
   const isInbound = message.sender_type === 'customer'; // Mensagem recebida (lado esquerdo)
   const isOutbound = message.sender_type === 'bot' || message.sender_type === 'human'; // Mensagem enviada (lado direito)
+  const isSystemMessage = message.sender_type === 'system'; // Mensagem do sistema
+  
+  // Mock do usuário logado - em produção viria do contexto de autenticação
+  const currentUserId = 'current-user'; // TODO: pegar do contexto de auth
+  
+  // Verifica se a mensagem foi enviada pelo usuário logado
+  const isFromCurrentUser = message.sender_id === currentUserId;
+  
+  // Mock de dados dos atendentes - em produção viria da API
+  const getAgentInfo = (senderId?: string) => {
+    const agents = {
+      'agent-1': { name: 'João Silva', avatar: null },
+      'agent-2': { name: 'Maria Santos', avatar: '/avatars/maria.jpg' },
+      'agent-3': { name: 'Pedro Costa', avatar: '/avatars/pedro.jpg' },
+      'marcos-id': { name: 'Marcos', avatar: null },
+      'paulo-id': { name: 'PauloRobertoBJunior', avatar: null },
+    };
+    
+    return senderId ? agents[senderId as keyof typeof agents] : null;
+  };
+  
+  // Gera iniciais do nome para o avatar fallback
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .slice(0, 2)
+      .map(n => n.charAt(0).toUpperCase())
+      .join('');
+  };
 
   // Renderiza status da mensagem (apenas para mensagens enviadas)
   const renderMessageStatus = () => {
@@ -56,34 +87,84 @@ export const MessageItem: React.FC<MessageItemProps> = React.memo(({
     );
   };
 
-  // Renderiza avatar (apenas para mensagens recebidas)
+  // Renderiza avatar (para mensagens recebidas e enviadas por outros atendentes)
   const renderAvatar = () => {
-    if (!isInbound) return null;
-
-    return (
-      <Avatar className="h-8 w-8 flex-shrink-0">
-        <AvatarFallback className={`text-white text-xs bg-blue-500`}>
-          <UserCheck className="h-4 w-4" />
-        </AvatarFallback>
-      </Avatar>
-    );
+    if (isInbound) {
+      // Avatar do cliente (mensagens recebidas)
+      return (
+        <Avatar className="h-8 w-8 flex-shrink-0">
+          <AvatarFallback className={`text-white text-xs bg-blue-500`}>
+            <UserCheck className="h-4 w-4" />
+          </AvatarFallback>
+        </Avatar>
+      );
+    } else if (isOutbound && !isFromCurrentUser && message.sender_type === 'human') {
+      // Avatar do atendente (mensagens enviadas por outros atendentes)
+      const agentInfo = getAgentInfo(message.sender_id);
+      
+      if (!agentInfo) return null;
+      
+      return (
+        <div className="relative">
+          <Avatar 
+            className="h-8 w-8 flex-shrink-0 cursor-pointer"
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+          >
+            {agentInfo.avatar ? (
+              <AvatarImage src={agentInfo.avatar} alt={agentInfo.name} />
+            ) : null}
+            <AvatarFallback className="text-white text-xs bg-green-500">
+              {getInitials(agentInfo.name)}
+            </AvatarFallback>
+          </Avatar>
+          
+          {/* Tooltip com nome do atendente */}
+          {showTooltip && (
+            <div className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded shadow-lg z-10 whitespace-nowrap">
+              {agentInfo.name}
+              <div className="absolute top-full right-2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    return null;
   };
 
   return (
     <div 
-      className={`flex ${isOutbound ? 'justify-end' : 'justify-start'} mb-4`}
+      className={`flex ${isSystemMessage ? 'justify-center' : isOutbound ? 'justify-end' : 'justify-start'} mb-4`}
       data-message-id={message._id}
     >
-      <div className={`flex items-end space-x-2 max-w-[70%] group relative ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}>
-        {/* Avatar para mensagens recebidas */}
-        {isInbound && renderAvatar()}
+      {isSystemMessage ? (
+        // Mensagem do sistema (centralizada)
+        <div className="px-3 py-2 rounded-lg shadow-sm max-w-[80%]" style={{ backgroundColor: '#FFF8E1' }}>
+          <p className="text-sm text-center" style={{ color: '#2E2E2E' }}>
+            {message.content}
+          </p>
+          <div className="flex justify-center mt-1">
+            <span className="text-xs" style={{ color: '#A3A3A3' }}>
+              {formatTime(message.timestamp)}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className={`flex items-end space-x-2 max-w-[70%] group relative ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}>
+          {/* Avatar para mensagens recebidas e enviadas por outros atendentes */}
+          {(isInbound || (isOutbound && !isFromCurrentUser && message.sender_type === 'human')) && renderAvatar()}
 
-        {/* Conteúdo da mensagem */}
-        <div className={`px-3 py-2 rounded-lg shadow-sm relative ${
-          isOutbound
-            ? 'bg-pink-500 text-white rounded-br-none' 
-            : 'bg-white text-gray-900 rounded-bl-none border'
-        }`}>
+          {/* Conteúdo da mensagem */}
+          <div className={`px-3 py-2 rounded-lg shadow-sm relative ${
+            isOutbound
+              ? 'rounded-br-none text-white' 
+              : 'rounded-bl-none border'
+          }`}
+          style={{
+            backgroundColor: isOutbound ? '#F4FDE6' : '#FFFFFF',
+            color: '#2E2E2E'
+          }}>
           {/* Informações do remetente para grupos (apenas mensagens recebidas) */}
           {isInbound && conversation?.conversation_type === 'group' && (
             <div className="mb-2 pb-1 border-b border-gray-200">
@@ -324,7 +405,7 @@ export const MessageItem: React.FC<MessageItemProps> = React.memo(({
 
           {/* Footer com horário e status/menu */}
           <div className="flex items-center justify-end gap-1 mt-1">
-            <span className="text-xs opacity-70">
+            <span className="text-xs opacity-70" style={{ color: '#A3A3A3' }}>
               {formatTime(message.timestamp)}
             </span>
             
@@ -340,7 +421,8 @@ export const MessageItem: React.FC<MessageItemProps> = React.memo(({
             )}
           </div>
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 });

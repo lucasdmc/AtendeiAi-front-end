@@ -33,7 +33,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   // Usar contexto para controlar o drawer
   const { 
     setContactDrawerOpen, 
-    setContactDrawerTab 
+    setContactDrawerTab,
+    setTransferDrawerOpen,
+    setScheduleMessageDrawerOpen,
+    setFinishConversationDrawerOpen
   } = useConversationsContext();
 
   const standardFlag = getStandardFlag(conversation);
@@ -66,7 +69,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   return (
     <div 
-      className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 cursor-pointer hover:bg-gray-50 transition-colors"
+      className="h-16 border-b flex items-center justify-between px-4 cursor-pointer hover:bg-gray-50 transition-colors"
+      style={{ 
+        backgroundColor: '#F0F3FA',
+        borderBottomColor: '#D6DEEF'
+      }}
       onClick={onToggleInfo}
       title="Clique para ver informações do contato"
     >
@@ -86,7 +93,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         {/* Nome e status */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="font-semibold text-gray-900 truncate">
+            <h2 className="font-semibold truncate" style={{ color: '#2E2E2E' }}>
               {displayName}
             </h2>
             
@@ -127,18 +134,19 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             
             {/* Botão de etiquetas - inline com as etiquetas */}
             <div className="relative">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setTagsMenuOpen(!tagsMenuOpen);
-                }}
-                className="h-5 w-5 text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                title="Editar etiquetas"
-              >
-                <Tag className="h-3 w-3" />
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTagsMenuOpen(!tagsMenuOpen);
+                  }}
+                  className="h-5 w-5 hover:bg-gray-100"
+                  style={{ color: '#6F6F6F' }}
+                  title="Editar etiquetas"
+                >
+                  <Tag className="h-3 w-3" />
+                </Button>
               
               <TagsMenu
                 isOpen={tagsMenuOpen}
@@ -151,7 +159,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             
             {/* Departamento */}
             {department && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs" style={{ color: '#6F6F6F' }}>
                 {department}
               </span>
             )}
@@ -178,9 +186,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           }}
           className={`h-8 w-8 ${
             searchInConversation 
-              ? 'text-blue-600 bg-blue-50' 
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'bg-blue-50' 
+              : 'hover:bg-gray-100'
           }`}
+          style={{ 
+            color: searchInConversation ? '#2D61E0' : '#6F6F6F'
+          }}
           title="Buscar nesta conversa"
         >
           <Search className="h-4 w-4" />
@@ -195,7 +206,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             setContactDrawerTab('contact');
             setContactDrawerOpen(true);
           }}
-          className="h-8 w-8 text-gray-500 hover:text-gray-700"
+          className="h-8 w-8 hover:bg-gray-100"
+          style={{ color: '#6F6F6F' }}
           title="Informações do contato"
         >
           <Info className="h-4 w-4" />
@@ -210,7 +222,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             setContactDrawerTab('conversation');
             setContactDrawerOpen(true);
           }}
-          className="h-8 w-8 text-gray-500 hover:text-gray-700"
+          className="h-8 w-8 hover:bg-gray-100"
+          style={{ color: '#6F6F6F' }}
           title="Detalhes da conversa"
         >
           <MessageSquare className="h-4 w-4" />
@@ -222,10 +235,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           size="icon"
           onClick={(e) => {
             e.stopPropagation();
-            // TODO: Implementar transferência de conversa
-            console.log('Transferir conversa');
+            setTransferDrawerOpen(true);
           }}
-          className="h-8 w-8 text-gray-500 hover:text-gray-700"
+          className="h-8 w-8 hover:bg-gray-100"
+          style={{ color: '#6F6F6F' }}
           title="Transferir conversa"
         >
           <ArrowRightLeft className="h-4 w-4" />
@@ -240,7 +253,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             // TODO: Implementar privar atendimento
             console.log('Privar atendimento');
           }}
-          className="h-8 w-8 text-gray-500 hover:text-gray-700"
+          className="h-8 w-8 hover:bg-gray-100"
+          style={{ color: '#6F6F6F' }}
           title="Privar atendimento"
         >
           <Lock className="h-4 w-4" />
@@ -252,10 +266,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           size="icon"
           onClick={(e) => {
             e.stopPropagation();
-            // TODO: Implementar agendamento de mensagem
-            console.log('Agendar mensagem');
+            setScheduleMessageDrawerOpen(true);
           }}
-          className="h-8 w-8 text-gray-500 hover:text-gray-700"
+          className="h-8 w-8 hover:bg-gray-100"
+          style={{ color: '#6F6F6F' }}
           title="Agendar envio de mensagem"
         >
           <Calendar className="h-4 w-4" />
@@ -267,10 +281,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           size="icon"
           onClick={(e) => {
             e.stopPropagation();
-            // TODO: Implementar finalização de conversa
-            console.log('Finalizar conversa');
+            setFinishConversationDrawerOpen(true);
           }}
-          className="h-8 w-8 text-gray-500 hover:text-gray-700"
+          className="h-8 w-8 hover:bg-gray-100"
+          style={{ color: '#6F6F6F' }}
           title="Finalizar conversa"
         >
           <CheckCircle className="h-4 w-4" />
@@ -285,7 +299,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             // TODO: Implementar ocultar janela
             console.log('Ocultar janela');
           }}
-          className="h-8 w-8 text-gray-500 hover:text-gray-700"
+          className="h-8 w-8 hover:bg-gray-100"
+          style={{ color: '#6F6F6F' }}
           title="Ocultar essa janela"
         >
           <X className="h-4 w-4" />

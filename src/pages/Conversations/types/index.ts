@@ -4,7 +4,7 @@ export interface Message {
   _id: string;
   content: string;
   timestamp: string;
-  sender_type: 'customer' | 'bot' | 'human';
+  sender_type: 'customer' | 'bot' | 'human' | 'system';
   status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
   message_type: 'text' | 'image' | 'document' | 'audio' | 'video' | 'location';
   conversation_id: string;
@@ -191,6 +191,17 @@ export interface ConversationsContextType extends ConversationsState, Conversati
   setContactDrawerOpen: (open: boolean) => void;
   contactDrawerTab: 'contact' | 'conversation';
   setContactDrawerTab: (tab: 'contact' | 'conversation') => void;
+  transferDrawerOpen: boolean;
+  setTransferDrawerOpen: (open: boolean) => void;
+  scheduleMessageDrawerOpen: boolean;
+  setScheduleMessageDrawerOpen: (open: boolean) => void;
+  finishConversationDrawerOpen: boolean;
+  setFinishConversationDrawerOpen: (open: boolean) => void;
+  quickRepliesDrawerOpen: boolean;
+  setQuickRepliesDrawerOpen: (open: boolean) => void;
+  selectedTemplate: Template | null;
+  setSelectedTemplate: (template: Template | null) => void;
+  isAnyDrawerOpen: boolean;
 }
 
 // Tipos para hooks
@@ -242,13 +253,36 @@ export interface ChatHeaderProps {
   searchInConversation: boolean;
 }
 
+export type MessageInputMode = 'message' | 'note';
+
 export interface MessageInputProps {
+  // Propriedades existentes
   value: string;
   onChange: (value: string) => void;
   onSend: () => void;
-  onKeyPress: (e: React.KeyboardEvent) => void;
-  isLoading: boolean;
+  onKeyPress?: (e: React.KeyboardEvent) => void;
+  isLoading?: boolean;
   onSchedule?: (scheduleData: any) => void;
+
+  // Novas propriedades
+  mode?: MessageInputMode;                     // 'message' (default) | 'note'
+  
+  // Botões existentes (mantém handlers atuais)
+  onAdd?: () => void;
+  onAttachDoc?: () => void;
+  onEmoji?: () => void;
+
+  // Áudio
+  onStartRecording?: () => void;
+
+  // Header
+  agentName?: string;                          // ex.: "Paulo R."
+  agentAvatarUrl?: string;                     // ex.: "/assets/agent-example.png"
+  appendAgentSignature?: boolean;              // SÓ UI neste PR
+  onToggleAppendSignature?: (v: boolean) => void;
+
+  onChangeMode?: (m: MessageInputMode) => void;
+  disabled?: boolean;
 }
 
 export interface MessageInputRef {

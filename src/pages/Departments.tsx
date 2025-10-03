@@ -1,598 +1,650 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus,
-  Search,
   ArrowLeft,
-  Edit,
-  Trash2,
-  Building2,
-  CheckCircle,
-  XCircle
+  Search,
+  Plus,
+  Pencil,
+  Trash,
+  GripVertical,
+  Save,
+  AlertTriangle
 } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { useForm } from "react-hook-form";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Label } from "@/components/ui/label";
 import { useToast } from '@/components/ui/use-toast';
-import ProfileSidebar from '@/components/ProfileSidebar';
 
 // Tipos
-interface Department {
+interface Sector {
   id: string;
   name: string;
-  description?: string;
-  color?: string;
-  icon?: string;
-  is_active: boolean;
-  clinic_id: string;
-  order: number;
-  created_at: string;
+  isDefault: boolean;
 }
 
-interface DepartmentFormData {
-  name: string;
-  description?: string;
-  color?: string;
-  icon?: string;
-  order?: number;
+// Componente de linha sortable
+interface SortableRowProps {
+  sector: Sector;
+  isSelected: boolean;
+  onSelect: (checked: boolean) => void;
+  onMakeDefault: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function SortableRow({ sector, isSelected, onSelect, onMakeDefault, onEdit, onDelete }: SortableRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: sector.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="grid grid-cols-[48px_48px_1fr_240px] items-center px-4 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
+    >
+      {/* Coluna 1 - Checkbox */}
+      <div className="flex items-center justify-center">
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={onSelect}
+        />
+      </div>
+
+      {/* Coluna 2 - Handle de arrastar */}
+      <div className="flex items-center justify-center">
+        <button
+          {...attributes}
+          {...listeners}
+          aria-label="Reordenar"
+          className="cursor-grab active:cursor-grabbing p-1 hover:bg-slate-100 rounded"
+        >
+          <GripVertical className="h-4 w-4 text-slate-400" />
+        </button>
+      </div>
+
+      {/* Coluna 3 - Nome */}
+      <div className="text-slate-900 font-medium">
+        {sector.name}
+      </div>
+
+      {/* Coluna 4 - Ações */}
+      <div className="flex items-center gap-4 justify-end">
+        {sector.isDefault ? (
+          <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-600 rounded-full px-3 py-1">
+            Setor padrão
+          </Badge>
+        ) : (
+          <button
+            onClick={onMakeDefault}
+            className="text-blue-600 hover:underline text-sm font-medium"
+          >
+            Tornar padrão
+          </button>
+        )}
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onEdit}
+                className="p-1 hover:bg-slate-100 rounded"
+                aria-label="Editar"
+              >
+                <Pencil className="h-4 w-4 text-slate-500" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Editar</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onDelete}
+                disabled={sector.isDefault}
+                className="p-1 hover:bg-slate-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Excluir"
+              >
+                <Trash className="h-4 w-4 text-slate-500" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {sector.isDefault ? (
+                <div className="max-w-xs">
+                  <p className="font-medium">Excluir</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Organizações precisam ter um setor padrão que não pode ser excluído. 
+                    Defina outro setor para ser o novo setor padrão antes de excluir esse.
+                  </p>
+                </div>
+              ) : (
+                <p>Excluir</p>
+              )}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    </div>
+  );
 }
 
 export default function Departments() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Estados principais
+  const [sectors, setSectors] = useState<Sector[]>([
+    { id: '1', name: 'Geral', isDefault: true },
+    { id: '2', name: 'Comercial', isDefault: false },
+    { id: '3', name: 'Suporte', isDefault: false },
+  ]);
+  
   const [searchTerm, setSearchTerm] = useState('');
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
+  const [selectedSectors, setSelectedSectors] = useState<string[]>([]);
+  
+  // Estados dos modais
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  
+  // Estados dos formulários
+  const [newSectorName, setNewSectorName] = useState('');
+  const [editingSector, setEditingSector] = useState<Sector | null>(null);
+  const [editSectorName, setEditSectorName] = useState('');
+  const [deletingSector, setDeletingSector] = useState<Sector | null>(null);
+  const [moveChatsToSector, setMoveChatsToSector] = useState('1'); // Default para "Geral"
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
-  // Usar clinic_id válido (obtido de clínica existente)
-  const clinicId = '68cd84230e29f31cf5f5f1b8';
+  // Drag & Drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
-  const form = useForm<DepartmentFormData>({
-    defaultValues: {
-      name: '',
-      description: '',
-      color: '#3B82F6',
-      icon: 'Building2',
-      order: 0
+  // Filtrar setores
+  const filteredSectors = sectors.filter(sector =>
+    sector.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Handlers de seleção
+  const handleSelectAll = useCallback((checked: boolean) => {
+    if (checked) {
+      setSelectedSectors(sectors.map(s => s.id));
+    } else {
+      setSelectedSectors([]);
     }
-  });
+  }, [sectors]);
 
-  useEffect(() => {
-    loadDepartments();
+  const handleSelectSector = useCallback((sectorId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedSectors(prev => [...prev, sectorId]);
+    } else {
+      setSelectedSectors(prev => prev.filter(id => id !== sectorId));
+    }
   }, []);
 
-  const loadDepartments = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`http://localhost:3000/api/v1/departments?clinic_id=${clinicId}`);
-      const data = await response.json();
+  // Handler de reordenação
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
 
-      if (data.success) {
-        // Converter dados da API para o formato esperado pelo frontend
-        const formattedDepartments: Department[] = data.data.items.map((item: any) => ({
-          id: item._id,
-          name: item.name,
-          description: item.description,
-          color: item.color,
-          icon: item.icon,
-          is_active: item.is_active,
-          clinic_id: item.clinic_id,
-          order: item.order,
-          created_at: item.created_at
-        }));
-        setDepartments(formattedDepartments);
-      } else {
+    if (active.id !== over?.id) {
+      setSectors((items) => {
+        const oldIndex = items.findIndex(item => item.id === active.id);
+        const newIndex = items.findIndex(item => item.id === over?.id);
+
+        const newOrder = arrayMove(items, oldIndex, newIndex);
+        
         toast({
-          title: "Erro ao carregar departamentos",
-          description: data.message || "Não foi possível carregar a lista de departamentos.",
-          variant: "destructive",
+          title: "Ordem atualizada",
+          description: "A ordem dos setores foi alterada com sucesso.",
         });
-      }
-    } catch (error) {
-      console.error('Erro ao carregar departamentos:', error);
+
+        return newOrder;
+      });
+    }
+  }, [toast]);
+
+  // Handlers de ações
+  const handleCreateSector = useCallback(() => {
+    if (!newSectorName.trim()) return;
+
+    const nameExists = sectors.some(s => 
+      s.name.toLowerCase() === newSectorName.trim().toLowerCase()
+    );
+
+    if (nameExists) {
       toast({
-        title: "Erro de conexão",
-        description: "Não foi possível conectar ao servidor.",
+        title: "Nome já existe",
+        description: "Já existe um setor com este nome.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateDepartment = () => {
-    setEditingDepartment(null);
-    form.reset({
-      name: '',
-      description: '',
-      color: '#3B82F6',
-      icon: 'Building2',
-      order: departments.length
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleEditDepartment = (department: Department) => {
-    setEditingDepartment(department);
-    form.reset({
-      name: department.name,
-      description: department.description || '',
-      color: department.color || '#3B82F6',
-      icon: department.icon || 'Building2',
-      order: department.order
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleDeleteDepartment = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este departamento?')) {
       return;
     }
 
-    try {
-      const response = await fetch(`http://localhost:3000/api/v1/departments/${id}`, {
-        method: 'DELETE',
-      });
+    const newSector: Sector = {
+      id: Date.now().toString(),
+      name: newSectorName.trim(),
+      isDefault: false,
+    };
 
-      const result = await response.json();
+    setSectors(prev => [...prev, newSector]);
+    setNewSectorName('');
+    setIsNewModalOpen(false);
 
-      if (result.success) {
-        toast({
-          title: "Departamento excluído",
-          description: "O departamento foi removido com sucesso.",
-        });
-        await loadDepartments(); // Recarregar a lista
-      } else {
-        toast({
-          title: "Erro",
-          description: result.message || "Não foi possível excluir o departamento.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao excluir departamento:', error);
-      toast({
-        title: "Erro de conexão",
-        description: "Não foi possível conectar ao servidor.",
-        variant: "destructive",
-      });
-    }
-  };
+    toast({
+      title: "Setor criado",
+      description: `O setor "${newSector.name}" foi criado com sucesso.`,
+    });
+  }, [newSectorName, sectors, toast]);
 
-  const handleToggleStatus = async (id: string, currentStatus: boolean) => {
-    try {
-      const response = await fetch(`http://localhost:3000/api/v1/departments/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ is_active: !currentStatus }),
-      });
+  const handleEditSector = useCallback(() => {
+    if (!editingSector || !editSectorName.trim()) return;
 
-      const result = await response.json();
-
-      if (result.success) {
-        toast({
-          title: "Status atualizado",
-          description: `O status do departamento foi alterado para ${!currentStatus ? 'ativo' : 'inativo'}.`,
-        });
-        await loadDepartments(); // Recarregar a lista
-      } else {
-        toast({
-          title: "Erro",
-          description: result.message || "Não foi possível alterar o status.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao alterar status:', error);
-      toast({
-        title: "Erro de conexão",
-        description: "Não foi possível conectar ao servidor.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const onSubmit = async (data: DepartmentFormData) => {
-    try {
-      const url = editingDepartment
-        ? `http://localhost:3000/api/v1/departments/${editingDepartment.id}`
-        : 'http://localhost:3000/api/v1/departments';
-
-      const method = editingDepartment ? 'PUT' : 'POST';
-
-      const payload = {
-        ...data,
-        clinic_id: clinicId,
-        is_active: true
-      };
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        if (editingDepartment) {
-          toast({
-            title: "Departamento atualizado",
-            description: "Os dados foram salvos com sucesso.",
-          });
-        } else {
-          toast({
-            title: "Departamento criado",
-            description: "O novo departamento foi adicionado com sucesso.",
-          });
-        }
-
-        setIsModalOpen(false);
-        await loadDepartments(); // Recarregar a lista
-      } else {
-        toast({
-          title: "Erro",
-          description: result.message || "Não foi possível salvar os dados.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao salvar departamento:', error);
-      toast({
-        title: "Erro de conexão",
-        description: "Não foi possível conectar ao servidor.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const getStatusBadge = (isActive: boolean) => {
-    return isActive ? (
-      <Badge variant="default" className="bg-green-100 text-green-800">
-        <CheckCircle className="h-3 w-3 mr-1" />
-        Ativo
-      </Badge>
-    ) : (
-      <Badge variant="secondary">
-        <XCircle className="h-3 w-3 mr-1" />
-        Inativo
-      </Badge>
+    const nameExists = sectors.some(s => 
+      s.id !== editingSector.id && 
+      s.name.toLowerCase() === editSectorName.trim().toLowerCase()
     );
-  };
 
-  const filteredDepartments = departments.filter(department =>
-    department.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (department.description && department.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+    if (nameExists) {
+      toast({
+        title: "Nome já existe",
+        description: "Já existe um setor com este nome.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const getDepartmentIcon = () => {
-    // Por enquanto, retorna sempre Building2. Futuramente pode ser expandido para múltiplos ícones
-    return <Building2 className="h-4 w-4" />;
-  };
+    setSectors(prev => prev.map(s => 
+      s.id === editingSector.id 
+        ? { ...s, name: editSectorName.trim() }
+        : s
+    ));
+
+    setIsEditModalOpen(false);
+    setEditingSector(null);
+    setEditSectorName('');
+
+    toast({
+      title: "Setor atualizado",
+      description: `O setor foi renomeado para "${editSectorName.trim()}".`,
+    });
+  }, [editingSector, editSectorName, sectors, toast]);
+
+  const handleDeleteSector = useCallback(() => {
+    if (!deletingSector || deleteConfirmText !== deletingSector.name) return;
+
+    setSectors(prev => prev.filter(s => s.id !== deletingSector.id));
+
+    setIsDeleteModalOpen(false);
+    setDeletingSector(null);
+    setDeleteConfirmText('');
+    setMoveChatsToSector('1');
+
+    toast({
+      title: "Setor excluído",
+      description: `O setor "${deletingSector.name}" foi excluído com sucesso.`,
+    });
+  }, [deletingSector, deleteConfirmText, toast]);
+
+  const handleMakeDefault = useCallback((sectorId: string) => {
+    setSectors(prev => prev.map(s => ({
+      ...s,
+      isDefault: s.id === sectorId
+    })));
+
+    const sector = sectors.find(s => s.id === sectorId);
+    toast({
+      title: "Setor padrão alterado",
+      description: `"${sector?.name}" agora é o setor padrão da organização.`,
+    });
+  }, [sectors, toast]);
+
+  // Handlers dos modais
+  const openEditModal = useCallback((sector: Sector) => {
+    setEditingSector(sector);
+    setEditSectorName(sector.name);
+    setIsEditModalOpen(true);
+  }, []);
+
+  const openDeleteModal = useCallback((sector: Sector) => {
+    setDeletingSector(sector);
+    setDeleteConfirmText('');
+    setMoveChatsToSector('1');
+    setIsDeleteModalOpen(true);
+  }, []);
+
+  const allSelected = selectedSectors.length === sectors.length && sectors.length > 0;
+  const someSelected = selectedSectors.length > 0 && selectedSectors.length < sectors.length;
 
   return (
-    <div className="flex h-full bg-gray-50">
-      {/* Sidebar de Departamentos */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-        {/* Header Clean com botão voltar */}
-        <div className="flex items-center px-4 py-3">
-          <button
-            onClick={() => navigate('/settings')}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors mr-3"
-          >
-            <ArrowLeft className="h-5 w-5 text-gray-600" />
-          </button>
-          <h1 className="text-lg font-medium text-gray-900">Departamentos</h1>
+    <div className="min-h-screen bg-[#F4F6FD]">
+      <div className="px-6 py-6">
+        {/* Header */}
+        <div className="mb-6">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
+            <button 
+              onClick={() => navigate('/settings')}
+              className="hover:text-slate-700 transition-colors"
+            >
+              Configurações
+            </button>
+            <span>/</span>
+            <span>Setores</span>
+          </div>
+
+          {/* Título e descrição */}
+          <h1 className="text-3xl font-semibold text-slate-900 mb-1">Setores</h1>
+          <p className="text-slate-500">
+            Aqui você consegue criar ou gerenciar as configurações das sub-divisões da sua organização.
+          </p>
         </div>
 
-        {/* Lista de opções na sidebar */}
-        <ScrollArea className="flex-1 border-t-0">
-          <div className="px-6 pt-0 pb-4 border-t-0">
-            {/* Removendo qualquer linha divisória acima do título */}
-            <div className="mb-4 border-t-0 border-b-0">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">Gerenciar</h3>
+        {/* Card principal */}
+        <div className="mt-6 rounded-2xl bg-white shadow-sm border border-slate-100">
+          {/* Barra superior - Search + Botão */}
+          <div className="flex items-center justify-between p-6 border-b border-slate-100">
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                type="text"
+                placeholder="Search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 h-11"
+              />
             </div>
+            <Button 
+              onClick={() => setIsNewModalOpen(true)}
+              className="h-11 rounded-lg"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Novo setor
+            </Button>
+          </div>
+
+          {/* Tabela */}
+          <div>
+            {/* Header da tabela */}
+            <div className="grid grid-cols-[48px_48px_1fr_240px] items-center px-4 py-3 text-slate-500 text-sm font-medium border-b border-slate-100">
+              <div className="flex items-center justify-center">
+                <Checkbox
+                  checked={allSelected}
+                  onCheckedChange={handleSelectAll}
+                  ref={(ref) => {
+                    if (ref) {
+                      (ref as any).indeterminate = someSelected;
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-center">
+                <GripVertical className="h-4 w-4 text-slate-300" />
+              </div>
+              <div>Nome</div>
+              <div className="text-right">Ações</div>
+            </div>
+
+            {/* Corpo da tabela com Drag & Drop */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={filteredSectors.map(s => s.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {filteredSectors.length === 0 ? (
+                  <div className="flex items-center justify-center py-12 text-slate-500">
+                    <div className="text-center">
+                      <p className="mb-2">Nenhum setor encontrado</p>
+                      {searchTerm && (
+                        <p className="text-sm">Tente ajustar sua busca</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  filteredSectors.map((sector) => (
+                    <SortableRow
+                      key={sector.id}
+                      sector={sector}
+                      isSelected={selectedSectors.includes(sector.id)}
+                      onSelect={(checked) => handleSelectSector(sector.id, checked)}
+                      onMakeDefault={() => handleMakeDefault(sector.id)}
+                      onEdit={() => openEditModal(sector)}
+                      onDelete={() => openDeleteModal(sector)}
+                    />
+                  ))
+                )}
+              </SortableContext>
+            </DndContext>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal Novo Setor */}
+      <Dialog open={isNewModalOpen} onOpenChange={setIsNewModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Novo setor</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="new-sector-name" className="text-sm font-medium text-slate-700">
+                Nome <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="new-sector-name"
+                type="text"
+                value={newSectorName}
+                onChange={(e) => setNewSectorName(e.target.value)}
+                placeholder="Digite o nome do setor"
+                className="mt-1"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setIsNewModalOpen(false)}
+            >
+              Fechar
+            </Button>
+            <Button
+              onClick={handleCreateSector}
+              disabled={!newSectorName.trim()}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Editar Setor */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Setor {editingSector?.name}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-sector-name" className="text-sm font-medium text-slate-700">
+                Nome <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="edit-sector-name"
+                type="text"
+                value={editSectorName}
+                onChange={(e) => setEditSectorName(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setIsEditModalOpen(false)}
+            >
+              Fechar
+            </Button>
+            <Button
+              onClick={handleEditSector}
+              disabled={!editSectorName.trim()}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Excluir Setor */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash className="h-5 w-5 text-red-500" />
+              Excluir
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <p className="text-slate-700">
+              Tem certeza que deseja excluir o setor{' '}
+              <span className="font-semibold text-blue-600">{deletingSector?.name}</span>?
+            </p>
+
             <div className="space-y-3">
-              <div className="flex items-center space-x-3 p-3 rounded-lg bg-orange-50 border border-orange-200 transition-colors">
-                <Building2 className="h-6 w-6 text-orange-600" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900">
-                    Gerenciar departamentos
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Criar e organizar setores
-                  </div>
+              <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg">
+                <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-slate-700">
+                  Canais que possuem esse setor como padrão passarão a usar o setor padrão da organização
+                </p>
+              </div>
+
+              <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg">
+                <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-slate-700">
+                  <p className="mb-2">Os chats que estão atualmente nesse setor serão movidos para:</p>
+                  <Select value={moveChatsToSector} onValueChange={setMoveChatsToSector}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sectors
+                        .filter(s => s.id !== deletingSector?.id)
+                        .map(sector => (
+                          <SelectItem key={sector.id} value={sector.id}>
+                            {sector.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>
-          </div>
-        </ScrollArea>
 
-        {/* Perfil do usuário */}
-        <ProfileSidebar />
-      </div>
+            <p className="text-sm text-red-600 font-medium">
+              Essa ação não pode ser desfeita posteriormente.
+            </p>
 
-      {/* Área principal */}
-      <div className="flex-1 p-8 bg-gray-50">
-        {/* Header da área principal */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Gerenciar Departamentos
-          </h1>
-          <p className="text-gray-600">
-            Organize sua equipe em setores e especialidades
-          </p>
-          <div className="mt-2 flex items-center space-x-2">
-            <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-              📊 Total de departamentos: {departments.length}
-            </div>
-            <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-              ✅ Ativos: {departments.filter(d => d.is_active).length}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-3 mb-6">
-          <Button onClick={handleCreateDepartment} disabled={loading}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Departamento
-          </Button>
-        </div>
-
-        {/* Filtros e Pesquisa */}
-        <div className="flex items-center space-x-4 mb-6">
-          <div className="flex-1 max-w-md">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <div>
+              <Label htmlFor="delete-confirm" className="text-sm font-medium text-slate-700">
+                Digite <span className="font-semibold">{deletingSector?.name}</span> para continuar
+              </Label>
               <Input
+                id="delete-confirm"
                 type="text"
-                placeholder="Buscar departamentos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                className="mt-1"
               />
             </div>
           </div>
-          <div className="text-sm text-gray-500">
-            {filteredDepartments.length} de {departments.length} departamentos
-          </div>
-        </div>
 
-        {/* Tabela */}
-        <Card>
-          <CardContent className="p-0">
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Departamento</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Cor</TableHead>
-                    <TableHead>Ordem</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        <div className="flex items-center justify-center space-x-2">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
-                          <span className="text-gray-500">Carregando departamentos...</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredDepartments.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        <div className="text-center">
-                          <Building2 className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                          <p className="text-gray-500 mb-2">Nenhum departamento encontrado</p>
-                          <p className="text-sm text-gray-400">Clique em "Novo Departamento" para adicionar</p>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredDepartments.map((department) => (
-                      <TableRow key={department.id}>
-                        <TableCell>
-                          <div className="flex items-center space-x-3">
-                            <div
-                              className="w-8 h-8 rounded-full flex items-center justify-center"
-                              style={{ backgroundColor: department.color || '#3B82F6' }}
-                            >
-                              {getDepartmentIcon()}
-                            </div>
-                            <div>
-                              <div className="font-medium text-gray-900">{department.name}</div>
-                              <div className="text-sm text-gray-500">ID: {department.id.slice(-8)}</div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="max-w-xs truncate text-sm">
-                            {department.description || 'Sem descrição'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <div
-                              className="w-4 h-4 rounded border"
-                              style={{ backgroundColor: department.color || '#3B82F6' }}
-                            />
-                            <span className="text-sm font-mono">
-                              {department.color || '#3B82F6'}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{department.order}</TableCell>
-                        <TableCell>{getStatusBadge(department.is_active)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditDepartment(department)}
-                              className="border-blue-300 text-blue-600 hover:bg-blue-50"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleToggleStatus(department.id, department.is_active)}
-                              className={department.is_active
-                                ? "border-orange-300 text-orange-600 hover:bg-orange-50"
-                                : "border-green-300 text-green-600 hover:bg-green-50"
-                              }
-                            >
-                              {department.is_active ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteDepartment(department.id)}
-                              className="border-red-300 text-red-600 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Modal de Criação/Edição */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editingDepartment ? 'Editar Departamento' : 'Novo Departamento'}
-            </DialogTitle>
-            <DialogDescription>
-              {editingDepartment
-                ? 'Atualize as informações do departamento.'
-                : 'Preencha os dados para criar um novo departamento.'
-              }
-            </DialogDescription>
-          </DialogHeader>
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                rules={{ required: "Nome é obrigatório" }}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome do Departamento</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Atendimento, Suporte, Vendas" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descrição (opcional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Descrição do departamento" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="color"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cor (opcional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="color"
-                        {...field}
-                        className="h-10 w-full cursor-pointer"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="order"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Ordem de Exibição</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min="0"
-                        placeholder="0"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit">
-                  {editingDepartment ? 'Atualizar' : 'Criar'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+          <DialogFooter className="flex gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setIsDeleteModalOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleDeleteSector}
+              disabled={deleteConfirmText !== deletingSector?.name}
+              variant="destructive"
+            >
+              Confirmar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

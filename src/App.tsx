@@ -21,9 +21,16 @@ import Attendants from './pages/Attendants';
 import Departments from './pages/Departments';
 import ServiceProviders from './pages/ServiceProviders';
 import Contacts from './pages/Contacts';
+import ContactsNew from './pages/ContactsNew';
+import Chatbot from './pages/Chatbot';
+import AIAgents from './pages/AIAgents';
+import Reports from './pages/Reports';
+import Financial from './pages/Financial';
+import Tags from './pages/Tags';
+import ActivityLogs from './pages/ActivityLogs';
+import Organization from './pages/Organization';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
-import Chats from './pages/Chats';
 
 function App() {
   return (
@@ -41,9 +48,24 @@ function App() {
               <Conversations />
             </Layout>
           } />
-          <Route path="/chats" element={
+          <Route path="/contacts" element={
             <Layout>
-              <Chats />
+              <ContactsNew />
+            </Layout>
+          } />
+          <Route path="/chatbot" element={
+            <Layout>
+              <Chatbot />
+            </Layout>
+          } />
+          <Route path="/ai-agents" element={
+            <Layout>
+              <AIAgents />
+            </Layout>
+          } />
+          <Route path="/reports" element={
+            <Layout>
+              <Reports />
             </Layout>
           } />
           <Route path="/appointments" element={
@@ -64,6 +86,11 @@ function App() {
           <Route path="/tasks" element={
             <Layout>
               <Tasks />
+            </Layout>
+          } />
+          <Route path="/settings" element={
+            <Layout>
+              <Settings />
             </Layout>
           } />
           
@@ -136,6 +163,46 @@ function App() {
         <Route path="/settings/contacts" element={
           <Layout>
             <Contacts />
+          </Layout>
+        } />
+        <Route path="/settings/financial" element={
+          <Layout>
+            <Financial />
+          </Layout>
+        } />
+        <Route path="/settings/tags" element={
+          <Layout>
+            <Tags />
+          </Layout>
+        } />
+        <Route path="/settings/chatbots" element={
+          <Layout>
+            <Chatbot />
+          </Layout>
+        } />
+        <Route path="/settings/ai-agents" element={
+          <Layout>
+            <AIAgents />
+          </Layout>
+        } />
+        <Route path="/settings/quick-replies" element={
+          <Layout>
+            <QuickReplies />
+          </Layout>
+        } />
+        <Route path="/settings/scheduled-messages" element={
+          <Layout>
+            <ScheduledMessages />
+          </Layout>
+        } />
+        <Route path="/settings/activity-logs" element={
+          <Layout>
+            <ActivityLogs />
+          </Layout>
+        } />
+        <Route path="/settings/organization" element={
+          <Layout>
+            <Organization />
           </Layout>
         } />
         <Route path="/profile" element={

@@ -1,6 +1,7 @@
 import { useState, useRef, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { Button } from '../../../../components/ui/button';
-import { Input } from '../../../../components/ui/input';
+import { Switch } from '../../../../components/ui/switch';
+import { Avatar, AvatarImage, AvatarFallback } from '../../../../components/ui/avatar';
 import { 
   Send, 
   Smile, 
@@ -15,7 +16,10 @@ import {
   CalendarDays,
   Globe,
   X,
-  Clock
+  Clock,
+  MessageSquare,
+  StickyNote,
+  Edit2
 } from 'lucide-react';
 import { MessageInputProps, MessageInputRef } from '../../types';
 import { useConversationsContext } from '../../context';
@@ -44,21 +48,28 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   onChange,
   onSend,
   onKeyPress,
-  isLoading,
-  onSchedule
+  isLoading = false,
+  onSchedule,
+  mode = 'message',
+  agentName = 'Paulo R.',
+  agentAvatarUrl,
+  appendAgentSignature = false,
+  onToggleAppendSignature,
+  onChangeMode,
+  disabled = false
 }, ref) => {
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [showAudioRecorder, setShowAudioRecorder] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const {
     selectedConversation,
-    setTemplatesModalOpen,
-    setScheduleModalOpen,
     setFilesModalOpen,
+    setScheduleModalOpen,
+    setQuickRepliesDrawerOpen,
     scheduleData: contextScheduleData,
     setScheduleData: setContextScheduleData
   } = useConversationsContext();
@@ -76,14 +87,23 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
     }
   }, [contextScheduleData, setContextScheduleData]);
 
-  // Focar no input quando agendamento for definido
+  // Focar no textarea quando agendamento for definido
   useEffect(() => {
     if (scheduleData) {
       setTimeout(() => {
-        inputRef.current?.focus();
+        textareaRef.current?.focus();
       }, 100);
     }
   }, [scheduleData]);
+
+  // Auto-resize do textarea
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, window.innerHeight * 0.4) + 'px';
+    }
+  }, [value]);
 
   // Função para cancelar agendamento
   const handleCancelSchedule = () => {
@@ -134,7 +154,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   // Expor funções para o componente pai
   useImperativeHandle(ref, () => ({
     focus: () => {
-      inputRef.current?.focus();
+      textareaRef.current?.focus();
     },
     handleSendMessage: () => {
       handleSendMessage();
@@ -247,14 +267,14 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
 
   // Função para inserir emoji no texto
   const handleEmojiSelect = (emoji: string) => {
-    const input = inputRef.current;
-    if (!input) {
+    const textarea = textareaRef.current;
+    if (!textarea) {
       onChange(value + emoji);
       return;
     }
 
-    const start = input.selectionStart || 0;
-    const end = input.selectionEnd || 0;
+    const start = textarea.selectionStart || 0;
+    const end = textarea.selectionEnd || 0;
     const newValue = value.slice(0, start) + emoji + value.slice(end);
     
     onChange(newValue);
@@ -262,13 +282,70 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
     // Restaurar posição do cursor após o emoji
     setTimeout(() => {
       const newCursorPos = start + emoji.length;
-      input.setSelectionRange(newCursorPos, newCursorPos);
-      input.focus();
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+      textarea.focus();
     }, 0);
   };
 
+  // Lidar com teclas no textarea
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (value.trim()) {
+        handleSendMessage();
+      }
+    }
+    
+    // Chamar onKeyPress se existir (compatibilidade)
+    if (onKeyPress) {
+      onKeyPress(e);
+    }
+  };
+
+  // Obter iniciais do nome do agente
+  const getAgentInitials = (name: string): string => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  // Determinar placeholder baseado no modo
+  const getPlaceholder = (): string => {
+    if (mode === 'note') {
+      return 'Escreva uma nota interna…';
+    }
+    return 'Digite uma mensagem…';
+  };
+
+  // Determinar aria-label baseado no modo
+  const getAriaLabel = (): string => {
+    if (mode === 'note') {
+      return 'Nota interna';
+    }
+    return `Mensagem para ${selectedConversation?.customer_name || 'contato'}`;
+  };
+
+  // Determinar tema baseado no modo
+  const getThemeClasses = () => {
+    if (mode === 'note') {
+      return {
+        container: 'bg-[#FFF8E1] border-[#E8D28A]',
+        textarea: 'bg-transparent'
+      };
+    }
+    return {
+      container: 'bg-white border-[#D6DEEF]',
+      textarea: 'bg-transparent'
+    };
+  };
+
+  const themeClasses = getThemeClasses();
+
   return (
-    <div className="bg-white border-t border-gray-200 p-4 relative">
+    <div className="p-4 relative">
       {/* Menu flutuante do botão "+" */}
       {showPlusMenu && (
         <>
@@ -279,7 +356,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
           />
           
           {/* Menu */}
-          <div className="absolute bottom-16 left-4 bg-white rounded-lg shadow-lg border border-gray-200 p-2 z-50 w-48">
+          <div className="absolute bottom-12 left-0 bg-white rounded-lg shadow-lg border border-gray-200 p-2 z-50 w-48">
             <div className="space-y-1">
               {plusMenuItems.map((item, index) => (
                 <button
@@ -299,7 +376,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
         </>
       )}
 
-      {/* Interface de gravação de áudio ou campo de texto */}
+      {/* Interface de gravação de áudio ou card principal */}
       {showAudioRecorder ? (
         <div className="flex items-center justify-center">
           <AudioRecorder
@@ -309,21 +386,132 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
           />
         </div>
       ) : (
-        <div className="relative">
-          {/* Botões do lado esquerdo interno */}
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center gap-1 z-10">
+        <div 
+          className={`relative w-full min-h-[88px] ${themeClasses.container} border rounded-[20px] shadow-sm grid grid-rows-[auto_1fr_auto] p-4 pb-14`}
+          style={{
+            // CSS Variables para tema
+            '--mi-primary': '#2D61E0',
+            '--mi-border': '#D6DEEF',
+            '--mi-text': '#2E2E2E',
+            '--mi-text-2': '#6F6F6F',
+            '--mi-notes-bg': '#FFF8E1',
+            '--mi-notes-border': '#E8D28A'
+          } as React.CSSProperties}
+        >
+          {/* Header interno (linha superior) */}
+          <div className="flex items-center justify-between mb-3">
+            {/* À esquerda: Toggle + Avatar + Nome do atendente - apenas no modo mensagem */}
+            <div className="flex items-center gap-3">
+              {mode === 'message' && (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={appendAgentSignature}
+                    onCheckedChange={onToggleAppendSignature}
+                    className="data-[state=checked]:bg-[#2D61E0]"
+                    disabled={disabled}
+                    aria-label="Incluir nome do atendente nas mensagens do WhatsApp"
+                  />
+                  
+                  {/* Avatar do agente */}
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={agentAvatarUrl || "/assets/agent-example.png"} />
+                    <AvatarFallback className="text-xs bg-gray-100 text-gray-600">
+                      {getAgentInitials(agentName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  {/* Nome do agente */}
+                  <span className="text-sm font-medium text-[#2E2E2E]">
+                    {agentName}
+                  </span>
+                  
+                  {/* Ícone de edição */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 w-5 p-0 text-[#6F6F6F] hover:text-[#2D61E0]"
+                    title="Editar nome do atendente"
+                    disabled={disabled}
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* À direita: Switch de modo (Mensagem/Notas) - sempre fixo à direita */}
+            <div 
+              className="flex items-center rounded-full bg-gray-50 p-1"
+              role="tablist"
+              aria-label="Modo de entrada"
+            >
+              {/* Mensagem */}
+              <button
+                role="tab"
+                aria-selected={mode === 'message'}
+                onClick={() => onChangeMode?.('message')}
+                disabled={disabled}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                  mode === 'message'
+                    ? 'bg-[#2D61E0] text-white shadow-sm'
+                    : 'text-[#2E2E2E] hover:bg-gray-100'
+                }`}
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span>Mensagem</span>
+              </button>
+
+              {/* Notas */}
+              <button
+                role="tab"
+                aria-selected={mode === 'note'}
+                onClick={() => onChangeMode?.('note')}
+                disabled={disabled}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                  mode === 'note'
+                    ? 'bg-[#E8B931] text-white shadow-sm'
+                    : 'text-[#2E2E2E] hover:bg-gray-100'
+                }`}
+              >
+                <StickyNote className="h-4 w-4" />
+                <span>Notas</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Editor (linha central) */}
+          <div className="flex-1 pr-16 pb-12">
+            <textarea
+              ref={textareaRef}
+              placeholder={getPlaceholder()}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={disabled || isLoading}
+              aria-label={getAriaLabel()}
+              className={`w-full min-h-[48px] max-h-[40vh] resize-none border-none outline-none ${themeClasses.textarea} text-[#2E2E2E] placeholder-[#A3A3A3] leading-6`}
+              style={{ 
+                fontSize: '16px',
+                lineHeight: '1.5'
+              }}
+            />
+          </div>
+
+          {/* Footer interno - posicionado absolutamente na bottom line */}
+          <div className="absolute bottom-3 left-4 flex items-center gap-3 z-10">
             {/* Botão "+" */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowPlusMenu(!showPlusMenu)}
-              className="p-1 text-gray-700 hover:text-gray-900 h-7 w-7"
+              disabled={disabled}
+              className="p-1 text-[#6F6F6F] hover:text-[#2D61E0] hover:bg-black/5 h-8 w-8 rounded-lg"
               title="Mais opções"
             >
               {showPlusMenu ? (
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               ) : (
-                <Plus className="h-4 w-4" />
+                <Plus className="h-5 w-5" />
               )}
             </Button>
 
@@ -331,23 +519,31 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setTemplatesModalOpen(true)}
-              className="p-1 text-gray-700 hover:text-gray-900 h-7 w-7"
+              onClick={() => setQuickRepliesDrawerOpen(true)}
+              disabled={disabled}
+              className="p-1 text-[#6F6F6F] hover:text-[#2D61E0] hover:bg-black/5 h-8 w-8 rounded-lg"
               title="Resposta rápida"
             >
-              <FileText className="h-4 w-4" />
+              <FileText className="h-5 w-5" />
             </Button>
 
-            {/* Agendar resposta */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setScheduleModalOpen(true)}
-              className={`p-1 h-7 w-7 ${scheduleData ? 'text-blue-600 bg-blue-50' : 'text-gray-700 hover:text-gray-900'}`}
-              title={scheduleData ? `Agendada para ${formatScheduleDisplay(scheduleData)}` : "Agendar resposta"}
-            >
-              {scheduleData ? <Clock className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
-            </Button>
+            {/* Agendar resposta - apenas no modo mensagem */}
+            {mode === 'message' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setScheduleModalOpen(true)}
+                disabled={disabled}
+                className={`p-1 h-8 w-8 rounded-lg ${
+                  scheduleData 
+                    ? 'text-[#2D61E0] bg-blue-50' 
+                    : 'text-[#6F6F6F] hover:text-[#2D61E0] hover:bg-black/5'
+                }`}
+                title={scheduleData ? `Agendada para ${formatScheduleDisplay(scheduleData)}` : "Agendar resposta"}
+              >
+                {scheduleData ? <Clock className="h-5 w-5" /> : <Calendar className="h-5 w-5" />}
+              </Button>
+            )}
 
             {/* Emoji */}
             <Button
@@ -355,76 +551,73 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
               variant="ghost"
               size="sm"
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className={`p-1 h-7 w-7 ${showEmojiPicker ? 'text-green-600 bg-green-50' : 'text-gray-700 hover:text-gray-900'}`}
+              disabled={disabled}
+              className={`p-1 h-8 w-8 rounded-lg ${
+                showEmojiPicker 
+                  ? 'text-green-600 bg-green-50' 
+                  : 'text-[#6F6F6F] hover:text-[#2D61E0] hover:bg-black/5'
+              }`}
               title="Emoji"
             >
-              <Smile className="h-4 w-4" />
+              <Smile className="h-5 w-5" />
             </Button>
-          </div>
 
-          {/* Campo de texto */}
-          <Input
-            ref={inputRef}
-            placeholder="Digite uma mensagem"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyPress={onKeyPress}
-            className="h-10 pl-36 pr-16 rounded-full border border-gray-300 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-base"
-            disabled={isLoading}
-            style={{ paddingRight: '120px' }}
-          />
-
-          {/* Botão do lado direito interno */}
-          <div className="absolute right-6 top-1/2 transform -translate-y-1/2 flex items-center">
-            {/* Botão de áudio ou enviar */}
-            {value.trim() ? (
-              <div className="flex items-center gap-2">
-                {/* Indicador de agendamento */}
-                {scheduleData && (
-                  <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-                    <Clock className="h-3 w-3" />
-                    <span>{formatScheduleDisplay(scheduleData)}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCancelSchedule}
-                      className="p-0 h-4 w-4 text-blue-600 hover:text-blue-800"
-                      title="Cancelar agendamento"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
-                
-                {/* Botão de envio */}
+            {/* Indicador de agendamento - apenas no modo mensagem */}
+            {mode === 'message' && scheduleData && (
+              <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full ml-4">
+                <Clock className="h-3 w-3" />
+                <span>{formatScheduleDisplay(scheduleData)}</span>
                 <Button
-                  onClick={handleSendMessage}
-                  disabled={isLoading}
-                  className={`p-1 rounded-full h-7 w-7 ${
-                    scheduleData 
-                      ? 'bg-blue-500 hover:bg-blue-600 text-white' 
-                      : 'bg-green-500 hover:bg-green-600 text-white'
-                  }`}
-                  title={scheduleData ? `Agendar para ${formatScheduleDisplay(scheduleData)}` : "Enviar mensagem"}
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCancelSchedule}
+                  disabled={disabled}
+                  className="p-0 h-4 w-4 text-blue-600 hover:text-blue-800"
+                  title="Cancelar agendamento"
                 >
-                  {isLoading ? (
-                    <div className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : scheduleData ? (
-                    <Clock className="h-4 w-4" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
+                  <X className="h-3 w-3" />
                 </Button>
               </div>
-            ) : (
+            )}
+          </div>
+
+          {/* FAB de Áudio (canto inferior-direito) */}
+          <div className="absolute bottom-3 right-4 z-10">
+            {value.trim() ? (
+              /* Botão de envio quando há texto */
               <Button
-                variant="ghost"
-                size="sm"
+                onClick={handleSendMessage}
+                disabled={disabled || isLoading}
+                className={`h-12 w-12 rounded-full shadow-lg ${
+                  scheduleData 
+                    ? 'bg-blue-500 hover:bg-blue-600 text-white' 
+                    : mode === 'note'
+                      ? 'bg-[#E8B931] hover:bg-[#D4A728] text-white'
+                      : 'bg-green-500 hover:bg-green-600 text-white'
+                }`}
+                title={scheduleData ? `Agendar para ${formatScheduleDisplay(scheduleData)}` : "Enviar mensagem"}
+              >
+                {isLoading ? (
+                  <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : scheduleData ? (
+                  <Clock className="h-6 w-6" />
+                ) : (
+                  <Send className="h-6 w-6" />
+                )}
+              </Button>
+            ) : (
+              /* FAB de áudio quando não há texto */
+              <Button
                 onClick={() => setShowAudioRecorder(true)}
-                className="p-1 text-gray-700 hover:text-gray-900 h-7 w-7"
+                disabled={disabled}
+                className={`h-12 w-12 rounded-full shadow-lg transition-all hover:shadow-xl text-white ${
+                  mode === 'note' 
+                    ? 'bg-[#E8B931] hover:bg-[#D4A728]' 
+                    : 'bg-[#2D61E0] hover:bg-blue-700'
+                }`}
                 title="Gravar áudio"
               >
-                <Mic className="h-4 w-4" />
+                <Mic className="h-6 w-6" />
               </Button>
             )}
           </div>
@@ -438,6 +631,8 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
         onEmojiSelect={handleEmojiSelect}
         anchorRef={emojiButtonRef}
       />
+
+      {/* TODO: Quando appendAgentSignature === true, concatenar - {agentName} ao final da mensagem APENAS no canal WhatsApp no momento do envio. Não afeta o ChatArea. Implementação futura. */}
     </div>
   );
 });

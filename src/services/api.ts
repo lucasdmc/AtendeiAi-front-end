@@ -40,7 +40,7 @@ export interface Conversation {
   last_message?: {
     content: string;
     timestamp: string;
-    sender_type: 'customer' | 'bot' | 'human';
+    sender_type: 'customer' | 'bot' | 'human' | 'system';
     sender_id?: string; // ID do remetente (para grupos)
     sender_name?: string; // Nome do remetente (para grupos)
   };
@@ -54,7 +54,7 @@ export interface Conversation {
 export interface Message {
   _id: string;
   conversation_id: string;
-  sender_type: 'customer' | 'bot' | 'human';
+  sender_type: 'customer' | 'bot' | 'human' | 'system';
   sender_id?: string;
   content: string;
   message_type: 'text' | 'image' | 'document' | 'audio' | 'video' | 'location';

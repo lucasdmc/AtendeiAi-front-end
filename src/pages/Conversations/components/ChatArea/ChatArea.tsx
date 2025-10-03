@@ -4,25 +4,37 @@ import { MessagesList } from './MessagesList';
 import { MessageInput } from './MessageInput';
 import { useConversationsContext } from '../../context';
 import { useSendMessage } from '../../../../hooks/useMessages';
-import { MessageInputRef } from '../../types';
+import { MessageInputRef, MessageInputMode } from '../../types';
 
 export const ChatArea: React.FC = () => {
   const {
     selectedConversation,
     showContactInfo,
     searchInConversation,
+    selectedTemplate,
+    setSelectedTemplate,
     setShowContactInfo,
     setSearchInConversation
   } = useConversationsContext();
 
   // Estado local para o input de mensagem
   const [messageText, setMessageText] = useState('');
+  const [messageMode, setMessageMode] = useState<MessageInputMode>('message');
+  const [appendAgentSignature, setAppendAgentSignature] = useState(false);
   
   // Ref para o input de mensagem
   const messageInputRef = useRef<MessageInputRef>(null);
 
   // Hook para enviar mensagens
   const { mutate: sendMessage, isPending: isSending, reset: resetSendMessage } = useSendMessage();
+
+  // Efeito para inserir template selecionado no campo de texto
+  React.useEffect(() => {
+    if (selectedTemplate) {
+      setMessageText(selectedTemplate.content);
+      setSelectedTemplate(null); // Limpar após usar
+    }
+  }, [selectedTemplate, setSelectedTemplate]);
 
   // Handler para enviar mensagem
   const handleSendMessage = () => {
@@ -120,7 +132,7 @@ export const ChatArea: React.FC = () => {
   // Se não há conversa selecionada
   if (!selectedConversation) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50">
+      <div className="flex-1 flex items-center justify-center" style={{ backgroundColor: '#F5F7FB' }}>
         <div className="text-center">
           <div className="w-24 h-24 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">
             <svg 
@@ -137,10 +149,10 @@ export const ChatArea: React.FC = () => {
               />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <h3 className="text-lg font-medium mb-2" style={{ color: '#2E2E2E' }}>
             Selecione uma conversa
           </h3>
-          <p className="text-gray-500">
+          <p style={{ color: '#6F6F6F' }}>
             Escolha uma conversa da lista para começar a visualizar as mensagens
           </p>
         </div>
@@ -149,7 +161,7 @@ export const ChatArea: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white h-screen">
+    <div className="flex-1 flex flex-col h-screen" style={{ backgroundColor: '#F5F7FB' }}>
       {/* Header do chat */}
       <ChatHeader
         conversation={selectedConversation}
@@ -176,6 +188,12 @@ export const ChatArea: React.FC = () => {
         onKeyPress={handleKeyPress}
         isLoading={isSending}
         onSchedule={handleSchedule}
+        mode={messageMode}
+        onChangeMode={setMessageMode}
+        agentName="Paulo R."
+        agentAvatarUrl="/assets/agent-example.png"
+        appendAgentSignature={appendAgentSignature}
+        onToggleAppendSignature={setAppendAgentSignature}
       />
     </div>
   );

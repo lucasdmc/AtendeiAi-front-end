@@ -9,7 +9,8 @@ import { useMarkAsRead, getSessionIdFromConversation, getUnreadMessageIds } from
 import { 
   ConversationsContextType, 
   ConversationsState,
-  ModalState
+  ModalState,
+  Template
 } from '../types';
 import { Conversation } from '../../../services/api';
 import { mockPatientInfo, mockFlags, templateCategories, menuItems } from '../constants';
@@ -44,6 +45,14 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
   // Estado para controlar o drawer de contato
   const [contactDrawerOpen, setContactDrawerOpen] = useState(false);
   const [contactDrawerTab, setContactDrawerTab] = useState<'contact' | 'conversation'>('contact');
+  const [transferDrawerOpen, setTransferDrawerOpen] = useState(false);
+  const [scheduleMessageDrawerOpen, setScheduleMessageDrawerOpen] = useState(false);
+  const [finishConversationDrawerOpen, setFinishConversationDrawerOpen] = useState(false);
+  const [quickRepliesDrawerOpen, setQuickRepliesDrawerOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+
+  // Função para verificar se algum drawer está aberto
+  const isAnyDrawerOpen = contactDrawerOpen || transferDrawerOpen || scheduleMessageDrawerOpen || finishConversationDrawerOpen || quickRepliesDrawerOpen;
 
   // Estados dos modais
   const [modalState, setModalState] = useState<ModalState>({
@@ -78,6 +87,49 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     error: messagesError 
   } = useMessages(conversationsState.selectedConversation?._id || '', { limit: 50 });
 
+  // Extrair mensagens do useInfiniteQuery
+  const messages = React.useMemo(() => {
+    const extracted = Array.isArray(messagesData) ? messagesData : (messagesData as any)?.pages?.flatMap((page: any) => page?.messages || []) || [];
+    return extracted;
+  }, [messagesData]);
+
+  // Log detalhado do useMessages
+  React.useEffect(() => {
+    if (conversationsState.selectedConversation) {
+      console.log('📨 [CONTEXT] Conversa selecionada:', {
+        id: conversationsState.selectedConversation._id,
+        name: conversationsState.selectedConversation.customer_name || conversationsState.selectedConversation.customer_phone,
+        messagesCount: messages.length
+      });
+    } else {
+      console.log('📨 [CONTEXT] Nenhuma conversa selecionada');
+    }
+  }, [conversationsState.selectedConversation, messages.length]);
+
+  // Processar mensagens para adicionar mock data de atendentes
+  const processedMessages = React.useMemo(() => {
+    if (!messages || !Array.isArray(messages)) {
+      return [];
+    }
+    
+    // Simular diferentes atendentes apenas para mensagens que não têm sender_id
+    const processed = messages.map((message: any, index: number) => {
+      // Se for mensagem enviada (human) E não tiver sender_id, adicionar sender_id mock
+      if (message.sender_type === 'human' && !message.sender_id) {
+        const agentIds = ['marcos-id', 'paulo-id', 'agent-1', 'agent-2'];
+        // Distribuir mensagens entre diferentes atendentes (excluindo current-user-id)
+        const agentIndex = index % agentIds.length;
+        return {
+          ...message,
+          sender_id: agentIds[agentIndex]
+        };
+      }
+      return message;
+    });
+    
+    return processed;
+  }, [messages]);
+
   const { 
     data: templatesData 
   } = useTemplates({ clinic_id: clinicId });
@@ -97,7 +149,6 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
   const lastProcessedConversationRef = useRef<string | null>(null);
 
   // Realtime com callback para atualização direta das mensagens
-  console.log('🔌 [CONTEXT] Inicializando useRealtime com clinicId:', clinicId);
   const { isConnected } = useRealtime(clinicId, {
     onMessageReceived: (message, conversation) => {
       console.log('🎯 [CONTEXT] Callback SSE: Nova mensagem recebida diretamente', {
@@ -167,7 +218,6 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
 
   // Extrair arrays dos dados da API
   const conversations = conversationsData?.conversations || [];
-  const messages = Array.isArray(messagesData) ? messagesData : (messagesData as any)?.pages?.flatMap((page: any) => page?.messages || []) || [];
   const templates = (templatesData as any)?.templates || [];
 
   // ✅ Marcar mensagens como lidas quando uma conversa é selecionada
@@ -276,7 +326,7 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     
     // Dados da API
     conversations,
-    messages,
+    messages: processedMessages,
     templates,
     flags: mockFlags,
     clinicSettings,
@@ -316,6 +366,17 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     setContactDrawerOpen,
     contactDrawerTab,
     setContactDrawerTab,
+    transferDrawerOpen,
+    setTransferDrawerOpen,
+    scheduleMessageDrawerOpen,
+    setScheduleMessageDrawerOpen,
+    finishConversationDrawerOpen,
+    setFinishConversationDrawerOpen,
+    quickRepliesDrawerOpen,
+    setQuickRepliesDrawerOpen,
+    selectedTemplate,
+    setSelectedTemplate,
+    isAnyDrawerOpen,
     
     // Modal actions (expostas através do contexto para facilitar acesso)
     setFilesModalOpen,

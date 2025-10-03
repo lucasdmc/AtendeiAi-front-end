@@ -29,17 +29,6 @@ export const MessagesList: React.FC = () => {
     error: scheduledError
   } = useScheduledMessages(selectedConversation?._id || '');
 
-  // Log para debug
-  React.useEffect(() => {
-    console.log('📅 [MessagesList] Dados de mensagens agendadas:', {
-      conversationId: selectedConversation?._id,
-      scheduledMessages,
-      scheduledLoading,
-      scheduledError,
-      count: scheduledMessages.length
-    });
-  }, [selectedConversation?._id, scheduledMessages, scheduledLoading, scheduledError]);
-
   // Hook para gerenciar menu das mensagens
   const { openMenuId, menuPosition, handleMenuClick, handleMenuAction } = useMessageMenu();
 
@@ -49,6 +38,18 @@ export const MessagesList: React.FC = () => {
 
   // Filtrar mensagens baseado na busca
   const filteredMessages = filterMessagesBySearch(messages, conversationSearchTerm);
+
+  // Log para debug das mensagens principais
+  React.useEffect(() => {
+    if (selectedConversation) {
+      console.log('📨 [MessagesList] Conversa ativa:', {
+        id: selectedConversation._id,
+        name: selectedConversation.customer_name || selectedConversation.customer_phone,
+        messagesCount: messages.length,
+        filteredCount: filteredMessages.length
+      });
+    }
+  }, [selectedConversation, messages.length, filteredMessages.length]);
 
   // Scroll automático para o final quando novas mensagens chegam
   useEffect(() => {

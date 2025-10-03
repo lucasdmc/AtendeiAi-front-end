@@ -110,12 +110,12 @@ export const ConversationsList: React.FC = () => {
 
 
   return (
-    <div className="w-[420px] min-w-[420px] max-w-[420px] bg-white border-r border-gray-200 flex flex-col">
+    <div className="w-[420px] min-w-[420px] max-w-[420px] border-r border-gray-200 flex flex-col" style={{ backgroundColor: '#FFFFFF' }}>
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
           {/* Lado esquerdo - Título */}
-          <h1 className="text-xl font-semibold text-gray-900">Conversas</h1>
+          <h1 className="text-xl font-semibold" style={{ color: '#2E2E2E' }}>Conversas</h1>
           
           {/* Lado direito - Controles */}
           <div className="flex items-center gap-2">
@@ -123,7 +123,8 @@ export const ConversationsList: React.FC = () => {
             <Button 
               variant="ghost" 
               size="icon" 
-              className={`h-8 w-8 ${multiSelectMode ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'}`}
+              className={`h-8 w-8 ${multiSelectMode ? 'text-blue-500' : 'hover:text-blue-500'}`}
+              style={{ color: multiSelectMode ? '#2D61E0' : '#6F6F6F' }}
               onClick={toggleMultiSelect}
             >
               <CheckSquare className="h-4 w-4" />
@@ -190,7 +191,8 @@ export const ConversationsList: React.FC = () => {
             {/* Botão de adicionar nova conversa */}
             <Button 
               size="icon" 
-              className="h-10 w-10 bg-blue-500 hover:bg-blue-600 rounded-full shadow-sm"
+              className="h-10 w-10 rounded-full shadow-sm"
+              style={{ backgroundColor: '#2D61E0' }}
             >
               <Plus className="h-4 w-4 text-white" />
             </Button>
@@ -204,7 +206,8 @@ export const ConversationsList: React.FC = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="h-10 w-10 text-gray-400 hover:text-gray-600 rounded-none"
+              className="h-10 w-10 rounded-none"
+              style={{ color: '#6F6F6F' }}
               onClick={() => setFilterColumnOpen(true)}
             >
               <Filter className="h-4 w-4" />
@@ -215,13 +218,14 @@ export const ConversationsList: React.FC = () => {
             
             {/* Ícone de busca */}
             <div className="pl-3 pr-2">
-              <Search className="h-4 w-4 text-gray-400" />
+              <Search className="h-4 w-4" style={{ color: '#6F6F6F' }} />
             </div>
             
             {/* Input de busca */}
             <Input
               className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 pl-0"
               placeholder="Buscar por nome ou telefone"
+              style={{ color: '#2E2E2E' }}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -235,14 +239,18 @@ export const ConversationsList: React.FC = () => {
             size="sm"
             className={`rounded-full px-4 ${
               activeTab === 'inbox' 
-                ? 'bg-blue-500 hover:bg-blue-600 text-white' 
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'text-white' 
+                : 'hover:bg-gray-100'
             }`}
+            style={{ 
+              backgroundColor: activeTab === 'inbox' ? '#2D61E0' : 'transparent',
+              color: activeTab === 'inbox' ? 'white' : '#6F6F6F'
+            }}
             onClick={() => setActiveTab('inbox')}
           >
             Entrada
             {activeTab === 'inbox' && (
-              <Badge className="ml-2 bg-white text-blue-500 hover:bg-white px-2 py-0.5 text-xs">
+              <Badge className="ml-2 bg-white px-2 py-0.5 text-xs" style={{ color: '#2D61E0' }}>
                 {inboxCount}
               </Badge>
             )}
@@ -252,14 +260,18 @@ export const ConversationsList: React.FC = () => {
             size="sm"
             className={`rounded-full px-4 ${
               activeTab === 'waiting' 
-                ? 'bg-blue-500 hover:bg-blue-600 text-white' 
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'text-white' 
+                : 'hover:bg-gray-100'
             }`}
+            style={{ 
+              backgroundColor: activeTab === 'waiting' ? '#2D61E0' : 'transparent',
+              color: activeTab === 'waiting' ? 'white' : '#6F6F6F'
+            }}
             onClick={() => setActiveTab('waiting')}
           >
             Esperando
             {activeTab === 'waiting' && (
-              <Badge className="ml-2 bg-white text-blue-500 hover:bg-white px-2 py-0.5 text-xs">
+              <Badge className="ml-2 bg-white px-2 py-0.5 text-xs" style={{ color: '#2D61E0' }}>
                 {getTabCount('waiting')}
               </Badge>
             )}
@@ -269,14 +281,18 @@ export const ConversationsList: React.FC = () => {
             size="sm"
             className={`rounded-full px-4 ${
               activeTab === 'finished' 
-                ? 'bg-blue-500 hover:bg-blue-600 text-white' 
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'text-white' 
+                : 'hover:bg-gray-100'
             }`}
+            style={{ 
+              backgroundColor: activeTab === 'finished' ? '#2D61E0' : 'transparent',
+              color: activeTab === 'finished' ? 'white' : '#6F6F6F'
+            }}
             onClick={() => setActiveTab('finished')}
           >
             Finalizados
             {activeTab === 'finished' && (
-              <Badge className="ml-2 bg-white text-blue-500 hover:bg-white px-2 py-0.5 text-xs">
+              <Badge className="ml-2 bg-white px-2 py-0.5 text-xs" style={{ color: '#2D61E0' }}>
                 {getTabCount('finished')}
               </Badge>
             )}
@@ -298,25 +314,83 @@ export const ConversationsList: React.FC = () => {
           />
         ) : (
           <div className="relative">
-            {filteredConversations.map((conversation, index) => (
-              <div key={conversation._id || `conv-${index}`} className="relative">
-                <ConversationItem
-                  conversation={conversation as Conversation}
-                  isSelected={selectedConversation?._id === conversation._id}
-                  onSelect={setSelectedConversation}
-                  onMenuClick={handleMenuClick}
-                  showMenu={openMenuId === conversation._id}
-                  onMenuAction={handleMenuAction}
-                />
+            {filteredConversations.map((conversation, index) => {
+              // Mapear dados da API para a nova interface do ConversationItem
+              const displayName = conversation.conversation_type === 'group' 
+                ? (conversation.group_name || `Grupo ${conversation.group_id?.split('@')[0] || 'Desconhecido'}`)
+                : (conversation.customer_name && conversation.customer_name.trim() !== '' 
+                  ? conversation.customer_name 
+                  : conversation.customer_phone);
 
-                {/* Menu da conversa */}
-                <ConversationMenu
-                  conversation={conversation}
-                  isOpen={openMenuId === conversation._id}
-                  onAction={handleMenuAction}
-                />
-              </div>
-            ))}
+              const lastMessageTime = conversation.last_message?.timestamp || conversation.updated_at;
+              
+              // Mock data para demonstração - em produção viria da API
+              const mockTags = conversation.flags?.map(flag => ({
+                label: flag.name,
+                tone: 'blue' as const
+              })) || [];
+
+              // Mock tags de conversa específicas - em produção viria da API
+              const mockConversationTags = [
+                { id: '1', name: 'Vendido', color: '#10B981', type: 'conversation' as const },
+                { id: '3', name: 'Pendente', color: '#F59E0B', type: 'conversation' as const }
+              ];
+
+              // Simular algumas conversas com mensagens de diferentes atendentes
+              const conversationIndex = index % 3;
+              let mockConversationTagsForItem = mockConversationTags;
+              
+              if (conversationIndex === 0) {
+                // Primeira conversa: sem tags
+                mockConversationTagsForItem = [];
+              } else if (conversationIndex === 1) {
+                // Segunda conversa: apenas uma tag
+                mockConversationTagsForItem = [mockConversationTags[0]];
+              }
+              // Terceira conversa: duas tags (padrão)
+
+              const mockSector = 'Geral'; // Em produção viria da API
+              const mockAgentAvatar = undefined; // Em produção viria da API
+              const isPrivate = false; // Em produção viria da API
+              const hasScheduled = false; // Em produção viria da API
+
+              return (
+                <div key={conversation._id || `conv-${index}`} className="relative">
+                  <ConversationItem
+                    id={conversation._id}
+                    contactName={displayName}
+                    contactAvatarUrl={conversation.customer_profile_pic}
+                    lastMessageSnippet={conversation.last_message?.content}
+                    lastActiveAt={lastMessageTime}
+                    sectorLabel={mockSector}
+                    contactTags={mockTags}
+                    conversationTags={mockConversationTagsForItem}
+                    isSelected={selectedConversation?._id === conversation._id}
+                    isUnread={(conversation.unread_count || 0) > 0}
+                    isPrivate={isPrivate}
+                    hasScheduledMessage={hasScheduled}
+                    agentAvatarUrl={mockAgentAvatar}
+                    source="whatsapp"
+                    onClick={() => setSelectedConversation(conversation)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      handleMenuClick(conversation._id);
+                    }}
+                    onTagsChange={(tags) => {
+                      console.log('Tags changed for conversation:', conversation._id, tags);
+                      // Em produção, aqui faria a chamada para API para salvar as tags
+                    }}
+                  />
+
+                  {/* Menu da conversa - manter o existente por compatibilidade */}
+                  <ConversationMenu
+                    conversation={conversation}
+                    isOpen={openMenuId === conversation._id}
+                    onAction={handleMenuAction}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
       </ScrollArea>

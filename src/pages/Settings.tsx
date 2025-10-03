@@ -8,7 +8,13 @@ import {
   Shield,
   LogOut,
   Radio,
-  MessageSquare
+  MessageSquare,
+  DollarSign,
+  Briefcase,
+  Tag,
+  Bot,
+  Calendar,
+  Clock
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -28,40 +34,70 @@ export default function Settings() {
   // Lista de configurações principais
   const settingsItems = [
     {
-      icon: MessageSquare,
-      title: 'Conversas',
-      subtitle: 'Configurações de visualização e filtros de conversas',
-      href: '/settings/conversations'
+      icon: Radio,
+      title: 'Canais de atendimento',
+      subtitle: 'Os canais que sua organização usa para se comunicar com os seus contatos',
+      href: '/settings/channels'
     },
     {
-      icon: Radio,
-      title: 'Canais',
-      subtitle: 'Conexões com o WhatsApp, Instagram, Webchat',
-      href: '/settings/channels'
+      icon: DollarSign,
+      title: 'Financeiro',
+      subtitle: 'Veja todas as suas informações de pagamento incluindo histórico e cartões registrados.',
+      href: '/settings/financial'
+    },
+    {
+      icon: Briefcase,
+      title: 'Setores',
+      subtitle: 'Configurações das sub-divisões da sua organização',
+      href: '/settings/departments'
+    },
+    {
+      icon: Bot,
+      title: 'Agentes de IA',
+      subtitle: 'Configure e treine os seus agentes de IA',
+      href: '/settings/ai-agents'
     },
     {
       icon: Users,
       title: 'Atendentes',
-      subtitle: 'Gerenciar equipe de atendimento, permissões',
+      subtitle: 'As pessoas que lhe ajudam com o relacionamento com seus contatos',
       href: '/settings/attendants'
     },
     {
-      icon: User,
-      title: 'Contatos',
-      subtitle: 'Gerenciar contatos, importação e exportação',
-      href: '/settings/contacts'
+      icon: Tag,
+      title: 'Etiquetas',
+      subtitle: 'Configurações das etiquetas da sua organização',
+      href: '/settings/tags'
+    },
+    {
+      icon: Bot,
+      title: 'Chatbots',
+      subtitle: 'Robôs para automatizar atendimentos',
+      href: '/settings/chatbots'
+    },
+    {
+      icon: MessageSquare,
+      title: 'Respostas rápidas',
+      subtitle: 'Mensagens pré-configuradas para enviar para seus contatos',
+      href: '/settings/quick-replies'
+    },
+    {
+      icon: Calendar,
+      title: 'Mensagens agendadas',
+      subtitle: 'Mensagens programadas para envio em determinado horário',
+      href: '/settings/scheduled-messages'
+    },
+    {
+      icon: Clock,
+      title: 'Logs de atividade',
+      subtitle: 'Consultar logs de atividades',
+      href: '/settings/activity-logs'
     },
     {
       icon: Building2,
-      title: 'Departamentos',
-      subtitle: 'Organizar atendimento por setores e especialidades',
-      href: '/settings/departments'
-    },
-    {
-      icon: Shield,
-      title: 'Prestadores de serviço',
-      subtitle: 'Parceiros e provedores externos',
-      href: '/settings/service-providers'
+      title: 'Configurações da organização',
+      subtitle: 'Configurações gerais da sua organização',
+      href: '/settings/organization'
     }
   ];
 

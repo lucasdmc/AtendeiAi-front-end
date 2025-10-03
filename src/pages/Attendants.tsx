@@ -1,44 +1,56 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus,
   Search,
-  ArrowLeft,
-  Edit,
-  Trash2,
-  Mail,
-  Phone,
-  Calendar,
-  CheckCircle,
-  XCircle,
+  Plus,
+  GripVertical,
+  MoreVertical,
+  Settings2,
+  CircleX,
+  X,
+  Check,
   User,
   Shield,
   Crown,
-  Users
+  Users2,
+  AlertTriangle,
+  Mail,
+  CircleHelp,
+  ChevronsUpDown
 } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import {
   Select,
   SelectContent,
@@ -46,641 +58,1363 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Label } from "@/components/ui/label";
 import { useToast } from '@/components/ui/use-toast';
-import ProfileSidebar from '@/components/ProfileSidebar';
 
 // Tipos
-interface Attendant {
+type Permission = 'MEMBER' | 'OPERATOR' | 'ADMIN' | 'OWNER';
+type Reassignment = 'OFF' | 'AUTO' | 'ALWAYS';
+type AgentStatus = 'online' | 'offline' | 'disabled';
+type AccessAllFlag = 'ALL_CURRENT_AND_FUTURE';
+
+interface Agent {
   id: string;
   name: string;
   email: string;
-  phone: string;
-  role: 'admin' | 'manager' | 'attendant';
-  status: 'active' | 'inactive';
-  department: string;
-  avatar?: string;
-  createdAt: string;
-  lastLogin?: string;
+  photoUrl?: string;
+  isYou?: boolean;
+  status: AgentStatus;
+  permission: Permission;
+  reassignment: Reassignment;
+  order: number;
 }
 
-interface AttendantFormData {
+interface Sector {
+  id: string;
   name: string;
-  email: string;
-  phone: string;
-  role: 'admin' | 'manager' | 'attendant';
-  department: string;
+}
+
+interface Channel {
+  id: string;
+  name: string;
+}
+
+interface InviteAccess {
+  sectors: AccessAllFlag | string[];
+  channels: AccessAllFlag | string[];
+  qrChannels: string[];
+  reports: 'OWN' | 'ALL';
+}
+
+interface InviteAccessState {
+  allowAllSectors: boolean;
+  selectedSectorIds: string[];
+  allowAllChannels: boolean;
+  selectedChannelIds: string[];
+  selectedQrChannelIds: string[];
+  reportsAccess: 'OWN' | 'ALL';
+  contactsAccess: 'ALLOWED_CHANNELS' | 'ALL';
+  quickRepliesAccess: 'CREATE_EDIT_PLUS_1' | 'CREATE_EDIT' | 'DELETE';
+  additionalPermissions: string[];
+}
+
+// Dados dos selects
+const permissionOptions = [
+  {
+    value: 'MEMBER' as Permission,
+    icon: User,
+    title: 'Membro',
+    description: 'Não é capaz de alterar nenhuma configuração, e não consegue enviar mensagens para contatos.'
+  },
+  {
+    value: 'OPERATOR' as Permission,
+    icon: Users2,
+    title: 'Operador',
+    description: 'É capaz de enviar mensagens para contatos e pode alterar configurações básicas que são úteis aos atendentes.'
+  },
+  {
+    value: 'ADMIN' as Permission,
+    icon: Shield,
+    title: 'Admin',
+    description: 'Tem todas as permissões na ferramenta, porém não tem acesso ao painel financeiro.'
+  },
+  {
+    value: 'OWNER' as Permission,
+    icon: Crown,
+    title: 'Proprietário',
+    description: 'Tem todas as permissões na ferramenta e tem acesso ao painel financeiro.'
+  }
+];
+
+const reassignmentOptions = [
+  {
+    value: 'OFF' as Reassignment,
+    icon: CircleX,
+    title: 'Desligada',
+    description: 'Nunca será removido automaticamente dos chats.'
+  },
+  {
+    value: 'AUTO' as Reassignment,
+    icon: Settings2,
+    title: 'Automática',
+    description: 'Será removido se estiver offline; no Umbler Talk, app fechado/minimizado/aba inativa = offline.'
+  },
+  {
+    value: 'ALWAYS' as Reassignment,
+    icon: AlertTriangle,
+    title: 'Sempre',
+    description: 'Será sempre removido do chat ao chegar nova mensagem, online ou não.'
+  }
+];
+
+// Dados mock
+const mockSectors: Sector[] = [
+  { id: 's1', name: 'Geral' },
+  { id: 's2', name: 'Comercial' },
+  { id: 's3', name: 'Suporte' }
+];
+
+const mockChannels: Channel[] = [
+  { id: 'c1', name: 'Vendas' },
+  { id: 'c2', name: 'Suporte' },
+  { id: 'c3', name: 'WhatsApp 01' }
+];
+
+const reportsOptions = [
+  {
+    value: 'OWN' as const,
+    title: 'Relatórios do próprio atendente',
+    description: 'Acesso apenas aos próprios relatórios'
+  },
+  {
+    value: 'ALL' as const,
+    title: 'Todos os relatórios',
+    description: 'Acesso a todos os relatórios da organização'
+  }
+];
+
+const contactsOptions = [
+  {
+    value: 'ALLOWED_CHANNELS' as const,
+    title: 'Contatos em canais que o atendente tem acesso',
+    description: 'Acesso limitado aos contatos dos canais permitidos'
+  },
+  {
+    value: 'ALL' as const,
+    title: 'Todos os contatos',
+    description: 'Acesso a todos os contatos da organização'
+  }
+];
+
+const quickRepliesOptions = [
+  {
+    value: 'CREATE_EDIT_PLUS_1' as const,
+    title: 'Criar, Editar, + 1',
+    description: 'Pode criar, editar suas respostas e usar todas'
+  },
+  {
+    value: 'CREATE_EDIT' as const,
+    title: 'Criar, Editar',
+    description: 'Pode criar e editar apenas suas respostas'
+  },
+  {
+    value: 'DELETE' as const,
+    title: 'Deletar',
+    description: 'Pode deletar respostas rápidas'
+  }
+];
+
+// Lista de permissões adicionais
+const additionalPermissions = [
+  { id: 'templates', label: 'Permitir ações em templates' },
+  { id: 'notes', label: 'Permitir apagar mensagens/notas' },
+  { id: 'tags', label: 'Permitir ações em etiquetas' },
+  { id: 'sectors', label: 'Permitir ações em setores' },
+  { id: 'channels', label: 'Permitir ações em canais' },
+  { id: 'chatbots', label: 'Permitir ações em chatbots' },
+  { id: 'ai_agents', label: 'Permitir ações em agentes de ia' },
+  { id: 'attendants', label: 'Permitir ações em atendentes' },
+  { id: 'invite_attendants', label: 'Permitir convidar atendentes' },
+  { id: 'webhooks', label: 'Permitir ações em webhooks' },
+  { id: 'organizations', label: 'Permitir ações em organizações' },
+  { id: 'custom_fields', label: 'Permitir ações em campos personalizados' },
+  { id: 'bulk_send', label: 'Permitir envios em massa' },
+  { id: 'contact_board', label: 'Permitir ações em board de contatos' },
+  { id: 'contacts', label: 'Permitir ações em contatos' },
+  { id: 'chat_with_ias', label: 'Permitir chat com ias' },
+  { id: 'scheduled_messages', label: 'Permitir visualização geral de mensagens agendadas' },
+  { id: 'attendant_groups', label: 'Permitir ações em grupos entre atendentes' }
+];
+
+// Função para converter estado interno para payload de saída
+function toInviteAccessState(state: InviteAccessState): InviteAccess {
+  return {
+    sectors: state.allowAllSectors ? 'ALL_CURRENT_AND_FUTURE' : state.selectedSectorIds,
+    channels: state.allowAllChannels ? 'ALL_CURRENT_AND_FUTURE' : state.selectedChannelIds,
+    qrChannels: state.selectedQrChannelIds,
+    reports: state.reportsAccess,
+  };
+}
+
+// Componente multi-select para setores/canais
+interface MultiSelectProps {
+  items: Sector[] | Channel[];
+  selectedIds: string[];
+  allowAll: boolean;
+  onSelectionChange: (selectedIds: string[], allowAll: boolean) => void;
+  placeholder: string;
+  allLabel: string;
+}
+
+function MultiSelect({ 
+  items, 
+  selectedIds, 
+  allowAll, 
+  onSelectionChange, 
+  placeholder,
+  allLabel 
+}: MultiSelectProps) {
+  const [open, setOpen] = useState(false);
+
+  const handleToggleItem = (itemId: string) => {
+    const newSelectedIds = selectedIds.includes(itemId)
+      ? selectedIds.filter(id => id !== itemId)
+      : [...selectedIds, itemId];
+    
+    onSelectionChange(newSelectedIds, false);
+  };
+
+  const handleToggleAll = () => {
+    onSelectionChange([], !allowAll);
+  };
+
+  const handleClearSelection = () => {
+    onSelectionChange([], false);
+  };
+
+  const getDisplayText = () => {
+    if (allowAll) {
+      return allLabel;
+    }
+    
+    if (selectedIds.length === 0) {
+      return placeholder;
+    }
+    
+    if (selectedIds.length <= 2) {
+      return items
+        .filter(item => selectedIds.includes(item.id))
+        .map(item => item.name)
+        .join(', ');
+    }
+    
+    const firstTwo = items
+      .filter(item => selectedIds.includes(item.id))
+      .slice(0, 2)
+      .map(item => item.name)
+      .join(', ');
+    
+    return `${firstTwo} +${selectedIds.length - 2}`;
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between h-11"
+        >
+          <span className="truncate">{getDisplayText()}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-full p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search..." />
+          <CommandList>
+            <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
+            <CommandGroup>
+              {items.map((item) => (
+                <CommandItem
+                  key={item.id}
+                  value={item.name}
+                  onSelect={() => handleToggleItem(item.id)}
+                  className="flex items-center gap-2"
+                >
+                  <div className={`h-4 w-4 border rounded flex items-center justify-center ${
+                    selectedIds.includes(item.id) && !allowAll ? 'bg-blue-600 border-blue-600' : 'border-slate-300'
+                  }`}>
+                    {selectedIds.includes(item.id) && !allowAll && (
+                      <Check className="h-3 w-3 text-white" />
+                    )}
+                  </div>
+                  {item.name}
+                </CommandItem>
+              ))}
+              <CommandItem
+                onSelect={handleToggleAll}
+                className="flex items-center gap-2 border-t mt-2 pt-2"
+              >
+                <div className={`h-4 w-4 border rounded flex items-center justify-center ${
+                  allowAll ? 'bg-blue-600 border-blue-600' : 'border-slate-300'
+                }`}>
+                  {allowAll && <Check className="h-3 w-3 text-white" />}
+                </div>
+                {allLabel}
+              </CommandItem>
+            </CommandGroup>
+          </CommandList>
+          {selectedIds.length > 0 && !allowAll && (
+            <div className="border-t p-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearSelection}
+                className="w-full text-slate-500 hover:text-slate-700"
+              >
+                Limpar seleção
+              </Button>
+            </div>
+          )}
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// Componente de Select customizado
+interface CustomSelectProps {
+  value: Permission | Reassignment;
+  options: typeof permissionOptions | typeof reassignmentOptions;
+  onValueChange: (value: Permission | Reassignment) => void;
+  disabled?: boolean;
+}
+
+function CustomSelect({ value, options, onValueChange, disabled }: CustomSelectProps) {
+  const selectedOption = options.find(opt => opt.value === value);
+  
+  return (
+    <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+      <SelectTrigger className="w-full h-11">
+        <SelectValue>
+          {selectedOption && (
+            <div className="flex items-center gap-2">
+              <selectedOption.icon className="h-4 w-4" />
+              <span>{selectedOption.title}</span>
+            </div>
+          )}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value} className="py-3">
+            <div className="flex items-start gap-3">
+              <option.icon className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <div>
+                <div className="font-medium">{option.title}</div>
+                <div className="text-xs text-slate-500 mt-0.5 max-w-xs">
+                  {option.description}
+                </div>
+              </div>
+            </div>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+// Componente de linha sortable
+interface SortableRowProps {
+  agent: Agent;
+  isSelected: boolean;
+  onSelect: (checked: boolean) => void;
+  onUpdatePermission: (permission: Permission) => void;
+  onUpdateReassignment: (reassignment: Reassignment) => void;
+  onDeactivate: () => void;
+}
+
+function SortableRow({ 
+  agent, 
+  isSelected, 
+  onSelect, 
+  onUpdatePermission, 
+  onUpdateReassignment, 
+  onDeactivate 
+}: SortableRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: agent.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const isDisabled = agent.status === 'disabled';
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`grid grid-cols-[48px_48px_1.5fr_1fr_1fr_120px] items-center px-4 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-b-0 ${
+        isDisabled ? 'opacity-60' : ''
+      }`}
+    >
+      {/* Coluna 1 - Checkbox */}
+      <div className="flex items-center justify-center">
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={(checked) => onSelect(!!checked)}
+                      disabled={isDisabled}
+                    />
+      </div>
+
+      {/* Coluna 2 - Handle de arrastar */}
+      <div className="flex items-center justify-center">
+        <button
+          {...attributes}
+          {...listeners}
+          aria-label="Reordenar"
+          className="cursor-grab active:cursor-grabbing p-1 hover:bg-slate-100 rounded"
+          disabled={isDisabled}
+        >
+          <GripVertical className="h-4 w-4 text-slate-400" />
+        </button>
+      </div>
+
+      {/* Coluna 3 - Atendente */}
+      <div className="flex items-center gap-3">
+        <div className="relative">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={agent.photoUrl} alt={agent.name} />
+            <AvatarFallback className="bg-slate-100 text-slate-600">
+              {agent.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          {/* Status indicator */}
+          <div 
+            className={`absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-white ${
+              agent.status === 'online' ? 'bg-green-500' : 'bg-slate-400'
+            }`}
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-slate-900 truncate">{agent.name}</span>
+            {agent.isYou && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge 
+                      variant="secondary" 
+                      className="text-xs bg-violet-100 text-violet-700 rounded-full px-2 py-0.5"
+                    >
+                      Você
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Esta é a sua conta</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+          <div className="text-sm text-slate-500 truncate">{agent.email}</div>
+        </div>
+      </div>
+
+      {/* Coluna 4 - Permissão */}
+      <div>
+        <CustomSelect
+          value={agent.permission}
+          options={permissionOptions}
+          onValueChange={(value) => onUpdatePermission(value as Permission)}
+          disabled={isDisabled}
+        />
+      </div>
+
+      {/* Coluna 5 - Reatribuição */}
+      <div>
+        <CustomSelect
+          value={agent.reassignment}
+          options={reassignmentOptions}
+          onValueChange={(value) => onUpdateReassignment(value as Reassignment)}
+          disabled={isDisabled}
+        />
+      </div>
+
+      {/* Coluna 6 - Ações */}
+      <div className="flex items-center justify-end">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem>
+              <Settings2 className="h-4 w-4 mr-2" />
+              Editar permissões
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onDeactivate} className="text-red-600">
+              <CircleX className="h-4 w-4 mr-2" />
+              Desativar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
 }
 
 export default function Attendants() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [attendants, setAttendants] = useState<Attendant[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingAttendant, setEditingAttendant] = useState<Attendant | null>(null);
-
-
-  // Usar clinic_id válido (obtido de clínica existente)
-  const clinicId = '68cd84230e29f31cf5f5f1b8';
-
-  const form = useForm<AttendantFormData>({
-    defaultValues: {
-      name: '',
-      email: '',
-      phone: '',
-      role: 'attendant',
-      department: ''
+  
+  // Estados principais
+  const [agents, setAgents] = useState<Agent[]>([
+    {
+      id: '1',
+      name: 'EdnadePaula',
+      email: 'ednadepaulasp@gmail.com',
+      status: 'online',
+      permission: 'OPERATOR',
+      reassignment: 'OFF',
+      order: 0
+    },
+    {
+      id: '2',
+      name: 'PauloRobertoBJunior',
+      email: 'pauloroberto.batistamail@gmail.com',
+      isYou: true,
+      status: 'offline',
+      permission: 'OWNER',
+      reassignment: 'OFF',
+      order: 1
     }
+  ]);
+  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDisabled, setShowDisabled] = useState(false);
+  const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'list' | 'invite'>('list');
+  
+  // Estados dos modais
+  const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
+  const [deactivatingAgent, setDeactivatingAgent] = useState<Agent | null>(null);
+  
+  // Estados do formulário de convite
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [invitePermission, setInvitePermission] = useState<Permission>('OPERATOR');
+  const [useDefaultConfig, setUseDefaultConfig] = useState(true);
+  const [advancedAccess, setAdvancedAccess] = useState<InviteAccessState>({
+    allowAllSectors: true,
+    selectedSectorIds: [],
+    allowAllChannels: true,
+    selectedChannelIds: [],
+    selectedQrChannelIds: [],
+    reportsAccess: 'OWN',
+    contactsAccess: 'ALLOWED_CHANNELS',
+    quickRepliesAccess: 'CREATE_EDIT_PLUS_1',
+    additionalPermissions: []
+  });
+  
+  // Estados do modal de desativação
+  const [removeFromChats, setRemoveFromChats] = useState(true);
+  const [closeAllChats, setCloseAllChats] = useState(false);
+  const [deactivateConfirmText, setDeactivateConfirmText] = useState('');
+
+  // Drag & Drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Filtrar agentes
+  const filteredAgents = agents.filter(agent => {
+    const matchesSearch = agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         agent.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = showDisabled || agent.status !== 'disabled';
+    return matchesSearch && matchesStatus;
   });
 
-  useEffect(() => {
-    loadAttendants();
+  // Handlers de seleção
+  const handleSelectAll = useCallback((checked: boolean) => {
+    if (checked) {
+      setSelectedAgents(filteredAgents.map(a => a.id));
+      } else {
+      setSelectedAgents([]);
+    }
+  }, [filteredAgents]);
+
+  const handleSelectAgent = useCallback((agentId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedAgents(prev => [...prev, agentId]);
+    } else {
+      setSelectedAgents(prev => prev.filter(id => id !== agentId));
+    }
   }, []);
 
-  const loadAttendants = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`http://localhost:3000/api/v1/attendants?clinic_id=${clinicId}`);
-      const data = await response.json();
+  // Handler de reordenação
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
 
-      if (data.success) {
-        // Converter dados da API para o formato esperado pelo frontend
-        const formattedAttendants: Attendant[] = data.data.items.map((item: any) => ({
-          id: item._id,
-          name: item.name,
-          email: item.email,
-          phone: item.phone || '',
-          role: item.role,
-          status: item.status,
-          department: item.department,
-          avatar: item.avatar,
-          createdAt: item.created_at,
-          lastLogin: item.last_login
-        }));
-        setAttendants(formattedAttendants);
-      } else {
+    if (active.id !== over?.id) {
+      setAgents((items) => {
+        const oldIndex = items.findIndex(item => item.id === active.id);
+        const newIndex = items.findIndex(item => item.id === over?.id);
+
+        const newOrder = arrayMove(items, oldIndex, newIndex);
+        
         toast({
-          title: "Erro ao carregar atendentes",
-          description: data.message || "Não foi possível carregar a lista de atendentes.",
+          title: "Ordem atualizada",
+          description: "A ordem dos atendentes foi alterada com sucesso.",
+        });
+
+        return newOrder;
+      });
+    }
+  }, [toast]);
+
+  // Handlers de ações
+  const handleUpdatePermission = useCallback((agentId: string, permission: Permission) => {
+    setAgents(prev => prev.map(a => 
+      a.id === agentId ? { ...a, permission } : a
+    ));
+
+    const agent = agents.find(a => a.id === agentId);
+          toast({
+      title: "Permissão atualizada",
+      description: `A permissão de "${agent?.name}" foi alterada com sucesso.`,
+    });
+  }, [agents, toast]);
+
+  const handleUpdateReassignment = useCallback((agentId: string, reassignment: Reassignment) => {
+    setAgents(prev => prev.map(a => 
+      a.id === agentId ? { ...a, reassignment } : a
+    ));
+
+    const agent = agents.find(a => a.id === agentId);
+          toast({
+      title: "Reatribuição atualizada",
+      description: `A configuração de reatribuição de "${agent?.name}" foi alterada.`,
+    });
+  }, [agents, toast]);
+
+  const handleInviteAgent = useCallback(() => {
+    if (!inviteEmail.trim()) return;
+
+    const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+    if (!emailRegex.test(inviteEmail)) {
+        toast({
+        title: "Email inválido",
+        description: "Por favor, digite um email válido.",
           variant: "destructive",
         });
-      }
-    } catch (error) {
-      console.error('Erro ao carregar atendentes:', error);
-      toast({
-        title: "Erro de conexão",
-        description: "Não foi possível conectar ao servidor.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateAttendant = () => {
-    setEditingAttendant(null);
-    form.reset({
-      name: '',
-      email: '',
-      phone: '',
-      role: 'attendant',
-      department: ''
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleEditAttendant = (attendant: Attendant) => {
-    setEditingAttendant(attendant);
-    form.reset({
-      name: attendant.name,
-      email: attendant.email,
-      phone: attendant.phone,
-      role: attendant.role,
-      department: attendant.department
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleDeleteAttendant = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este atendente?')) {
       return;
     }
 
-    try {
-      const response = await fetch(`http://localhost:3000/api/v1/attendants/${id}`, {
-        method: 'DELETE',
-      });
+    const emailExists = agents.some(a => 
+      a.email.toLowerCase() === inviteEmail.trim().toLowerCase()
+    );
 
-      const result = await response.json();
-
-      if (result.success) {
-        toast({
-          title: "Atendente excluído",
-          description: "O atendente foi removido com sucesso.",
-        });
-        await loadAttendants(); // Recarregar a lista
-      } else {
-        toast({
-          title: "Erro",
-          description: result.message || "Não foi possível excluir o atendente.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao excluir atendente:', error);
+    if (emailExists) {
       toast({
-        title: "Erro de conexão",
-        description: "Não foi possível conectar ao servidor.",
+        title: "Email já cadastrado",
+        description: "Já existe um atendente com este email.",
         variant: "destructive",
       });
+      return;
     }
-  };
 
-  const handleToggleStatus = async (id: string) => {
-    try {
-      const attendant = attendants.find(att => att.id === id);
-      if (!attendant) {
+    // Validações para configuração avançada
+    if (!useDefaultConfig) {
+      // Validar se QR channels estão dentro dos canais permitidos
+      const availableChannels = advancedAccess.allowAllChannels 
+        ? mockChannels.map(c => c.id)
+        : advancedAccess.selectedChannelIds;
+      
+      const invalidQrChannels = advancedAccess.selectedQrChannelIds.filter(
+        qrId => !availableChannels.includes(qrId)
+      );
+
+      if (invalidQrChannels.length > 0) {
+        // Corrigir automaticamente removendo QR channels inválidos
+        setAdvancedAccess(prev => ({
+          ...prev,
+          selectedQrChannelIds: prev.selectedQrChannelIds.filter(
+            qrId => availableChannels.includes(qrId)
+          )
+        }));
+
         toast({
-          title: "Erro",
-          description: "Atendente não encontrado.",
-          variant: "destructive",
+          title: "Configuração corrigida",
+          description: "Alguns canais de QR Code foram removidos pois não estão nos canais de acesso.",
         });
         return;
       }
-
-      const newStatus = attendant.status === 'active' ? 'inactive' : 'active';
-
-      const response = await fetch(`http://localhost:3000/api/v1/attendants/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast({
-          title: "Status atualizado",
-          description: `O status do atendente foi alterado para ${newStatus === 'active' ? 'ativo' : 'inativo'}.`,
-        });
-        await loadAttendants(); // Recarregar a lista
-      } else {
-        toast({
-          title: "Erro",
-          description: result.message || "Não foi possível alterar o status.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao alterar status:', error);
-      toast({
-        title: "Erro de conexão",
-        description: "Não foi possível conectar ao servidor.",
-        variant: "destructive",
-      });
     }
-  };
 
-  const onSubmit = async (data: AttendantFormData) => {
-    try {
-      const url = editingAttendant
-        ? `http://localhost:3000/api/v1/attendants/${editingAttendant.id}`
-        : 'http://localhost:3000/api/v1/attendants';
-
-      const method = editingAttendant ? 'PUT' : 'POST';
-
-      const payload = {
-        ...data,
-        clinic_id: clinicId
-      };
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        if (editingAttendant) {
-          toast({
-            title: "Atendente atualizado",
-            description: "Os dados foram salvos com sucesso.",
-          });
-        } else {
-          toast({
-            title: "Atendente criado",
-            description: "O novo atendente foi adicionado com sucesso.",
-          });
+    const accessConfig = useDefaultConfig 
+      ? {
+          sectors: 'ALL_CURRENT_AND_FUTURE' as AccessAllFlag,
+          channels: 'ALL_CURRENT_AND_FUTURE' as AccessAllFlag,
+          qrChannels: [],
+          reports: 'OWN' as const
         }
+      : toInviteAccessState(advancedAccess);
 
-        setIsModalOpen(false);
-        await loadAttendants(); // Recarregar a lista
-      } else {
-        toast({
-          title: "Erro",
-          description: result.message || "Não foi possível salvar os dados.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao salvar atendente:', error);
-      toast({
-        title: "Erro de conexão",
-        description: "Não foi possível conectar ao servidor.",
-        variant: "destructive",
-      });
-    }
-  };
+    const newAgent: Agent = {
+      id: Date.now().toString(),
+      name: inviteEmail.split('@')[0],
+      email: inviteEmail.trim(),
+      status: 'offline',
+      permission: invitePermission,
+      reassignment: 'OFF',
+      order: agents.length
+    };
 
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return <Crown className="h-4 w-4 text-yellow-600" />;
-      case 'manager':
-        return <Shield className="h-4 w-4 text-blue-600" />;
-      default:
-        return <User className="h-4 w-4 text-green-600" />;
-    }
-  };
+    setAgents(prev => [...prev, newAgent]);
+    setInviteEmail('');
+    setInvitePermission('OPERATOR');
+    setUseDefaultConfig(true);
+    setAdvancedAccess({
+      allowAllSectors: true,
+      selectedSectorIds: [],
+      allowAllChannels: true,
+      selectedChannelIds: [],
+      selectedQrChannelIds: [],
+      reportsAccess: 'OWN',
+      contactsAccess: 'ALLOWED_CHANNELS',
+      quickRepliesAccess: 'CREATE_EDIT_PLUS_1',
+      additionalPermissions: []
+    });
+    setViewMode('list');
 
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'Administrador';
-      case 'manager':
-        return 'Gerente';
-      default:
-        return 'Atendente';
-    }
-  };
+    toast({
+      title: "Convite enviado",
+      description: `Um convite foi enviado para ${inviteEmail}`,
+    });
 
-  const getStatusBadge = (status: string) => {
-    return status === 'active' ? (
-      <Badge variant="default" className="bg-green-100 text-green-800">
-        <CheckCircle className="h-3 w-3 mr-1" />
-        Ativo
-      </Badge>
-    ) : (
-      <Badge variant="secondary">
-        <XCircle className="h-3 w-3 mr-1" />
-        Inativo
-      </Badge>
-    );
-  };
+    console.log('Configurações de acesso:', accessConfig);
+  }, [inviteEmail, invitePermission, useDefaultConfig, advancedAccess, agents, toast]);
 
-  const filteredAttendants = attendants.filter(attendant =>
-    attendant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    attendant.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    attendant.department.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleDeactivateAgent = useCallback(() => {
+    if (!deactivatingAgent || deactivateConfirmText !== `Desativar ${deactivatingAgent.name}`) return;
+
+    setAgents(prev => prev.map(a => 
+      a.id === deactivatingAgent.id 
+        ? { ...a, status: 'disabled' as AgentStatus }
+        : a
+    ));
+
+    setIsDeactivateModalOpen(false);
+    setDeactivatingAgent(null);
+    setDeactivateConfirmText('');
+    setRemoveFromChats(true);
+    setCloseAllChats(false);
+
+    toast({
+      title: "Atendente desativado",
+      description: `"${deactivatingAgent.name}" foi desativado com sucesso.`,
+    });
+  }, [deactivatingAgent, deactivateConfirmText, toast]);
+
+  // Handlers dos modais
+  const openDeactivateModal = useCallback((agent: Agent) => {
+    setDeactivatingAgent(agent);
+    setDeactivateConfirmText('');
+    setRemoveFromChats(true);
+    setCloseAllChats(false);
+    setIsDeactivateModalOpen(true);
+  }, []);
+
+  const allSelected = selectedAgents.length === filteredAgents.length && filteredAgents.length > 0;
+  const someSelected = selectedAgents.length > 0 && selectedAgents.length < filteredAgents.length;
 
   return (
-    <div className="flex h-full bg-gray-50">
-      {/* Sidebar de Atendentes */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-        {/* Header Clean com botão voltar */}
-        <div className="flex items-center px-4 py-3">
+    <div className="min-h-screen bg-[#F4F6FD]">
+      <div className="px-6 py-6">
+        {/* Header */}
+        <div className="mb-6">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
           <button
             onClick={() => navigate('/settings')}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors mr-3"
+              className="hover:text-slate-700 transition-colors"
           >
-            <ArrowLeft className="h-5 w-5 text-gray-600" />
+              Configurações
           </button>
-          <h1 className="text-lg font-medium text-gray-900">Atendentes</h1>
+            <span>/</span>
+            <span>Atendentes</span>
         </div>
 
-        {/* Lista de opções na sidebar */}
-        <ScrollArea className="flex-1 border-t-0">
-          <div className="px-6 pt-0 pb-4 border-t-0">
-            {/* Removendo qualquer linha divisória acima do título */}
-            <div className="mb-4 border-t-0 border-b-0">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">Gerenciar</h3>
+          {/* Título e descrição */}
+          <h1 className="text-3xl font-semibold text-slate-900 mb-1">Atendentes</h1>
+          <p className="text-slate-500">
+            Aqui você consegue criar ou gerenciar as pessoas que lhe ajudam com o relacionamento com seus contatos.
+          </p>
             </div>
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3 p-3 rounded-lg bg-blue-50 border border-blue-200 transition-colors">
-                <Users className="h-6 w-6 text-blue-600" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900">
-                    Gerenciar atendentes
+
+        {/* Card principal */}
+        <div className="mt-6 rounded-2xl bg-white shadow-sm border border-slate-100">
+          {viewMode === 'list' ? (
+            <>
+              {/* Barra superior - Search + Switch + Botão */}
+              <div className="flex items-center justify-between p-6 border-b border-slate-100">
+                <div className="flex items-center gap-4">
+                  <div className="relative max-w-md">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      type="text"
+                      placeholder="Search"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 h-11"
+                    />
                   </div>
-                  <div className="text-xs text-gray-500">
-                    Adicionar, editar e gerenciar equipe
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="show-disabled"
+                      checked={showDisabled}
+                      onCheckedChange={setShowDisabled}
+                    />
+                    <Label htmlFor="show-disabled" className="text-sm">
+                      Mostrar desativados
+                    </Label>
                   </div>
                 </div>
+                <Button 
+                  onClick={() => setViewMode('invite')}
+                  className="h-11 rounded-lg"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Convidar atendente
+                </Button>
               </div>
-            </div>
-          </div>
-        </ScrollArea>
 
-        {/* Perfil do usuário */}
-        <ProfileSidebar />
+              {/* Tabela */}
+              <div>
+                {/* Header da tabela */}
+                <div className="grid grid-cols-[48px_48px_1.5fr_1fr_1fr_120px] items-center px-4 py-3 text-slate-500 text-sm font-medium border-b border-slate-100">
+                  <div className="flex items-center justify-center">
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                      ref={(ref) => {
+                        if (ref) {
+                          (ref as any).indeterminate = someSelected;
+                        }
+                      }}
+                    />
+            </div>
+                  <div className="flex items-center justify-center">
+                    <GripVertical className="h-4 w-4 text-slate-300" />
+          </div>
+                  <div>Atendente</div>
+                  <div>Permissão</div>
+                  <div>Reatribuição</div>
+                  <div className="text-right">Ações</div>
       </div>
 
-      {/* Área principal */}
-      <div className="flex-1 p-8 bg-gray-50">
-        {/* Header da área principal */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Gerenciar Atendentes
-          </h1>
-          <p className="text-gray-600">
-            Configure e monitore sua equipe de atendimento
-          </p>
-          <div className="mt-2 flex items-center space-x-2">
-            <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-              👥 Total de atendentes: {attendants.length}
+                {/* Corpo da tabela com Drag & Drop */}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={filteredAgents.map(a => a.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {filteredAgents.length === 0 ? (
+                      <div className="flex items-center justify-center py-12 text-slate-500">
+                        <div className="text-center">
+                          <p className="mb-2">Nenhum atendente encontrado</p>
+                          {searchTerm && (
+                            <p className="text-sm">Tente ajustar sua busca</p>
+                          )}
             </div>
-            <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-              ✅ Ativos: {attendants.filter(a => a.status === 'active').length}
             </div>
+                    ) : (
+                      filteredAgents.map((agent) => (
+                        <SortableRow
+                          key={agent.id}
+                          agent={agent}
+                          isSelected={selectedAgents.includes(agent.id)}
+                          onSelect={(checked) => handleSelectAgent(agent.id, checked)}
+                          onUpdatePermission={(permission) => handleUpdatePermission(agent.id, permission as Permission)}
+                          onUpdateReassignment={(reassignment) => handleUpdateReassignment(agent.id, reassignment as Reassignment)}
+                          onDeactivate={() => openDeactivateModal(agent)}
+                        />
+                      ))
+                    )}
+                  </SortableContext>
+                </DndContext>
           </div>
-        </div>
-
-        <div className="flex items-center space-x-3 mb-6">
-          <Button onClick={handleCreateAttendant} disabled={loading}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Atendente
+            </>
+          ) : (
+            /* Formulário de convite */
+            <>
+              {/* Header do formulário */}
+              <div className="flex items-center justify-between p-6 border-b border-slate-100">
+                <h2 className="text-xl font-semibold text-slate-900">Novo convite</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
           </Button>
         </div>
 
-        {/* Filtros e Pesquisa */}
-        <div className="flex items-center space-x-4 mb-6">
-          <div className="flex-1 max-w-md">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              {/* Formulário */}
+              <div className="p-6 space-y-6">
+                <div>
+                  <Label htmlFor="invite-email" className="text-sm font-medium text-slate-700">
+                    Email do atendente <span className="text-red-500">*</span>
+                  </Label>
               <Input
-                type="text"
-                placeholder="Buscar atendentes..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                    id="invite-email"
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="nome@empresa.com"
+                    className="mt-1 h-12"
               />
             </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-slate-700">Permissão</Label>
+                  <div className="mt-1">
+                    <CustomSelect
+                      value={invitePermission}
+                      options={permissionOptions}
+                      onValueChange={(value) => setInvitePermission(value as Permission)}
+                    />
           </div>
-          <div className="text-sm text-gray-500">
-            {filteredAttendants.length} de {attendants.length} atendentes
+                </div>
+
+                {/* Checkbox Configuração Padrão */}
+                <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg">
+                  <Checkbox
+                    id="default-config"
+                    checked={useDefaultConfig}
+                    onCheckedChange={(checked) => setUseDefaultConfig(!!checked)}
+                    className="mt-0.5"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="default-config" className="font-medium text-slate-900 cursor-pointer">
+                      Configuração padrão
+                    </Label>
+                    <div className="text-sm text-slate-600 mt-1">
+                      Acesso a todos os setores e canais, atuais e futuros, exceto QR codes, 
+                      relatórios do próprio atendente, contatos nos canais permitidos ao atendente 
+                      e edição de templates.
+                    </div>
           </div>
         </div>
 
-        {/* Tabela */}
-        <Card>
-          <CardContent className="p-0">
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Atendente</TableHead>
-                    <TableHead>Contato</TableHead>
-                    <TableHead>Função</TableHead>
-                    <TableHead>Departamento</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Último Acesso</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
-                        <div className="flex items-center justify-center space-x-2">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
-                          <span className="text-gray-500">Carregando atendentes...</span>
+                {/* Seção Configurar Acessos - aparece quando Configuração padrão está desmarcada */}
+                <div className={`transition-all duration-300 ease-in-out ${
+                  useDefaultConfig 
+                    ? 'opacity-0 max-h-0 overflow-hidden' 
+                    : 'opacity-100 max-h-[2000px]'
+                }`}>
+                  <div className="space-y-6 pt-2">
+                    <div>
+                      <h3 className="text-lg font-medium text-blue-600 mb-4">Configurar acessos</h3>
+                      
+                      {/* Acesso aos setores */}
+                      <div className="space-y-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Label className="text-sm font-medium text-slate-700">
+                              Acesso aos setores
+                            </Label>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <CircleHelp className="h-4 w-4 text-slate-400" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Defina quais setores o atendente terá acesso</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredAttendants.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
-                        <div className="text-center">
-                          <User className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                          <p className="text-gray-500 mb-2">Nenhum atendente encontrado</p>
-                          <p className="text-sm text-gray-400">Clique em "Novo Atendente" para adicionar</p>
+                          <MultiSelect
+                            items={mockSectors}
+                            selectedIds={advancedAccess.selectedSectorIds}
+                            allowAll={advancedAccess.allowAllSectors}
+                            onSelectionChange={(selectedIds, allowAll) => 
+                              setAdvancedAccess(prev => ({
+                                ...prev,
+                                allowAllSectors: allowAll,
+                                selectedSectorIds: selectedIds
+                              }))
+                            }
+                            placeholder="Selecione os setores"
+                            allLabel="Todos os atuais e futuros"
+                          />
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredAttendants.map((attendant) => (
-                      <TableRow key={attendant.id}>
-                        <TableCell>
-                          <div className="flex items-center space-x-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={attendant.avatar} alt={attendant.name} />
-                              <AvatarFallback className="bg-gray-100 text-gray-600">
-                                {attendant.name.split(' ').map(n => n[0]).join('')}
-                              </AvatarFallback>
-                            </Avatar>
+
+                        {/* Acesso aos canais */}
                             <div>
-                              <div className="font-medium text-gray-900">{attendant.name}</div>
-                              <div className="text-sm text-gray-500">{attendant.email}</div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Label className="text-sm font-medium text-slate-700">
+                              Acesso aos canais
+                            </Label>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <CircleHelp className="h-4 w-4 text-slate-400" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Defina quais canais o atendente terá acesso</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             </div>
+                          <MultiSelect
+                            items={mockChannels}
+                            selectedIds={advancedAccess.selectedChannelIds}
+                            allowAll={advancedAccess.allowAllChannels}
+                            onSelectionChange={(selectedIds, allowAll) => {
+                              setAdvancedAccess(prev => ({
+                                ...prev,
+                                allowAllChannels: allowAll,
+                                selectedChannelIds: selectedIds,
+                                // Limpar QR channels se não estiverem mais disponíveis
+                                selectedQrChannelIds: allowAll 
+                                  ? prev.selectedQrChannelIds
+                                  : prev.selectedQrChannelIds.filter(qrId => selectedIds.includes(qrId))
+                              }));
+                            }}
+                            placeholder="Selecione os canais"
+                            allLabel="Todos os atuais e futuros"
+                          />
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="flex items-center space-x-1 text-sm">
-                              <Mail className="h-3 w-3 text-gray-400" />
-                              <span className="text-gray-600">{attendant.email}</span>
+
+                        {/* Liberar leitura de QRCode nos canais */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Label className="text-sm font-medium text-slate-700">
+                              Liberar leitura de QRCode nos canais
+                            </Label>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <CircleHelp className="h-4 w-4 text-slate-400" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Canais onde o atendente pode ler QR codes</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             </div>
-                            <div className="flex items-center space-x-1 text-sm">
-                              <Phone className="h-3 w-3 text-gray-400" />
-                              <span className="text-gray-600">{attendant.phone}</span>
+                          <MultiSelect
+                            items={
+                              advancedAccess.allowAllChannels 
+                                ? mockChannels 
+                                : mockChannels.filter(c => advancedAccess.selectedChannelIds.includes(c.id))
+                            }
+                            selectedIds={advancedAccess.selectedQrChannelIds}
+                            allowAll={false}
+                            onSelectionChange={(selectedIds) => 
+                              setAdvancedAccess(prev => ({
+                                ...prev,
+                                selectedQrChannelIds: selectedIds
+                              }))
+                            }
+                            placeholder="Nenhum canal"
+                            allLabel=""
+                          />
                             </div>
+
+                        {/* Acesso aos relatórios */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Label className="text-sm font-medium text-slate-700">
+                              Acesso aos relatórios
+                            </Label>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <CircleHelp className="h-4 w-4 text-slate-400" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Defina o nível de acesso aos relatórios</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            {getRoleIcon(attendant.role)}
-                            <span className="text-sm font-medium">{getRoleLabel(attendant.role)}</span>
+                          <Select 
+                            value={advancedAccess.reportsAccess} 
+                            onValueChange={(value: 'OWN' | 'ALL') => 
+                              setAdvancedAccess(prev => ({ ...prev, reportsAccess: value }))
+                            }
+                          >
+                            <SelectTrigger className="w-full h-11">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {reportsOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value} className="py-3">
+                                  <div>
+                                    <div className="font-medium">{option.title}</div>
+                                    <div className="text-xs text-slate-500 mt-0.5">
+                                      {option.description}
+                                    </div>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Acesso aos contatos */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Label className="text-sm font-medium text-slate-700">
+                              Acesso aos contatos
+                            </Label>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <CircleHelp className="h-4 w-4 text-slate-400" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Defina o nível de acesso aos contatos</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
-                        </TableCell>
-                        <TableCell>{attendant.department}</TableCell>
-                        <TableCell>{getStatusBadge(attendant.status)}</TableCell>
-                        <TableCell>
-                          {attendant.lastLogin ? (
-                            <div className="flex items-center space-x-1 text-sm text-gray-600">
-                              <Calendar className="h-3 w-3" />
-                              <span>{new Date(attendant.lastLogin).toLocaleDateString('pt-BR')}</span>
-                            </div>
-                          ) : (
-                            <span className="text-sm text-gray-400">Nunca</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
+                          <Select 
+                            value={advancedAccess.contactsAccess} 
+                            onValueChange={(value: 'ALLOWED_CHANNELS' | 'ALL') => 
+                              setAdvancedAccess(prev => ({ ...prev, contactsAccess: value }))
+                            }
+                          >
+                            <SelectTrigger className="w-full h-11">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {contactsOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value} className="py-3">
+                                  <div>
+                                    <div className="font-medium">{option.title}</div>
+                                    <div className="text-xs text-slate-500 mt-0.5">
+                                      {option.description}
+                                    </div>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Acesso às respostas rápidas */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Label className="text-sm font-medium text-slate-700">
+                              Acesso às respostas rápidas
+                            </Label>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <CircleHelp className="h-4 w-4 text-slate-400" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Defina as permissões para respostas rápidas</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          <Select 
+                            value={advancedAccess.quickRepliesAccess} 
+                            onValueChange={(value: 'CREATE_EDIT_PLUS_1' | 'CREATE_EDIT' | 'DELETE') => 
+                              setAdvancedAccess(prev => ({ ...prev, quickRepliesAccess: value }))
+                            }
+                          >
+                            <SelectTrigger className="w-full h-11">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {quickRepliesOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value} className="py-3">
+                                  <div>
+                                    <div className="font-medium">{option.title}</div>
+                                    <div className="text-xs text-slate-500 mt-0.5">
+                                      {option.description}
+                                    </div>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Permissões adicionais (checkboxes) */}
+                        <div className="pt-4 border-t border-slate-200">
+                          <h4 className="text-sm font-medium text-slate-700 mb-3">
+                            Permissões adicionais
+                          </h4>
+                          <div className="space-y-3">
+                            {additionalPermissions.map((permission) => (
+                              <div key={permission.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`permission-${permission.id}`}
+                                  checked={advancedAccess.additionalPermissions.includes(permission.id)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setAdvancedAccess(prev => ({
+                                        ...prev,
+                                        additionalPermissions: [...prev.additionalPermissions, permission.id]
+                                      }));
+                                    } else {
+                                      setAdvancedAccess(prev => ({
+                                        ...prev,
+                                        additionalPermissions: prev.additionalPermissions.filter(id => id !== permission.id)
+                                      }));
+                                    }
+                                  }}
+                                />
+                                <Label 
+                                  htmlFor={`permission-${permission.id}`} 
+                                  className="text-sm font-normal cursor-pointer"
+                                >
+                                  {permission.label}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
                             <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditAttendant(attendant)}
-                              className="border-blue-300 text-blue-600 hover:bg-blue-50"
-                            >
-                              <Edit className="h-4 w-4" />
+                    onClick={handleInviteAgent}
+                    disabled={!inviteEmail.trim()}
+                    className="w-full h-12 rounded-full"
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Enviar convite
                             </Button>
                             <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleToggleStatus(attendant.id)}
-                              className={attendant.status === 'active'
-                                ? "border-orange-300 text-orange-600 hover:bg-orange-50"
-                                : "border-green-300 text-green-600 hover:bg-green-50"
-                              }
-                            >
-                              {attendant.status === 'active' ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteAttendant(attendant.id)}
-                              className="border-red-300 text-red-600 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
+                    variant="ghost"
+                    onClick={() => setViewMode('list')}
+                    className="w-full"
+                  >
+                    Cancelar
                             </Button>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
+              </div>
+            </>
                   )}
-                </TableBody>
-              </Table>
             </div>
-          </CardContent>
-        </Card>
       </div>
 
-      {/* Modal de Criação/Edição */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+      {/* Modal Desativar Atendente */}
+      <Dialog open={isDeactivateModalOpen} onOpenChange={setIsDeactivateModalOpen}>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>
-              {editingAttendant ? 'Editar Atendente' : 'Novo Atendente'}
+            <DialogTitle className="flex items-center gap-2">
+              <CircleX className="h-5 w-5 text-red-500" />
+              Desativar
             </DialogTitle>
-            <DialogDescription>
-              {editingAttendant
-                ? 'Atualize as informações do atendente.'
-                : 'Preencha os dados para criar um novo atendente.'
-              }
-            </DialogDescription>
           </DialogHeader>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                rules={{ required: "Nome é obrigatório" }}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome Completo</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Digite o nome completo" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <div className="space-y-4">
+            <p className="text-slate-700">
+              Tem certeza que deseja desativar o atendente{' '}
+              <span className="font-semibold text-blue-600">{deactivatingAgent?.name}</span>?
+            </p>
 
-              <FormField
-                control={form.control}
-                name="email"
-                rules={{
-                  required: "Email é obrigatório",
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: "Email inválido"
-                  }
-                }}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="email@exemplo.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remove-from-chats"
+                  checked={removeFromChats}
+                  onCheckedChange={(checked) => setRemoveFromChats(!!checked)}
+                />
+                <Label htmlFor="remove-from-chats" className="text-sm">
+                  Remover {deactivatingAgent?.name} de suas conversas abertas
+                </Label>
+              </div>
 
-              <FormField
-                control={form.control}
-                name="phone"
-                rules={{
-                  required: "Telefone é obrigatório",
-                  pattern: {
-                    value: /^\+?[\d\s\-\(\)]+$/,
-                    message: "Telefone inválido"
-                  }
-                }}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Telefone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="+55 11 99999-9999" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="close-all-chats"
+                  checked={closeAllChats}
+                  onCheckedChange={(checked) => setCloseAllChats(!!checked)}
+                />
+                <Label htmlFor="close-all-chats" className="text-sm">
+                  Finalizar todas as conversas de {deactivatingAgent?.name}
+                </Label>
+              </div>
+            </div>
 
-              <FormField
-                control={form.control}
-                name="role"
-                rules={{ required: "Função é obrigatória" }}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Função</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma função" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="attendant">Atendente</SelectItem>
-                        <SelectItem value="manager">Gerente</SelectItem>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            <div>
+              <Label htmlFor="deactivate-confirm" className="text-sm font-medium text-slate-700">
+                Digite <span className="font-semibold">Desativar {deactivatingAgent?.name}</span> para continuar
+              </Label>
+              <Input
+                id="deactivate-confirm"
+                type="text"
+                value={deactivateConfirmText}
+                onChange={(e) => setDeactivateConfirmText(e.target.value)}
+                className="mt-1"
               />
+            </div>
+          </div>
 
-              <FormField
-                control={form.control}
-                name="department"
-                rules={{ required: "Departamento é obrigatório" }}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Departamento</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Atendimento, Suporte, Administração" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <DialogFooter>
+          <DialogFooter className="flex gap-3">
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => setIsModalOpen(false)}
+              variant="ghost"
+              onClick={() => setIsDeactivateModalOpen(false)}
                 >
                   Cancelar
                 </Button>
-                <Button type="submit">
-                  {editingAttendant ? 'Atualizar' : 'Criar'}
+            <Button
+              onClick={handleDeactivateAgent}
+              disabled={deactivateConfirmText !== `Desativar ${deactivatingAgent?.name}`}
+              variant="destructive"
+            >
+              Confirmar
                 </Button>
               </DialogFooter>
-            </form>
-          </Form>
         </DialogContent>
       </Dialog>
     </div>
