@@ -23,6 +23,7 @@ import ServiceProviders from './pages/ServiceProviders';
 import Contacts from './pages/Contacts';
 import ContactsNew from './pages/ContactsNew';
 import Chatbot from './pages/Chatbot';
+import ChatbotFlowEditor from './pages/ChatbotFlowEditor';
 import AIAgents from './pages/AIAgents';
 import Reports from './pages/Reports';
 import Financial from './pages/Financial';
@@ -175,6 +176,10 @@ function App() {
             <Tags />
           </Layout>
         } />
+        {/* Editor de fluxo do chatbot */}
+        <Route path="/settings/chatbots/editor" element={<ChatbotFlowEditor />} />
+        <Route path="/settings/chatbots/editor/:id" element={<ChatbotFlowEditor />} />
+        
         <Route path="/settings/chatbots" element={
           <Layout>
             <Chatbot />

@@ -1,0 +1,475 @@
+// Definições de todos os blocos disponíveis
+import { BlockDefinition, TemplateFlow } from '@/types/flow';
+
+export const BLOCK_DEFINITIONS: BlockDefinition[] = [
+  // INÍCIO
+  {
+    type: 'start-channel',
+    category: 'start',
+    icon: 'MessageCircle',
+    title: 'Iniciar por um canal',
+    description: 'Inicia quando o contato entra através de um canal.',
+    badge: 'INÍCIO',
+    color: '#10B981',
+    outputs: 1,
+    hasInput: false,
+  },
+  {
+    type: 'start-manual',
+    category: 'start',
+    icon: 'Hand',
+    title: 'Iniciar manualmente',
+    description: 'Inicia quando o atendente ativa o fluxo manualmente.',
+    badge: 'INÍCIO',
+    color: '#3B82F6',
+    outputs: 1,
+    hasInput: false,
+  },
+
+  // CONDIÇÃO
+  {
+    type: 'condition-weekday',
+    category: 'condition',
+    icon: 'Calendar',
+    title: 'Dias da semana',
+    description: 'Defina ações a partir de cada dia da semana.',
+    badge: 'CONDIÇÃO',
+    color: '#8B5CF6',
+    outputs: 8, // 7 dias + padrão
+    hasInput: true,
+  },
+  {
+    type: 'condition-hours',
+    category: 'condition',
+    icon: 'Clock',
+    title: 'Horários',
+    description: 'Defina ações a partir de intervalos de horários.',
+    badge: 'CONDIÇÃO',
+    color: '#F59E0B',
+    outputs: 2, // Dentro / Fora
+    hasInput: true,
+  },
+  {
+    type: 'condition-simple',
+    category: 'condition',
+    icon: 'GitBranch',
+    title: 'Definir condição',
+    description: 'Defina regras específicas para o seu fluxo.',
+    badge: 'CONDIÇÃO',
+    color: '#EF4444',
+    outputs: 2, // Verdadeiro / Falso
+    hasInput: true,
+  },
+  {
+    type: 'condition-multi',
+    category: 'condition',
+    icon: 'GitMerge',
+    title: 'Multi-condicional',
+    description: 'Defina múltiplas regras e múltiplos fluxo de saída.',
+    badge: 'CONDIÇÃO',
+    color: '#EC4899',
+    outputs: 'multiple',
+    hasInput: true,
+  },
+
+  // AÇÃO
+  {
+    type: 'action-message',
+    category: 'action',
+    icon: 'MessageSquare',
+    title: 'Enviar mensagem',
+    description: 'Envie uma mensagem diretamente para o contato.',
+    badge: 'AÇÃO',
+    color: '#10B981',
+    outputs: 1,
+    hasInput: true,
+  },
+  {
+    type: 'action-note',
+    category: 'action',
+    icon: 'FileText',
+    title: 'Criar uma nota no chat',
+    description: 'Crie uma nota no chat que só os atendentes podem ver.',
+    badge: 'AÇÃO',
+    color: '#F59E0B',
+    outputs: 1,
+    hasInput: true,
+  },
+  {
+    type: 'action-transfer-sector',
+    category: 'action',
+    icon: 'Building',
+    title: 'Transferir para setor',
+    description: 'Transfira o atendimento para um setor específico.',
+    badge: 'AÇÃO',
+    color: '#EF4444',
+    outputs: 1,
+    hasInput: true,
+  },
+  {
+    type: 'action-edit-tags',
+    category: 'action',
+    icon: 'Tag',
+    title: 'Editar etiquetas',
+    description: 'Adicione ou remova etiquetas ao contato ou à conversa.',
+    badge: 'AÇÃO',
+    color: '#8B5CF6',
+    outputs: 1,
+    hasInput: true,
+  },
+  {
+    type: 'action-transfer-agent',
+    category: 'action',
+    icon: 'User',
+    title: 'Transferir p/ atendente',
+    description: 'Transfira a conversa para um atendente específico.',
+    badge: 'AÇÃO',
+    color: '#EC4899',
+    outputs: 1,
+    hasInput: true,
+  },
+  {
+    type: 'action-transfer-ai',
+    category: 'action',
+    icon: 'Bot',
+    title: 'Transferir p/ agentes de IA',
+    description: 'Transfira a conversa para um agente de IA.',
+    badge: 'AÇÃO',
+    color: '#06B6D4',
+    outputs: 1,
+    hasInput: true,
+  },
+  {
+    type: 'action-private',
+    category: 'action',
+    icon: 'Lock',
+    title: 'Privar ou liberar',
+    description: 'Torne um atendimento privado ou livre.',
+    badge: 'AÇÃO',
+    color: '#64748B',
+    outputs: 1,
+    hasInput: true,
+  },
+  {
+    type: 'action-choose',
+    category: 'action',
+    icon: 'List',
+    title: 'Pedir para escolher',
+    description: 'Ofereça opções para o contato escolher.',
+    badge: 'AÇÃO',
+    color: '#3B82F6',
+    outputs: 1,
+    hasInput: true,
+  },
+  {
+    type: 'action-input',
+    category: 'action',
+    icon: 'Keyboard',
+    title: 'Pedir para digitar',
+    description: 'Peça para o contato digitar um texto livre ou específico.',
+    badge: 'AÇÃO',
+    color: '#10B981',
+    outputs: 1,
+    hasInput: true,
+  },
+  {
+    type: 'action-template',
+    category: 'action',
+    icon: 'FileCode',
+    title: 'Enviar template',
+    description: 'Envie templates validados pelo WhatsApp.',
+    badge: 'AÇÃO',
+    color: '#F59E0B',
+    outputs: 1,
+    hasInput: true,
+  },
+  {
+    type: 'action-trigger-flow',
+    category: 'action',
+    icon: 'Zap',
+    title: 'Acionar outro fluxo',
+    description: 'Acione outro fluxo já salvo em sua conta.',
+    badge: 'AÇÃO',
+    color: '#EF4444',
+    outputs: 1,
+    hasInput: true,
+  },
+  {
+    type: 'action-status-waiting',
+    category: 'action',
+    icon: 'Clock',
+    title: 'Status esperando',
+    description: 'Altere o status de esperando para a conversa.',
+    badge: 'AÇÃO',
+    color: '#8B5CF6',
+    outputs: 1,
+    hasInput: true,
+  },
+  {
+    type: 'action-rating',
+    category: 'action',
+    icon: 'Star',
+    title: 'Pedir para avaliar',
+    description: 'Peça para o contato avaliar.',
+    badge: 'AÇÃO',
+    color: '#F59E0B',
+    outputs: 1,
+    hasInput: true,
+  },
+  {
+    type: 'action-feedback',
+    category: 'action',
+    icon: 'MessageCircle',
+    title: 'Pedir feedback escrito',
+    description: 'Peça para o contato um feedback escrito.',
+    badge: 'AÇÃO',
+    color: '#3B82F6',
+    outputs: 1,
+    hasInput: true,
+  },
+  {
+    type: 'action-contact-field',
+    category: 'action',
+    icon: 'Database',
+    title: 'Campo do contato',
+    description: 'Atribua valores para campos do contato.',
+    badge: 'AÇÃO',
+    color: '#10B981',
+    outputs: 1,
+    hasInput: true,
+  },
+  {
+    type: 'action-wait',
+    category: 'action',
+    icon: 'Timer',
+    title: 'Aguardar',
+    description: 'Defina um tempo de espera antes da próxima ação.',
+    badge: 'AÇÃO',
+    color: '#64748B',
+    outputs: 1,
+    hasInput: true,
+  },
+
+  // FINALIZAÇÃO
+  {
+    type: 'end-conversation',
+    category: 'end',
+    icon: 'CheckCircle',
+    title: 'Finalizar conversa',
+    description: 'Finaliza a conversa automaticamente.',
+    badge: 'FINALIZAÇÃO',
+    color: '#EF4444',
+    outputs: 0,
+    hasInput: true,
+  },
+
+  // UTILITÁRIOS
+  {
+    type: 'util-notes',
+    category: 'util',
+    icon: 'StickyNote',
+    title: 'Bloco de notas',
+    description: 'Faça anotações para documentar seu fluxo.',
+    badge: 'UTILITÁRIOS',
+    color: '#F59E0B',
+    outputs: 1,
+    hasInput: true,
+  },
+
+  // INTEGRAÇÕES
+  {
+    type: 'integration-webhook',
+    category: 'integration',
+    icon: 'Code',
+    title: 'Webhook',
+    description: 'Efetua uma chamada para um endpoint da sua escolha.',
+    badge: 'INTEGRAÇÕES',
+    color: '#8B5CF6',
+    outputs: 1,
+    hasInput: true,
+  },
+];
+
+// Templates de fluxos pré-montados
+export const FLOW_TEMPLATES: TemplateFlow[] = [
+  {
+    id: 'simple-rating',
+    title: 'Avaliação simples',
+    description: 'Pede uma nota objetiva do atendente',
+    nodes: [
+      {
+        id: 'rating-1',
+        type: 'action-rating',
+        position: { x: 250, y: 100 },
+        data: {
+          label: 'Pedir para avaliar',
+          description: 'Avaliação de 1 a 5',
+        },
+      },
+      {
+        id: 'message-1',
+        type: 'action-message',
+        position: { x: 250, y: 220 },
+        data: {
+          label: 'Enviar mensagem',
+          description: 'Obrigado pela avaliação!',
+        },
+      },
+      {
+        id: 'end-1',
+        type: 'end-conversation',
+        position: { x: 250, y: 340 },
+        data: {
+          label: 'Finalizar conversa',
+        },
+      },
+    ],
+    edges: [
+      {
+        id: 'e1-2',
+        source: 'rating-1',
+        target: 'message-1',
+      },
+      {
+        id: 'e2-3',
+        source: 'message-1',
+        target: 'end-1',
+      },
+    ],
+  },
+  {
+    id: 'written-feedback',
+    title: 'Avaliação escrita',
+    description: 'Pede uma nota objetiva do atendente e uma escrita',
+    nodes: [
+      {
+        id: 'rating-2',
+        type: 'action-rating',
+        position: { x: 250, y: 100 },
+        data: {
+          label: 'Pedir para avaliar',
+        },
+      },
+      {
+        id: 'feedback-2',
+        type: 'action-feedback',
+        position: { x: 250, y: 220 },
+        data: {
+          label: 'Pedir feedback escrito',
+        },
+      },
+      {
+        id: 'message-2',
+        type: 'action-message',
+        position: { x: 250, y: 340 },
+        data: {
+          label: 'Enviar mensagem',
+          description: 'Obrigado pelo feedback!',
+        },
+      },
+      {
+        id: 'end-2',
+        type: 'end-conversation',
+        position: { x: 250, y: 460 },
+        data: {
+          label: 'Finalizar conversa',
+        },
+      },
+    ],
+    edges: [
+      {
+        id: 'e1-2',
+        source: 'rating-2',
+        target: 'feedback-2',
+      },
+      {
+        id: 'e2-3',
+        source: 'feedback-2',
+        target: 'message-2',
+      },
+      {
+        id: 'e3-4',
+        source: 'message-2',
+        target: 'end-2',
+      },
+    ],
+  },
+  {
+    id: 'company-rating',
+    title: 'Avaliação da empresa',
+    description: 'Pede uma nota objetiva da empresa e uma escrita',
+    nodes: [
+      {
+        id: 'message-3a',
+        type: 'action-message',
+        position: { x: 250, y: 100 },
+        data: {
+          label: 'Enviar mensagem',
+          description: 'Como você avalia nossa empresa?',
+        },
+      },
+      {
+        id: 'rating-3',
+        type: 'action-rating',
+        position: { x: 250, y: 220 },
+        data: {
+          label: 'Pedir para avaliar',
+        },
+      },
+      {
+        id: 'feedback-3',
+        type: 'action-feedback',
+        position: { x: 250, y: 340 },
+        data: {
+          label: 'Pedir feedback escrito',
+          description: 'Conte-nos mais sobre sua experiência',
+        },
+      },
+      {
+        id: 'end-3',
+        type: 'end-conversation',
+        position: { x: 250, y: 460 },
+        data: {
+          label: 'Finalizar conversa',
+        },
+      },
+    ],
+    edges: [
+      {
+        id: 'e1-2',
+        source: 'message-3a',
+        target: 'rating-3',
+      },
+      {
+        id: 'e2-3',
+        source: 'rating-3',
+        target: 'feedback-3',
+      },
+      {
+        id: 'e3-4',
+        source: 'feedback-3',
+        target: 'end-3',
+      },
+    ],
+  },
+];
+
+// Agrupar blocos por categoria
+export const BLOCKS_BY_CATEGORY = {
+  start: BLOCK_DEFINITIONS.filter((b) => b.category === 'start'),
+  condition: BLOCK_DEFINITIONS.filter((b) => b.category === 'condition'),
+  action: BLOCK_DEFINITIONS.filter((b) => b.category === 'action'),
+  end: BLOCK_DEFINITIONS.filter((b) => b.category === 'end'),
+  util: BLOCK_DEFINITIONS.filter((b) => b.category === 'util'),
+  integration: BLOCK_DEFINITIONS.filter((b) => b.category === 'integration'),
+};
+
+export const CATEGORY_LABELS = {
+  start: 'INÍCIO',
+  condition: 'CONDIÇÃO',
+  action: 'AÇÃO',
+  end: 'FINALIZAÇÃO',
+  util: 'UTILITÁRIOS',
+  integration: 'INTEGRAÇÕES',
+};
+
