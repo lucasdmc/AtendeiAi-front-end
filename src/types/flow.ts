@@ -24,11 +24,19 @@ export type NodeType =
   | 'action-feedback'
   | 'action-contact-field'
   | 'action-wait'
+  | 'ask-question'
+  | 'ask-name'
+  | 'ask-email'
+  | 'ask-number'
+  | 'ask-phone'
+  | 'ask-date'
+  | 'ask-file'
+  | 'ask-address'
   | 'end-conversation'
   | 'util-notes'
   | 'integration-webhook';
 
-export type NodeCategory = 'start' | 'condition' | 'action' | 'end' | 'util' | 'integration';
+export type NodeCategory = 'start' | 'condition' | 'action' | 'ask' | 'end' | 'util' | 'integration';
 
 export interface BlockDefinition {
   type: NodeType;

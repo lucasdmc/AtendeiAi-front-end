@@ -48,6 +48,9 @@ export function BlockLibraryPanel({ onClose, onBlockClick }: BlockLibraryPanelPr
       action: BLOCKS_BY_CATEGORY.action.filter(
         (b) => b.title.toLowerCase().includes(term) || b.description.toLowerCase().includes(term)
       ),
+      ask: BLOCKS_BY_CATEGORY.ask.filter(
+        (b) => b.title.toLowerCase().includes(term) || b.description.toLowerCase().includes(term)
+      ),
       end: BLOCKS_BY_CATEGORY.end.filter(
         (b) => b.title.toLowerCase().includes(term) || b.description.toLowerCase().includes(term)
       ),

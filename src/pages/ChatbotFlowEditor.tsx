@@ -22,6 +22,7 @@ import { flowsService } from '@/services/flowsService';
 import { useToast } from '@/components/ui/use-toast';
 import { BlockDefinition, TemplateFlow } from '@/types/flow';
 import { flowDTOSchema } from '@/lib/flowSchema';
+import { validateFlow, getValidationSummary } from '@/lib/flowValidation';
 
 function EditorContent() {
   const { id } = useParams<{ id?: string }>();
@@ -96,7 +97,29 @@ function EditorContent() {
     try {
       setIsSaving(true);
 
-      // Validar com Zod
+      // 1. Validar campos obrigatórios dos nós
+      const validationErrors = validateFlow(nodes);
+      
+      if (validationErrors.length > 0) {
+        const summary = getValidationSummary(validationErrors);
+        
+        // Formatar erros para exibição
+        const errorList = summary.map((s) => {
+          const errors = s.errors.map((e) => `  - ${e.message}`).join('\n');
+          return `• ${s.nodeLabel} (${s.errorCount} erro${s.errorCount > 1 ? 's' : ''}):\n${errors}`;
+        }).join('\n\n');
+
+        toast({
+          title: `❌ ${validationErrors.length} erro(s) encontrado(s)`,
+          description: `Corrija os seguintes problemas antes de salvar:\n\n${errorList}`,
+          variant: 'destructive',
+        });
+        
+        setIsSaving(false);
+        return;
+      }
+
+      // 2. Validar estrutura com Zod
       const dto = {
         id: flowId,
         name: flowName,

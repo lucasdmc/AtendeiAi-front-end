@@ -15,7 +15,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { FlowNode } from './FlowNode';
-import { StartByChannelNode, StartManuallyNode, SendMessageNode, TransferToSectorNode, TransferToAgentNode, TransferToAIAgentNode, AskToChooseNode } from '@/components/canvas/nodes';
+import { StartByChannelNode, StartManuallyNode, SendMessageNode, TransferToSectorNode, TransferToAgentNode, TransferToAIAgentNode, AskToChooseNode, AskQuestionNode, AskNameNode, AskEmailNode } from '@/components/canvas/nodes';
 import { CustomEdge } from './CustomEdge';
 import { useEditorStore } from '@/stores/editorStore';
 import { toast } from '@/components/ui/sonner';
@@ -29,6 +29,9 @@ const nodeTypes: NodeTypes = {
   'action-transfer-agent': TransferToAgentNode,
   'action-transfer-ai': TransferToAIAgentNode,
   'action-choose': AskToChooseNode,
+  'ask-question': AskQuestionNode,
+  'ask-name': AskNameNode,
+  'ask-email': AskEmailNode,
   'condition-weekday': FlowNode,
   'condition-hours': FlowNode,
   'condition-simple': FlowNode,
