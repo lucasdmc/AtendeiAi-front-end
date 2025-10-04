@@ -19,6 +19,9 @@ export { AskNameNode } from './AskNameNode';
 export type { AskNameData } from './AskNameNode';
 export { AskEmailNode } from './AskEmailNode';
 export type { AskEmailData } from './AskEmailNode';
+
+export { AskNumberNode } from './AskNumberNode';
+export type { AskNumberData } from './AskNumberNode';
 export { NodeConnector } from './parts/NodeConnector';
 export { ChannelSelect } from './parts/ChannelSelect';
 export type { Channel } from './parts/ChannelSelect';

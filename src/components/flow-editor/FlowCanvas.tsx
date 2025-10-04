@@ -1,4 +1,4 @@
-// Canvas principal do React Flow
+// Canvas principal do React Flow  
 import { useCallback } from 'react';
 import {
   ReactFlow,
@@ -15,7 +15,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { FlowNode } from './FlowNode';
-import { StartByChannelNode, StartManuallyNode, SendMessageNode, TransferToSectorNode, TransferToAgentNode, TransferToAIAgentNode, AskToChooseNode, AskQuestionNode, AskNameNode, AskEmailNode } from '@/components/canvas/nodes';
+import { StartByChannelNode, StartManuallyNode, SendMessageNode, TransferToSectorNode, TransferToAgentNode, TransferToAIAgentNode, AskToChooseNode, AskQuestionNode, AskNameNode, AskEmailNode, AskNumberNode } from '@/components/canvas/nodes';
 import { CustomEdge } from './CustomEdge';
 import { useEditorStore } from '@/stores/editorStore';
 import { toast } from '@/components/ui/sonner';
@@ -32,6 +32,7 @@ const nodeTypes: NodeTypes = {
   'ask-question': AskQuestionNode,
   'ask-name': AskNameNode,
   'ask-email': AskEmailNode,
+  'ask-number': AskNumberNode,
   'condition-weekday': FlowNode,
   'condition-hours': FlowNode,
   'condition-simple': FlowNode,

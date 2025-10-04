@@ -50,8 +50,8 @@ export function validateFlow(nodes: Node[]): ValidationError[] {
         });
       }
 
-      // 3. Validar mensagem de erro (obrigatória para ask-email quando não há fluxo alternativo)
-      if (nodeType === 'ask-email') {
+      // 3. Validar mensagem de erro (obrigatória para ask-email e ask-number quando não há fluxo alternativo)
+      if (nodeType === 'ask-email' || nodeType === 'ask-number') {
         const hasInvalidFlow = nodeValue?.invalidFlowEnabled === true;
         const validationErrorMessage = nodeValue?.validationErrorMessage;
         const hasErrorMessage = validationErrorMessage && typeof validationErrorMessage === 'string' && validationErrorMessage.trim().length > 0;
@@ -64,6 +64,23 @@ export function validateFlow(nodes: Node[]): ValidationError[] {
             field: 'Mensagem de erro',
             message: 'A mensagem de erro de validação é obrigatória quando não há fluxo alternativo configurado',
           });
+        }
+      }
+
+      // 4. Validar regex customizado para ask-number
+      if (nodeType === 'ask-number') {
+        const validation = nodeValue?.validation;
+        if (validation?.type === 'regex') {
+          const customRegex = validation?.customRegex;
+          if (!customRegex || (typeof customRegex === 'string' && customRegex.trim().length === 0)) {
+            errors.push({
+              nodeId: node.id,
+              nodeType,
+              nodeLabel,
+              field: 'Regex customizado',
+              message: 'É necessário fornecer uma expressão regular quando a validação é "Regex customizado"',
+            });
+          }
         }
       }
     }
