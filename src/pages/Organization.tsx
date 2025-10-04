@@ -632,8 +632,8 @@ export default function Organization() {
                   placeholder=""
                   className="text-sm"
                 />
-              </div>
-            </div>
+          </div>
+        </div>
 
             <DialogFooter className="flex gap-3">
               <Button

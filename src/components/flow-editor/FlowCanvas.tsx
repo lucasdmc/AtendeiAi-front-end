@@ -1,37 +1,39 @@
 // Canvas principal do React Flow
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import {
   ReactFlow,
-  Background,
-  Controls,
-  MiniMap,
   Node,
-  Edge,
   Connection,
   addEdge,
   useReactFlow,
-  BackgroundVariant,
   NodeTypes,
   EdgeTypes,
+  applyNodeChanges,
+  applyEdgeChanges,
+  NodeChange,
+  EdgeChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { FlowNode } from './FlowNode';
+import { StartByChannelNode, StartManuallyNode, SendMessageNode, TransferToSectorNode, TransferToAgentNode, TransferToAIAgentNode } from '@/components/canvas/nodes';
+import { CustomEdge } from './CustomEdge';
 import { useEditorStore } from '@/stores/editorStore';
+import { toast } from '@/components/ui/sonner';
 
 // Registrar tipos de nós personalizados
 const nodeTypes: NodeTypes = {
-  'start-channel': FlowNode,
-  'start-manual': FlowNode,
+  'start-channel': StartByChannelNode,
+  'start-manual': StartManuallyNode,
+  'action-message': SendMessageNode,
+  'action-transfer-sector': TransferToSectorNode,
+  'action-transfer-agent': TransferToAgentNode,
+  'action-transfer-ai': TransferToAIAgentNode,
   'condition-weekday': FlowNode,
   'condition-hours': FlowNode,
   'condition-simple': FlowNode,
   'condition-multi': FlowNode,
-  'action-message': FlowNode,
   'action-note': FlowNode,
-  'action-transfer-sector': FlowNode,
   'action-edit-tags': FlowNode,
-  'action-transfer-agent': FlowNode,
-  'action-transfer-ai': FlowNode,
   'action-private': FlowNode,
   'action-choose': FlowNode,
   'action-input': FlowNode,
@@ -47,15 +49,24 @@ const nodeTypes: NodeTypes = {
   'integration-webhook': FlowNode,
 };
 
+// Registrar tipos de edges personalizados
+const edgeTypes: EdgeTypes = {
+  custom: CustomEdge,
+};
+
 // Estilo customizado das conexões
 const defaultEdgeOptions = {
-  style: { strokeWidth: 2, stroke: '#B9C3D0' },
-  type: 'smoothstep',
-  animated: false,
+  type: 'custom',
+};
+
+// Estilo da linha durante a conexão (com seta)
+const connectionLineStyle = {
+  strokeWidth: 2.5,
+  stroke: '#4F8DF6',
 };
 
 export function FlowCanvas() {
-  const { fitView, screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition } = useReactFlow();
   
   const nodes = useEditorStore((state) => state.nodes);
   const edges = useEditorStore((state) => state.edges);
@@ -69,11 +80,18 @@ export function FlowCanvas() {
   // Conectar nós
   const onConnect = useCallback(
     (connection: Connection) => {
-      // Bloquear self-loops
+      // Validação: Bloquear self-loops (React Flow não bloqueia isso automaticamente)
       if (connection.source === connection.target) {
+        toast.error('Conexão inválida', {
+          description: 'Um bloco não pode se conectar a si mesmo.',
+        });
         return;
       }
 
+      // Conexão válida - criar edge
+      // O React Flow já bloqueia automaticamente:
+      // - source -> source (saída -> saída)
+      // - target -> target (entrada -> entrada)
       setEdges((eds) => addEdge(connection, eds));
       pushHistory();
     },
@@ -82,34 +100,19 @@ export function FlowCanvas() {
 
   // Quando nós são movidos
   const onNodesChange = useCallback(
-    (changes: any) => {
+    (changes: NodeChange[]) => {
       setNodes((nds) => {
-        const newNodes = [...nds];
+        // Usar helper nativo do React Flow
+        const updatedNodes = applyNodeChanges(changes, nds);
         
-        changes.forEach((change: any) => {
-          if (change.type === 'position' && change.dragging === false) {
-            // Salvar no histórico apenas quando terminar de arrastar
+        // Salvar no histórico apenas quando terminar de arrastar
+        changes.forEach((change) => {
+          if (change.type === 'position' && 'dragging' in change && change.dragging === false) {
             pushHistory();
           }
         });
-
-        // Aplicar mudanças manualmente
-        return newNodes.map((node) => {
-          const change = changes.find((c: any) => c.id === node.id);
-          if (!change) return node;
-
-          if (change.type === 'position' && change.position) {
-            return { ...node, position: change.position };
-          }
-          if (change.type === 'select') {
-            return { ...node, selected: change.selected };
-          }
-          if (change.type === 'remove') {
-            return null;
-          }
-
-          return node;
-        }).filter(Boolean) as Node[];
+        
+        return updatedNodes;
       });
     },
     [setNodes, pushHistory]
@@ -117,29 +120,19 @@ export function FlowCanvas() {
 
   // Quando edges são alteradas
   const onEdgesChange = useCallback(
-    (changes: any) => {
+    (changes: EdgeChange[]) => {
       setEdges((eds) => {
-        const newEdges = [...eds];
-
-        changes.forEach((change: any) => {
+        // Usar helper nativo do React Flow
+        const updatedEdges = applyEdgeChanges(changes, eds);
+        
+        // Salvar no histórico quando remover edge
+        changes.forEach((change) => {
           if (change.type === 'remove') {
             pushHistory();
           }
         });
-
-        return newEdges.map((edge) => {
-          const change = changes.find((c: any) => c.id === edge.id);
-          if (!change) return edge;
-
-          if (change.type === 'select') {
-            return { ...edge, selected: change.selected };
-          }
-          if (change.type === 'remove') {
-            return null;
-          }
-
-          return edge;
-        }).filter(Boolean) as Edge[];
+        
+        return updatedEdges;
       });
     },
     [setEdges, pushHistory]
@@ -189,7 +182,30 @@ export function FlowCanvas() {
   );
 
   return (
-    <div className="flex-1 relative bg-[#EEF3FF]" onDrop={onDrop} onDragOver={onDragOver}>
+    <div 
+      className="flex-1 relative" 
+      onDrop={onDrop} 
+      onDragOver={onDragOver}
+      style={{
+        width: '100%',
+        height: '100%',
+        backgroundColor: '#F0F4FF',
+        backgroundImage: showGrid
+          ? `
+            linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+            linear-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.06) 1px, transparent 1px)
+          `
+          : undefined,
+        backgroundSize: showGrid
+          ? '20px 20px, 20px 20px, 100px 100px, 100px 100px'
+          : undefined,
+        backgroundPosition: showGrid
+          ? '0 0, 0 0, 0 0, 0 0'
+          : undefined,
+      }}
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -198,24 +214,61 @@ export function FlowCanvas() {
         onConnect={onConnect}
         onMoveEnd={onMoveEnd}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
+        connectionLineStyle={{
+          ...connectionLineStyle,
+          markerEnd: 'url(#arrow-blue)',
+        }}
         snapToGrid={snapToGrid}
         snapGrid={[20, 20]}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
+        defaultViewport={{ x: 0, y: 0, zoom: 1.0 }}
         minZoom={0.1}
         maxZoom={4}
         deleteKeyCode="Delete"
         multiSelectionKeyCode="Control"
+        // Pan (arrastar canvas)
+        panOnDrag={[1, 2]} // Botão do meio (1) e direito (2) do mouse
+        panOnScroll={true} // Dois dedos no touchpad
+        selectionOnDrag={true} // Permite seleção arrastando
+        zoomOnScroll={true} // Scroll para zoom
+        zoomOnPinch={true} // Pinch para zoom no touchpad
       >
-        {showGrid && (
-          <Background
-            variant={BackgroundVariant.Dots}
-            gap={20}
-            size={1}
-            color="#DDE3F0"
-          />
-        )}
+        {/* Definições de marcadores SVG para setas */}
+        <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+          <defs>
+            <marker
+              id="arrow-gray"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="8"
+              markerHeight="8"
+              orient="auto"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 z"
+                fill="#94A3B8"
+                strokeLinejoin="round"
+              />
+            </marker>
+            <marker
+              id="arrow-blue"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="8"
+              markerHeight="8"
+              orient="auto"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 z"
+                fill="#4F8DF6"
+                strokeLinejoin="round"
+              />
+            </marker>
+          </defs>
+        </svg>
       </ReactFlow>
     </div>
   );

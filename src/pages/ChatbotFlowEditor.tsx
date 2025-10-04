@@ -2,7 +2,15 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ReactFlowProvider, useReactFlow } from '@xyflow/react';
-import { ChevronRight, Home } from 'lucide-react';
+import { ChevronRight, Home, Search } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
+import { Layout } from '@/components/Layout';
 import { EditorToolbar } from '@/components/flow-editor/EditorToolbar';
 import { FlowCanvas } from '@/components/flow-editor/FlowCanvas';
 import { BlockLibraryPanel } from '@/components/flow-editor/BlockLibraryPanel';
@@ -19,14 +27,13 @@ function EditorContent() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { fitView, screenToFlowPosition, getViewport, zoomIn, zoomOut } = useReactFlow();
+  const { fitView, getViewport, zoomIn, zoomOut } = useReactFlow();
 
   // Store
   const flowId = useEditorStore((state) => state.id);
   const flowName = useEditorStore((state) => state.name);
   const nodes = useEditorStore((state) => state.nodes);
   const edges = useEditorStore((state) => state.edges);
-  const viewport = useEditorStore((state) => state.viewport);
   const dirty = useEditorStore((state) => state.dirty);
   const canUndo = useEditorStore((state) => state.canUndo);
   const canRedo = useEditorStore((state) => state.canRedo);
@@ -58,7 +65,7 @@ function EditorContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(!!id);
 
-  // Carregar fluxo existente
+  // Carregar fluxo existente (executar apenas uma vez ao montar)
   useEffect(() => {
     if (id) {
       setIsLoading(true);
@@ -81,7 +88,8 @@ function EditorContent() {
     } else {
       reset();
     }
-  }, [id, load, reset, navigate, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]); // Apenas 'id' como dependência - executar só quando mudar de fluxo
 
   // Salvar fluxo
   const handleSave = useCallback(async () => {
@@ -101,10 +109,10 @@ function EditorContent() {
         edges: edges.map((e) => ({
           id: e.id,
           source: e.source,
-          sourceHandle: e.sourceHandle,
+          sourceHandle: e.sourceHandle || undefined,
           target: e.target,
-          targetHandle: e.targetHandle,
-          label: e.label,
+          targetHandle: e.targetHandle || undefined,
+          label: typeof e.label === 'string' ? e.label : undefined,
         })),
         viewport: getViewport(),
         updatedAt: new Date().toISOString(),
@@ -145,16 +153,60 @@ function EditorContent() {
   // Adicionar bloco ao canvas
   const handleBlockClick = useCallback(
     (block: BlockDefinition, position?: { x: number; y: number }) => {
-      const vp = getViewport();
-      const defaultPosition = position || screenToFlowPosition({
-        x: window.innerWidth / 2,
-        y: window.innerHeight / 2,
-      });
+      let finalPosition: { x: number; y: number };
+
+      if (position) {
+        // Se veio de drag & drop, usar a posição exata onde foi solto
+        finalPosition = position;
+      } else {
+        // Se foi clique no botão, centralizar no viewport visível
+        const viewport = getViewport();
+        const canvasContainer = document.querySelector('.react-flow__renderer');
+        
+        if (canvasContainer) {
+          const rect = canvasContainer.getBoundingClientRect();
+          // Converter centro da tela visível para coordenadas do canvas
+          // Subtrai metade da largura do nó para centralizar perfeitamente
+          const nodeWidth = 296;
+          const nodeHeight = 200;
+          const centerX = (rect.width / 2 - viewport.x) / viewport.zoom - nodeWidth / 2;
+          const centerY = (rect.height / 2 - viewport.y) / viewport.zoom - nodeHeight / 2;
+          
+          finalPosition = { x: centerX, y: centerY };
+        } else {
+          finalPosition = { x: 250, y: 100 };
+        }
+
+        // Verificar se há sobreposição e ajustar posição
+        const nodeWidth = 296;
+        const nodeHeight = 200;
+        const minDistance = 60; // Distância mínima entre nós
+        
+        let attempts = 0;
+        let hasOverlap = true;
+        
+        while (hasOverlap && attempts < 10) {
+          hasOverlap = nodes.some((node) => {
+            const dx = Math.abs(node.position.x - finalPosition.x);
+            const dy = Math.abs(node.position.y - finalPosition.y);
+            return dx < nodeWidth + minDistance && dy < nodeHeight + minDistance;
+          });
+
+          if (hasOverlap) {
+            // Offset incremental em cascata (diagonal)
+            finalPosition = {
+              x: finalPosition.x + 50,
+              y: finalPosition.y + 50,
+            };
+            attempts++;
+          }
+        }
+      }
 
       const newNode = {
         id: `${block.type}-${Date.now()}`,
         type: block.type,
-        position: defaultPosition,
+        position: finalPosition,
         data: {
           label: block.title,
           description: '',
@@ -162,10 +214,15 @@ function EditorContent() {
       };
 
       setNodes((nds) => [...nds, newNode]);
-      pushHistory();
+      
+      // Aguardar o próximo tick para o estado ser atualizado antes de salvar no histórico
+      setTimeout(() => {
+        pushHistory();
+      }, 0);
+      
       setShowBlockLibrary(false);
     },
-    [getViewport, screenToFlowPosition, setNodes, pushHistory]
+    [getViewport, nodes, setNodes, pushHistory]
   );
 
   // Aplicar template
@@ -341,51 +398,74 @@ function EditorContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#EEF3FF]">
-      {/* Breadcrumb */}
-      <div className="h-10 bg-white border-b border-slate-200 px-6 flex items-center gap-2 text-sm text-slate-600">
-        <button
-          onClick={() => navigate('/')}
-          className="hover:text-slate-900 transition-colors"
-        >
-          <Home className="w-4 h-4" />
-        </button>
-        <ChevronRight className="w-4 h-4" />
-        <button
-          onClick={() => navigate('/settings')}
-          className="hover:text-slate-900 transition-colors"
-        >
-          Configurações
-        </button>
-        <ChevronRight className="w-4 h-4" />
-        <button
-          onClick={() => navigate('/settings/chatbots')}
-          className="hover:text-slate-900 transition-colors"
-        >
-          Chatbots
-        </button>
-        <ChevronRight className="w-4 h-4" />
-        <span className="text-slate-900 font-medium">{flowName}</span>
+    <Layout>
+      <div className="h-screen flex flex-col bg-[#F0F4FF]">
+        {/* Breadcrumb + Search */}
+        <div className="h-10 bg-white border-b border-slate-200 px-6 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-2 text-sm text-slate-600">
+          <button
+            onClick={() => navigate('/')}
+            className="hover:text-slate-900 transition-colors"
+          >
+            <Home className="w-4 h-4" />
+          </button>
+          <ChevronRight className="w-4 h-4" />
+          <button
+            onClick={() => navigate('/settings')}
+            className="hover:text-slate-900 transition-colors"
+          >
+            Configurações
+          </button>
+          <ChevronRight className="w-4 h-4" />
+          <button
+            onClick={() => navigate('/settings/chatbots')}
+            className="hover:text-slate-900 transition-colors"
+          >
+            Chatbots
+          </button>
+          <ChevronRight className="w-4 h-4" />
+          <span className="text-slate-900 font-medium">{flowName}</span>
+        </div>
+        
+        {/* Search button */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => toast({ title: 'Busca', description: 'Em breve' })}
+                className="h-8 w-8"
+              >
+                <Search className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Buscar (Ctrl+K)</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* Toolbar */}
-      <EditorToolbar
-        flowName={flowName}
-        isDirty={dirty}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onOpenBlocks={() => setShowBlockLibrary(true)}
-        onOpenIdeas={() => setShowIdeas(true)}
-        onUndo={undo}
-        onRedo={redo}
-        onSave={handleSave}
-        onRename={() => setShowRenameDialog(true)}
-        onSearch={() => toast({ title: 'Busca', description: 'Em breve' })}
-        isSaving={isSaving}
-      />
+      <div className="flex-shrink-0">
+        <EditorToolbar
+          flowName={flowName}
+          isDirty={dirty}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onOpenBlocks={() => setShowBlockLibrary(true)}
+          onOpenIdeas={() => setShowIdeas(true)}
+          onUndo={undo}
+          onRedo={redo}
+          onSave={handleSave}
+          onRename={() => setShowRenameDialog(true)}
+          isSaving={isSaving}
+        />
+      </div>
 
-      {/* Canvas */}
-      <FlowCanvas />
+      {/* Canvas - precisa ocupar o restante da altura */}
+      <div className="flex-1 min-h-0">
+        <FlowCanvas />
+      </div>
 
       {/* Painéis flutuantes */}
       {showBlockLibrary && (
@@ -424,7 +504,8 @@ function EditorContent() {
         onClose={() => setShowRenameDialog(false)}
         onSave={setName}
       />
-    </div>
+      </div>
+    </Layout>
   );
 }
 

@@ -61,8 +61,8 @@ const initialState = {
   edges: [],
   viewport: { x: 0, y: 0, zoom: 1 },
   dirty: false,
-  history: [],
-  historyIndex: -1,
+  history: [{ nodes: [], edges: [] }], // Inicializar com estado vazio
+  historyIndex: 0, // Começar no índice 0
   canUndo: false,
   canRedo: false,
   showGrid: true,
@@ -224,10 +224,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       edges: edges.map((e) => ({
         id: e.id,
         source: e.source,
-        sourceHandle: e.sourceHandle,
+        sourceHandle: e.sourceHandle ?? undefined,
         target: e.target,
-        targetHandle: e.targetHandle,
-        label: e.label,
+        targetHandle: e.targetHandle ?? undefined,
+        label: typeof e.label === 'string' ? e.label : undefined,
       })),
       viewport,
       updatedAt: new Date().toISOString(),

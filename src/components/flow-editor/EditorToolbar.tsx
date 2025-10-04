@@ -1,5 +1,5 @@
 // Toolbar principal do editor
-import { Plus, Lightbulb, Undo2, Redo2, Save, Pencil, Search } from 'lucide-react';
+import { Plus, Lightbulb, Undo2, Redo2, Save, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -19,7 +19,6 @@ interface EditorToolbarProps {
   onRedo: () => void;
   onSave: () => void;
   onRename: () => void;
-  onSearch: () => void;
   isSaving?: boolean;
 }
 
@@ -34,7 +33,6 @@ export function EditorToolbar({
   onRedo,
   onSave,
   onRename,
-  onSearch,
   isSaving,
 }: EditorToolbarProps) {
   return (
@@ -166,23 +164,6 @@ export function EditorToolbar({
           <Pencil className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
       </div>
-
-      {/* Right side - Search */}
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={onSearch}
-              className="rounded-full size-9 shadow-sm"
-            >
-              <Search className="w-4 h-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Buscar (Ctrl+K)</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
     </div>
   );
 }

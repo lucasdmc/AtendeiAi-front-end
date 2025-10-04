@@ -21,7 +21,7 @@ export function IdeasPanel({ onClose, onTemplateClick }: IdeasPanelProps) {
   );
 
   return (
-    <Card className="fixed left-4 top-20 w-[420px] max-h-[calc(100vh-120px)] overflow-hidden flex flex-col shadow-xl border-slate-200 z-50">
+    <Card className="fixed left-[76px] top-[106px] bottom-[10px] w-[588px] overflow-hidden flex flex-col shadow-xl border-slate-200 z-50">
       {/* Header */}
       <div className="p-4 border-b bg-white sticky top-0 z-10">
         <div className="flex items-center justify-between mb-3">
