@@ -17,6 +17,7 @@ import { BlockLibraryPanel } from '@/components/flow-editor/BlockLibraryPanel';
 import { IdeasPanel } from '@/components/flow-editor/IdeasPanel';
 import { FloatingControls } from '@/components/flow-editor/FloatingControls';
 import { RenameDialog } from '@/components/flow-editor/RenameDialog';
+import { WebhookDrawer } from '@/components/drawers/webhook/WebhookDrawer';
 import { useEditorStore } from '@/stores/editorStore';
 import { flowsService } from '@/services/flowsService';
 import { useToast } from '@/components/ui/use-toast';
@@ -65,6 +66,10 @@ function EditorContent() {
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(!!id);
+  
+  // Webhook Drawer State
+  const [showWebhookDrawer, setShowWebhookDrawer] = useState(false);
+  const [editingWebhookNodeId, setEditingWebhookNodeId] = useState<string | null>(null);
 
   // Carregar fluxo existente (executar apenas uma vez ao montar)
   useEffect(() => {
@@ -226,15 +231,207 @@ function EditorContent() {
         }
       }
 
+      // Criar data inicial baseado no tipo do nó
+      let initialData: any = {
+        label: block.title,
+        description: '',
+      };
+
+      // Inicializar valores específicos para cada tipo de nó
+      switch (block.type) {
+        case 'action-waiting-status':
+          initialData = {
+            ...initialData,
+            value: { enabled: false },
+          };
+          break;
+        case 'action-privacy':
+          initialData = {
+            ...initialData,
+            value: { action: 'private' },
+          };
+          break;
+        case 'action-waiting-flow':
+          initialData = {
+            ...initialData,
+            value: { enabled: true },
+          };
+          break;
+        case 'end-conversation':
+          initialData = {
+            ...initialData,
+            value: { closedBy: 'none' },
+          };
+          break;
+        case 'start-channel':
+          initialData = {
+            ...initialData,
+            value: { channelIds: [] },
+          };
+          break;
+        case 'start-manual':
+          initialData = {
+            ...initialData,
+            value: { 
+              title: 'Início', 
+              unlisted: false,
+              variables: []
+            },
+          };
+          break;
+        case 'action-message':
+          initialData = {
+            ...initialData,
+            value: { blocks: [] },
+          };
+          break;
+        case 'action-choose':
+          initialData = {
+            ...initialData,
+            value: {
+              headerRichText: '',
+              useEmojiNumbering: false,
+              separator: 'space',
+              options: [
+                { id: '1', labelRichText: 'Opção 1' },
+                { id: '2', labelRichText: 'Opção 2' },
+              ],
+              footerRichText: '',
+              flowInvalidEnabled: false,
+              flowNoResponseEnabled: false,
+            },
+          };
+          break;
+        case 'ask-question':
+          initialData = {
+            ...initialData,
+            value: {
+              headerRichText: '',
+              targetField: { key: '', type: 'Text' },
+              validation: { kind: 'none' },
+              invalidFlowEnabled: false,
+              noResponseEnabled: false,
+              noResponseDelayValue: 15,
+              noResponseDelayUnit: 'minutes',
+            },
+          };
+          break;
+        case 'ask-name':
+          initialData = {
+            ...initialData,
+            value: {
+              headerRichText: '',
+              targetField: { key: '', type: 'Text' },
+              validation: { kind: 'none' },
+              invalidFlowEnabled: false,
+              noResponseEnabled: false,
+              noResponseDelayValue: 15,
+              noResponseDelayUnit: 'minutes',
+            },
+          };
+          break;
+        case 'ask-email':
+          initialData = {
+            ...initialData,
+            value: {
+              headerRichText: '',
+              validationErrorMessage: '',
+              targetField: { key: '', type: 'Email' },
+              invalidFlowEnabled: false,
+              noResponseEnabled: false,
+              noResponseDelayValue: 15,
+              noResponseDelayUnit: 'minutes',
+            },
+          };
+          break;
+        case 'ask-number':
+          initialData = {
+            ...initialData,
+            value: {
+              headerRichText: '',
+              format: 'auto',
+              prefix: '',
+              minValue: undefined,
+              maxValue: undefined,
+              validationErrorMessage: 'Desculpe, não entendi. Por favor, digite um número válido.',
+              targetField: { key: '', type: 'Number' },
+              validation: undefined,
+              invalidFlowEnabled: false,
+              noResponseEnabled: false,
+              noResponseDelayValue: 15,
+              noResponseDelayUnit: 'minutes',
+            },
+          };
+          break;
+        case 'ask-date':
+          initialData = {
+            ...initialData,
+            value: {
+              headerRichText: '',
+              dateFormat: 'DD/MM/YYYY',
+              validationErrorMessage: 'Desculpe, não entendi. Por favor, digite uma data válida.',
+              targetField: { key: '', type: 'Date' },
+              invalidFlowEnabled: false,
+              noResponseEnabled: false,
+              noResponseDelayValue: 15,
+              noResponseDelayUnit: 'minutes',
+            },
+          };
+          break;
+        case 'ask-file':
+          initialData = {
+            ...initialData,
+            value: {
+              headerRichText: '',
+              allowedExtensions: [],
+              validationErrorMessage: 'Desculpe, não entendi. Por favor, envie um arquivo válido.',
+              targetField: { key: '', type: 'File' },
+              invalidFlowEnabled: false,
+              noResponseEnabled: false,
+              noResponseDelayValue: 15,
+              noResponseDelayUnit: 'minutes',
+            },
+          };
+          break;
+        case 'action-wait':
+          initialData = {
+            ...initialData,
+            value: {
+              mode: 'fixed',
+              fixedValue: 15,
+              fixedUnit: 'minutes',
+              variableName: '',
+              responseFlowEnabled: false,
+            },
+          };
+          break;
+        case 'integration-webhook':
+          initialData = {
+            ...initialData,
+            value: {
+              endpoint: '',
+              method: 'POST',
+              urlParameters: [],
+              headers: [],
+              body: '',
+              returnMappings: [],
+            },
+            onOpenDrawer: () => handleOpenWebhookDrawer(`${block.type}-${Date.now()}`),
+          };
+          break;
+      }
+
       const newNode = {
         id: `${block.type}-${Date.now()}`,
         type: block.type,
         position: finalPosition,
-        data: {
-          label: block.title,
-          description: '',
-        },
+        data: initialData,
       };
+
+      // Adicionar handler onOpenDrawer para nós de webhook
+      if (block.type === 'integration-webhook') {
+        newNode.data.onOpenDrawer = () => handleOpenWebhookDrawer(newNode.id);
+      }
 
       setNodes((nds) => [...nds, newNode]);
       
@@ -351,6 +548,65 @@ function EditorContent() {
       });
     }
   }, [clearCanvas, toast]);
+
+  // Abrir Webhook Drawer
+  const handleOpenWebhookDrawer = useCallback((nodeId: string) => {
+    setEditingWebhookNodeId(nodeId);
+    setShowWebhookDrawer(true);
+  }, []);
+
+  // Salvar configuração do Webhook
+  const handleSaveWebhook = useCallback((webhookConfig: any) => {
+    if (!editingWebhookNodeId) return;
+
+    const updatedNodes = nodes.map((node) => {
+      if (node.id === editingWebhookNodeId) {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            value: webhookConfig,
+          },
+        };
+      }
+      return node;
+    });
+
+    setNodes(updatedNodes);
+    pushHistory();
+  }, [editingWebhookNodeId, nodes, setNodes, pushHistory]);
+
+  // Fechar Webhook Drawer
+  const handleCloseWebhookDrawer = useCallback(() => {
+    setShowWebhookDrawer(false);
+    setEditingWebhookNodeId(null);
+  }, []);
+
+  // Atualizar handlers dos nós de webhook quando os nós mudarem
+  useEffect(() => {
+    const webhookNodes = nodes.filter((node) => node.type === 'integration-webhook');
+    
+    if (webhookNodes.length > 0) {
+      const needsUpdate = webhookNodes.some((node) => !node.data.onOpenDrawer);
+      
+      if (needsUpdate) {
+        const updatedNodes = nodes.map((node) => {
+          if (node.type === 'integration-webhook' && !node.data.onOpenDrawer) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                onOpenDrawer: () => handleOpenWebhookDrawer(node.id),
+              },
+            };
+          }
+          return node;
+        });
+        
+        setNodes(updatedNodes);
+      }
+    }
+  }, [nodes, setNodes, handleOpenWebhookDrawer]);
 
   // Atalhos de teclado
   useEffect(() => {
@@ -527,6 +783,28 @@ function EditorContent() {
         onClose={() => setShowRenameDialog(false)}
         onSave={setName}
       />
+
+      {/* Drawer de Webhook */}
+      {editingWebhookNodeId && (() => {
+        const webhookNode = nodes.find((n) => n.id === editingWebhookNodeId);
+        const defaultValue = {
+          endpoint: '',
+          method: 'POST' as const,
+          urlParameters: [],
+          headers: [],
+          body: '',
+          returnMappings: [],
+        };
+        
+        return (
+          <WebhookDrawer
+            open={showWebhookDrawer}
+            onClose={handleCloseWebhookDrawer}
+            initialValue={(webhookNode?.data?.value as any) || defaultValue}
+            onChange={handleSaveWebhook}
+          />
+        );
+      })()}
       </div>
     </Layout>
   );

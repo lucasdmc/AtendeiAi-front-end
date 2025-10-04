@@ -50,8 +50,8 @@ export function validateFlow(nodes: Node[]): ValidationError[] {
         });
       }
 
-      // 3. Validar mensagem de erro (obrigatória para ask-email e ask-number quando não há fluxo alternativo)
-      if (nodeType === 'ask-email' || nodeType === 'ask-number') {
+      // 3. Validar mensagem de erro (obrigatória para ask-email, ask-number, ask-date e ask-file quando não há fluxo alternativo)
+      if (nodeType === 'ask-email' || nodeType === 'ask-number' || nodeType === 'ask-date' || nodeType === 'ask-file') {
         const hasInvalidFlow = nodeValue?.invalidFlowEnabled === true;
         const validationErrorMessage = nodeValue?.validationErrorMessage;
         const hasErrorMessage = validationErrorMessage && typeof validationErrorMessage === 'string' && validationErrorMessage.trim().length > 0;
@@ -81,6 +81,20 @@ export function validateFlow(nodes: Node[]): ValidationError[] {
               message: 'É necessário fornecer uma expressão regular quando a validação é "Regex customizado"',
             });
           }
+        }
+      }
+
+      // 5. Validar extensões permitidas para ask-file
+      if (nodeType === 'ask-file') {
+        const allowedExtensions = nodeValue?.allowedExtensions || [];
+        if (allowedExtensions.length === 0) {
+          errors.push({
+            nodeId: node.id,
+            nodeType,
+            nodeLabel,
+            field: 'Extensões permitidas',
+            message: 'É necessário selecionar pelo menos uma extensão de arquivo',
+          });
         }
       }
     }
@@ -178,10 +192,8 @@ function getNodeLabel(nodeType: string): string {
     'ask-name': 'Perguntar por um nome',
     'ask-email': 'Perguntar por um e-mail',
     'ask-number': 'Perguntar por um número',
-    'ask-phone': 'Perguntar por um telefone',
     'ask-date': 'Perguntar por uma data',
     'ask-file': 'Perguntar por um arquivo/mídia',
-    'ask-address': 'Perguntar por um endereço',
     'action-choose': 'Pedir para escolher',
     'action-message': 'Enviar mensagem',
     'start-manual': 'Iniciar manualmente',

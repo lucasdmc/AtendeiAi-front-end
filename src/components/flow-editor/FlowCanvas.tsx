@@ -15,7 +15,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { FlowNode } from './FlowNode';
-import { StartByChannelNode, StartManuallyNode, SendMessageNode, TransferToSectorNode, TransferToAgentNode, TransferToAIAgentNode, AskToChooseNode, AskQuestionNode, AskNameNode, AskEmailNode, AskNumberNode } from '@/components/canvas/nodes';
+import { StartByChannelNode, StartManuallyNode, SendMessageNode, TransferToSectorNode, TransferToAgentNode, TransferToAIAgentNode, AskToChooseNode, AskQuestionNode, AskNameNode, AskEmailNode, AskNumberNode, AskDateNode, AskFileNode, WaitingStatusNode, PrivacyNode, WaitingFlowNode, EndConversationNode, WaitNode, WebhookNode } from '@/components/canvas/nodes';
 import { CustomEdge } from './CustomEdge';
 import { useEditorStore } from '@/stores/editorStore';
 import { toast } from '@/components/ui/sonner';
@@ -33,24 +33,27 @@ const nodeTypes: NodeTypes = {
   'ask-name': AskNameNode,
   'ask-email': AskEmailNode,
   'ask-number': AskNumberNode,
+  'ask-date': AskDateNode,
+  'ask-file': AskFileNode,
+  'action-waiting-status': WaitingStatusNode,
+  'action-privacy': PrivacyNode,
+  'action-waiting-flow': WaitingFlowNode,
+  'action-wait': WaitNode,
+  'end-conversation': EndConversationNode,
+  'integration-webhook': WebhookNode,
   'condition-weekday': FlowNode,
   'condition-hours': FlowNode,
   'condition-simple': FlowNode,
   'condition-multi': FlowNode,
   'action-note': FlowNode,
   'action-edit-tags': FlowNode,
-  'action-private': FlowNode,
   'action-input': FlowNode,
   'action-template': FlowNode,
   'action-trigger-flow': FlowNode,
-  'action-status-waiting': FlowNode,
   'action-rating': FlowNode,
   'action-feedback': FlowNode,
   'action-contact-field': FlowNode,
-  'action-wait': FlowNode,
-  'end-conversation': FlowNode,
   'util-notes': FlowNode,
-  'integration-webhook': FlowNode,
 };
 
 // Registrar tipos de edges personalizados
