@@ -11,6 +11,8 @@ export { TransferToAgentNode } from './TransferToAgentNode';
 export type { TransferToAgentData, TransferToAgentValue, Agent } from './TransferToAgentNode';
 export { TransferToAIAgentNode } from './TransferToAIAgentNode';
 export type { TransferToAIAgentData, TransferToAIAgentValue, AIAgent } from './TransferToAIAgentNode';
+export { AskToChooseNode } from './AskToChooseNode';
+export type { AskToChooseData, AskToChooseValue, OptionItem, Separator } from './AskToChooseNode';
 export { NodeConnector } from './parts/NodeConnector';
 export { ChannelSelect } from './parts/ChannelSelect';
 export type { Channel } from './parts/ChannelSelect';
