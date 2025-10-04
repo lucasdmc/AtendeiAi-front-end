@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '../../../../components/ui/input';
 import { ScrollArea } from '../../../../components/ui/scroll-area';
 import { Button } from '../../../../components/ui/button';
-import { Badge } from '../../../../components/ui/badge';
 import { 
   Search, 
   MessageCircle, 
@@ -15,10 +14,11 @@ import {
 } from 'lucide-react';
 import { ConversationItem } from './ConversationItem';
 import { ConversationMenu } from './ConversationMenu';
+import { TabsSegmented } from './TabsSegmented';
+import type { TabKey } from './TabsSegmented';
 import { ConversationsLoading, EmptyState } from '../ui';
 import { useConversationsContext } from '../../context';
 import { useConversationMenu } from '../../hooks';
-import { useConversationFilters } from '../../hooks';
 import { Conversation } from '../../../../services/api';
 
 export const ConversationsList: React.FC = () => {
@@ -28,7 +28,6 @@ export const ConversationsList: React.FC = () => {
     searchTerm,
     activeTab,
     conversationsLoading,
-    clinicSettings,
     setSelectedConversation,
     setSearchTerm,
     setActiveTab,
@@ -59,40 +58,84 @@ export const ConversationsList: React.FC = () => {
   // Hook para gerenciar menu das conversas
   const { openMenuId, handleMenuClick, handleMenuAction } = useConversationMenu();
 
-  // Hook para filtros simples (com activeTab)
-  const {
-    filteredConversations
-  } = useConversationFilters(conversations, searchTerm, 'Tudo', activeTab, clinicSettings?.conversations);
+  // Nova estrutura de abas conforme especificação
+  // Função para determinar a aba da conversa baseado na nova lógica
+  const getConversationTab = (conversation: Conversation): TabKey => {
+    // Bot/IA: conversas em atendimento automatizado (mock para demonstração)
+    if (conversation.assigned_user_id === null && conversation.status === 'active') {
+      return 'bot';
+    }
 
-  // Função para determinar o status da conversa baseado em lógica de negócio
-  const getConversationStatus = (conversation: Conversation): 'inbox' | 'waiting' | 'finished' => {
-    // Lógica baseada no status atual da conversa
+    // Finalizadas: conversas encerradas
     if (conversation.status === 'closed' || conversation.status === 'archived') {
-      return 'finished';
+      return 'finalizadas';
     }
-    // Para determinar "waiting", podemos usar uma lógica baseada em assigned_to ou outros campos
-    // Por enquanto, vamos considerar que conversas sem assigned_to ou com assigned_to === 'waiting' estão esperando
-    if (!conversation.assigned_to || conversation.assigned_to === 'waiting') {
-      return 'waiting';
+
+    // Em atendimento: conversas ativamente sendo atendidas
+    if (conversation.assigned_user_id && conversation.status === 'active') {
+      return 'em_atendimento';
     }
-    return 'inbox'; // conversas ativas e atribuídas
+
+    // Aguardando atendimento: atribuídas ao atendente mas não iniciadas (mock)
+    if (conversation.assigned_user_id && conversation.status === 'active') {
+      // Para demonstração, vamos considerar algumas como aguardando
+      const conversationIndex = conversations.indexOf(conversation);
+      if (conversationIndex % 3 === 1) {
+        return 'aguardando';
+      }
+    }
+
+    // Entrada: roteadas mas não atribuídas
+    if (!conversation.assigned_user_id && conversation.status === 'active') {
+      return 'entrada';
+    }
+
+    // Default para entrada
+    return 'entrada';
   };
 
-  // Calcular contadores das abas
-  const getTabCount = (tab: string): number => {
-    switch (tab) {
-      case 'inbox':
-        return conversations.filter(c => getConversationStatus(c) === 'inbox').length;
-      case 'waiting':
-        return conversations.filter(c => getConversationStatus(c) === 'waiting').length;
-      case 'finished':
-        return conversations.filter(c => getConversationStatus(c) === 'finished').length;
-      default:
-        return 0;
+  // Filtrar conversas baseado na aba ativa
+  const filteredConversations = React.useMemo(() => {
+    let filtered = conversations;
+
+    // Filtrar por aba ativa
+    filtered = filtered.filter(conversation => {
+      const conversationTab = getConversationTab(conversation);
+      return conversationTab === activeTab;
+    });
+
+    // Filtrar por termo de busca
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(conversation => {
+        const displayName = conversation.conversation_type === 'group' 
+          ? (conversation.group_name || `Grupo ${conversation.group_id?.split('@')[0] || 'Desconhecido'}`)
+          : (conversation.customer_name && conversation.customer_name.trim() !== '' 
+            ? conversation.customer_name 
+            : conversation.customer_phone);
+        
+        return displayName.toLowerCase().includes(term) ||
+               conversation.customer_phone?.includes(term) ||
+               conversation.last_message?.content?.toLowerCase().includes(term);
+      });
     }
+
+    return filtered;
+  }, [conversations, activeTab, searchTerm]);
+
+  // Calcular contadores das novas abas
+  const getTabCount = (tab: TabKey): number => {
+    return conversations.filter(c => getConversationTab(c) === tab).length;
   };
 
-  const inboxCount = getTabCount('inbox');
+  // Contadores para cada aba
+  const tabCounts = {
+    bot: getTabCount('bot'),
+    entrada: getTabCount('entrada'),
+    aguardando: getTabCount('aguardando'),
+    em_atendimento: getTabCount('em_atendimento'),
+    finalizadas: getTabCount('finalizadas')
+  };
 
   // Funções do header
   const toggleMultiSelect = () => {
@@ -110,7 +153,7 @@ export const ConversationsList: React.FC = () => {
 
 
   return (
-    <div className="w-[420px] min-w-[420px] max-w-[420px] border-r border-gray-200 flex flex-col" style={{ backgroundColor: '#FFFFFF' }}>
+    <div className="w-[550px] min-w-[550px] max-w-[550px] border-r border-gray-200 flex flex-col" style={{ backgroundColor: '#FFFFFF' }}>
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
@@ -232,72 +275,13 @@ export const ConversationsList: React.FC = () => {
           </div>
         </div>
 
-        {/* Abas de Status das Conversas */}
-        <div className="flex items-center gap-2 mb-4">
-          <Button
-            variant={activeTab === 'inbox' ? 'default' : 'ghost'}
-            size="sm"
-            className={`rounded-full px-4 ${
-              activeTab === 'inbox' 
-                ? 'text-white' 
-                : 'hover:bg-gray-100'
-            }`}
-            style={{ 
-              backgroundColor: activeTab === 'inbox' ? '#2D61E0' : 'transparent',
-              color: activeTab === 'inbox' ? 'white' : '#6F6F6F'
-            }}
-            onClick={() => setActiveTab('inbox')}
-          >
-            Entrada
-            {activeTab === 'inbox' && (
-              <Badge className="ml-2 bg-white px-2 py-0.5 text-xs" style={{ color: '#2D61E0' }}>
-                {inboxCount}
-              </Badge>
-            )}
-          </Button>
-          <Button
-            variant={activeTab === 'waiting' ? 'default' : 'ghost'}
-            size="sm"
-            className={`rounded-full px-4 ${
-              activeTab === 'waiting' 
-                ? 'text-white' 
-                : 'hover:bg-gray-100'
-            }`}
-            style={{ 
-              backgroundColor: activeTab === 'waiting' ? '#2D61E0' : 'transparent',
-              color: activeTab === 'waiting' ? 'white' : '#6F6F6F'
-            }}
-            onClick={() => setActiveTab('waiting')}
-          >
-            Esperando
-            {activeTab === 'waiting' && (
-              <Badge className="ml-2 bg-white px-2 py-0.5 text-xs" style={{ color: '#2D61E0' }}>
-                {getTabCount('waiting')}
-              </Badge>
-            )}
-          </Button>
-          <Button
-            variant={activeTab === 'finished' ? 'default' : 'ghost'}
-            size="sm"
-            className={`rounded-full px-4 ${
-              activeTab === 'finished' 
-                ? 'text-white' 
-                : 'hover:bg-gray-100'
-            }`}
-            style={{ 
-              backgroundColor: activeTab === 'finished' ? '#2D61E0' : 'transparent',
-              color: activeTab === 'finished' ? 'white' : '#6F6F6F'
-            }}
-            onClick={() => setActiveTab('finished')}
-          >
-            Finalizados
-            {activeTab === 'finished' && (
-              <Badge className="ml-2 bg-white px-2 py-0.5 text-xs" style={{ color: '#2D61E0' }}>
-                {getTabCount('finished')}
-              </Badge>
-            )}
-          </Button>
-        </div>
+        {/* Nova estrutura de abas conforme especificação */}
+        <TabsSegmented
+          active={activeTab}
+          counts={tabCounts}
+          onChange={setActiveTab}
+          compactCount={true}
+        />
 
         {/* Componente de Filtros - REMOVIDO - Agora usamos FilterColumn */}
       </div>
@@ -371,6 +355,7 @@ export const ConversationsList: React.FC = () => {
                     hasScheduledMessage={hasScheduled}
                     agentAvatarUrl={mockAgentAvatar}
                     source="whatsapp"
+                    activeTab={activeTab}
                     onClick={() => setSelectedConversation(conversation)}
                     onContextMenu={(e) => {
                       e.preventDefault();
@@ -379,6 +364,11 @@ export const ConversationsList: React.FC = () => {
                     onTagsChange={(tags) => {
                       console.log('Tags changed for conversation:', conversation._id, tags);
                       // Em produção, aqui faria a chamada para API para salvar as tags
+                    }}
+                    onAction={(action, conversationId) => {
+                      console.log('Action triggered:', action, 'for conversation:', conversationId);
+                      // Em produção, aqui faria a chamada para API para executar a ação
+                      handleMenuAction(action, conversation);
                     }}
                   />
 

@@ -33,7 +33,7 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     selectedConversation: null,
     searchTerm: '',
     activeFilter: 'Tudo',
-    activeTab: 'inbox', // Nova propriedade para controlar as abas (inbox, waiting, finished)
+    activeTab: 'entrada', // Nova estrutura de abas: bot, entrada, aguardando, em_atendimento, finalizadas
     showContactInfo: false,
     searchInConversation: false,
     conversationSearchTerm: ''
@@ -279,7 +279,7 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     setConversationsState(prev => ({ ...prev, activeFilter: filter }));
   };
 
-  const setActiveTab = (tab: string) => {
+  const setActiveTab = (tab: 'bot' | 'entrada' | 'aguardando' | 'em_atendimento' | 'finalizadas') => {
     setConversationsState(prev => ({ ...prev, activeTab: tab }));
   };
 

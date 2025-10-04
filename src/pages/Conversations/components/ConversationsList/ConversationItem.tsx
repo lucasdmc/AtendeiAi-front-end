@@ -8,7 +8,6 @@ import {
   ChevronDown, 
   Clock, 
   Lock, 
-  LogOut,
   Tag,
   Mail,
   UserX,
@@ -20,6 +19,7 @@ import {
   MessageCircle,
   X
 } from 'lucide-react';
+import { ConversationActions } from './ConversationActions';
 
 // Interface para tags
 interface TagItem {
@@ -28,8 +28,6 @@ interface TagItem {
   color: string;
   type: 'contact' | 'conversation';
 }
-
-// Props interface seguindo as especificações
 type ConversationItemProps = {
   id: string;
   contactName: string;
@@ -48,6 +46,9 @@ type ConversationItemProps = {
   onClick?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
   onTagsChange?: (tags: TagItem[]) => void; // Callback para mudanças nas tags
+  // Novas props para ações contextuais
+  activeTab?: 'bot' | 'entrada' | 'aguardando' | 'em_atendimento' | 'finalizadas';
+  onAction?: (action: string, conversationId: string) => void;
 };
 
 // Cores predefinidas para tags
@@ -412,7 +413,7 @@ const ContextMenu: React.FC<{
   const [focusedIndex, setFocusedIndex] = useState(-1);
 
   const menuItems = [
-    { id: 'leave', label: 'Sair da conversa', icon: LogOut },
+    { id: 'assume', label: 'Assumir a conversa', icon: User },
     { id: 'tag', label: 'Adicionar etiqueta', icon: Tag },
     { id: 'unread', label: 'Marcar como não lida', icon: Mail, checked: isUnread },
     { id: 'block', label: 'Bloquear contato', icon: UserX },
@@ -553,9 +554,11 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
   hasScheduledMessage = false,
   agentAvatarUrl,
   source = 'whatsapp',
+  activeTab,
   onClick,
   onContextMenu,
-  onTagsChange
+  onTagsChange,
+  onAction
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
@@ -827,6 +830,28 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
             {hasScheduledMessage && (
               <div title="Mensagem agendada">
                 <Clock className="w-4 h-4 text-[#2D61E0]" />
+              </div>
+            )}
+            
+            {/* Ações contextuais baseadas na aba */}
+            {activeTab && onAction && (
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <ConversationActions
+                  conversation={{
+                    _id: id,
+                    customer_name: contactName,
+                    customer_phone: contactName,
+                    conversation_type: 'individual',
+                    status: 'active',
+                    assigned_to: null,
+                    state: 'ACTIVE',
+                    bot_active: false,
+                    started_at: null,
+                    last_message: lastMessageSnippet ? { content: lastMessageSnippet, timestamp: lastActiveAt.toString() } : null
+                  } as any}
+                  activeTab={activeTab}
+                  onAction={(action) => onAction(action, id)}
+                />
               </div>
             )}
             

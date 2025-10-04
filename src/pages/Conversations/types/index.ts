@@ -108,7 +108,7 @@ export interface ConversationsState {
   selectedConversation: import('../../../services/api').Conversation | null;
   searchTerm: string;
   activeFilter: string;
-  activeTab: string; // Nova propriedade para controlar as abas (inbox, waiting, finished)
+  activeTab: 'bot' | 'entrada' | 'aguardando' | 'em_atendimento' | 'finalizadas'; // Nova estrutura de abas
   showContactInfo: boolean;
   searchInConversation: boolean;
   conversationSearchTerm: string;
@@ -118,7 +118,7 @@ export interface ConversationsActions {
   setSelectedConversation: (conversation: import('../../../services/api').Conversation | null) => void;
   setSearchTerm: (term: string) => void;
   setActiveFilter: (filter: string) => void;
-  setActiveTab: (tab: string) => void; // Nova action para controlar as abas
+  setActiveTab: (tab: 'bot' | 'entrada' | 'aguardando' | 'em_atendimento' | 'finalizadas') => void; // Nova estrutura de abas
   setShowContactInfo: (show: boolean) => void;
   setSearchInConversation: (search: boolean) => void;
   setConversationSearchTerm: (term: string) => void;
