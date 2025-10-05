@@ -1,591 +1,531 @@
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
-import { apiService, Message } from '../services/api';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQueryClient, useInfiniteQuery, useMutation } from '@tanstack/react-query';
+import { messageService } from '../services/api/MessageService';
+import { useWebSocket } from './useWebSocket';
 
-// Chaves de query para React Query
+// Interfaces
+interface Message {
+  id: string;
+  conversation_id: string;
+  session_id?: string;
+  sender_type: 'customer' | 'bot' | 'human';
+  sender_id: string;
+  content: string;
+  message_type: 'text' | 'image' | 'audio' | 'video' | 'document' | 'location' | 'contact';
+  status: 'sent' | 'delivered' | 'read' | 'failed';
+  timestamp: Date;
+  reply_to?: string;
+  media_url?: string;
+  metadata?: any;
+}
+
+interface MessageListResponse {
+  messages: Message[];
+  total: number;
+  hasMore: boolean;
+}
+
+interface SendMessageData {
+  content: string;
+  message_type?: 'text' | 'image' | 'audio' | 'video' | 'document';
+  reply_to?: string;
+  media_url?: string;
+}
+
+/**
+ * Hook para gerenciar mensagens com cache inteligente e tempo real
+ */
+export function useMessages(conversationId: string) {
+  console.log('🔍 [useMessages] Hook chamado com conversationId:', conversationId);
+  
+  const queryClient = useQueryClient();
+  const { socket, isConnected } = useWebSocket({ roomId: conversationId, roomType: 'conversation' });
+  
+  // Estado local
+  const [isPending, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  
+  // Chave de cache
+  const queryKey = useMemo(() => ['messages', conversationId], [conversationId]);
+  
+  // Query principal com paginação infinita
+  const {
+    data,
+    error: queryError,
+    isPending: queryLoading,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+    isRefetching
+  } = useInfiniteQuery({
+    queryKey,
+    queryFn: async ({ pageParam = 0 }) => {
+      console.log('🔍 [useMessages] Fazendo query para conversationId:', conversationId, 'pageParam:', pageParam);
+      
+      if (!conversationId) {
+        console.log('🔍 [useMessages] conversationId vazio, retornando dados vazios');
+        return {
+          messages: [],
+          total: 0,
+          hasMore: false
+        };
+      }
+      
+      const response = await messageService.getMessages(conversationId, {
+        limit: 50,
+        offset: pageParam
+      });
+      
+      console.log('🔍 [useMessages] Resposta recebida:', {
+        messagesCount: response.messages.length,
+        total: response.total,
+        hasMore: response.hasMore,
+        firstMessage: response.messages[0] ? {
+          id: response.messages[0].id,
+          content: response.messages[0].content?.substring(0, 50) + '...',
+          sender_type: response.messages[0].sender_type
+        } : null
+      });
+      
+      return response;
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: any, allPages: any[]) => {
+      const totalLoaded = allPages.reduce((acc, page: any) => acc + page.messages.length, 0);
+      return lastPage.hasMore ? totalLoaded : undefined;
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutos
+    gcTime: 5 * 60 * 1000, // 5 minutos
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    enabled: !!conversationId
+  });
+  
+  // Mutation para enviar mensagem
+  const sendMessageMutation = useMutation({
+    mutationFn: async (messageData: SendMessageData) => {
+      return await messageService.sendMessage(conversationId, messageData);
+    },
+    onMutate: async (newMessage) => {
+      // Cancelar queries em andamento
+      await queryClient.cancelQueries({ queryKey });
+      
+      // Snapshot do estado anterior
+      const previousData = queryClient.getQueryData(queryKey);
+      
+      // Otimistic update
+      const optimisticMessage: Message = {
+        id: `temp-${Date.now()}`,
+        conversation_id: conversationId,
+        sender_type: 'human',
+        sender_id: 'current-user', // TODO: pegar do contexto de auth
+        content: newMessage.content,
+        message_type: newMessage.message_type || 'text',
+        status: 'sent',
+        timestamp: new Date(),
+        reply_to: newMessage.reply_to,
+        media_url: newMessage.media_url
+      };
+      
+      queryClient.setQueryData(queryKey, (oldData: any) => {
+        if (!oldData?.pages) return oldData;
+
+          return {
+            ...oldData,
+          pages: oldData.pages.map((page: MessageListResponse, index: number) => {
+            if (index === 0) {
+              return {
+                ...page,
+                messages: [...page.messages, optimisticMessage],
+                total: page.total + 1
+              };
+            }
+            return page;
+          })
+        };
+      });
+      
+      return { previousData };
+    },
+    onError: (err, _, context) => {
+      // Reverter optimistic update em caso de erro
+      if (context?.previousData) {
+        queryClient.setQueryData(queryKey, context.previousData);
+      }
+      setError(err instanceof Error ? err.message : 'Erro ao enviar mensagem');
+    },
+    onSuccess: (data) => {
+      // Remover mensagem otimista e adicionar a real
+      queryClient.setQueryData(queryKey, (oldData: any) => {
+        if (!oldData?.pages) return oldData;
+
+          return {
+            ...oldData,
+          pages: oldData.pages.map((page: MessageListResponse) => ({
+            ...page,
+            messages: page.messages.map(msg => 
+              msg.id.startsWith('temp-') ? data : msg
+            )
+          }))
+        };
+      });
+    },
+    onSettled: () => {
+      // Refetch para garantir consistência
+      queryClient.invalidateQueries({ queryKey });
+    }
+  });
+  
+  // Mutation para atualizar mensagem
+  const updateMessageMutation = useMutation({
+    mutationFn: async ({ messageId, updates }: { messageId: string; updates: Partial<Message> }) => {
+      return await messageService.updateMessage(messageId, updates);
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(queryKey, (oldData: any) => {
+        if (!oldData?.pages) return oldData;
+        
+          return {
+          ...oldData,
+          pages: oldData.pages.map((page: MessageListResponse) => ({
+            ...page,
+            messages: page.messages.map(msg => 
+              msg.id === data.id ? { ...msg, ...data } : msg
+            )
+          }))
+        };
+      });
+    }
+  });
+  
+  // Mutation para deletar mensagem
+  const deleteMessageMutation = useMutation({
+    mutationFn: async (messageId: string) => {
+      return await messageService.deleteMessage(messageId);
+    },
+    onSuccess: (_, messageId) => {
+      queryClient.setQueryData(queryKey, (oldData: any) => {
+        if (!oldData?.pages) return oldData;
+        
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: MessageListResponse) => ({
+            ...page,
+            messages: page.messages.filter(msg => msg.id !== messageId),
+            total: Math.max(0, page.total - 1)
+          }))
+        };
+      });
+    }
+  });
+  
+  // Combinar dados de todas as páginas
+  const messages = useMemo(() => {
+    if (!data?.pages) return [];
+    return data.pages.flatMap(page => page.messages);
+  }, [data]);
+  
+  // Total de mensagens
+  const total = useMemo(() => {
+    return data?.pages?.[0]?.total || 0;
+  }, [data]);
+  
+  // Estado de loading combinado
+  const combinedLoading = isPending || queryLoading;
+  
+  // Estado de erro combinado
+  const combinedError = error || queryError;
+  
+  // Função para carregar mais mensagens (histórico)
+  const loadMore = useCallback(async () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      await fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  
+  // Função para enviar mensagem
+  const sendMessage = useCallback(async (messageData: SendMessageData) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      await sendMessageMutation.mutateAsync(messageData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao enviar mensagem');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [sendMessageMutation]);
+  
+  // Função para atualizar mensagem
+  const updateMessage = useCallback(async (messageId: string, updates: Partial<Message>) => {
+    try {
+      await updateMessageMutation.mutateAsync({ messageId, updates });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao atualizar mensagem');
+    }
+  }, [updateMessageMutation]);
+  
+  // Função para deletar mensagem
+  const deleteMessage = useCallback(async (messageId: string) => {
+    try {
+      await deleteMessageMutation.mutateAsync(messageId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao deletar mensagem');
+    }
+  }, [deleteMessageMutation]);
+  
+  // Função para iniciar digitação
+  const startTyping = useCallback(() => {
+    if (socket && isConnected) {
+      setIsTyping(true);
+      socket.emit('typing_start', { conversationId });
+    }
+  }, [socket, isConnected, conversationId]);
+  
+  // Função para parar digitação
+  const stopTyping = useCallback(() => {
+    if (socket && isConnected) {
+      setIsTyping(false);
+      socket.emit('typing_stop', { conversationId });
+    }
+  }, [socket, isConnected, conversationId]);
+  
+  // Função para adicionar mensagem
+  const addMessage = useCallback((message: Message) => {
+    queryClient.setQueryData(queryKey, (oldData: any) => {
+      if (!oldData?.pages) return oldData;
+      
+      return {
+        ...oldData,
+        pages: oldData.pages.map((page: MessageListResponse, index: number) => {
+          if (index === 0) {
+            return {
+              ...page,
+              messages: [...page.messages, message],
+              total: page.total + 1
+            };
+          }
+          return page;
+        })
+      };
+    });
+  }, [queryClient, queryKey]);
+  
+  // Função para atualizar mensagem específica
+  const updateMessageInCache = useCallback((messageId: string, updates: Partial<Message>) => {
+    queryClient.setQueryData(queryKey, (oldData: any) => {
+      if (!oldData?.pages) return oldData;
+      
+          return {
+            ...oldData,
+        pages: oldData.pages.map((page: MessageListResponse) => ({
+          ...page,
+          messages: page.messages.map(msg => 
+            msg.id === messageId ? { ...msg, ...updates } : msg
+          )
+        }))
+      };
+    });
+  }, [queryClient, queryKey]);
+  
+  // Escutar eventos WebSocket
+  useEffect(() => {
+    if (!socket || !isConnected || !conversationId) return;
+    
+    // Evento: Nova mensagem
+    const handleNewMessage = (data: { 
+      conversationId: string; 
+      message: Message 
+    }) => {
+      if (data.conversationId === conversationId) {
+        addMessage(data.message);
+      }
+    };
+    
+    // Evento: Mensagem atualizada
+    const handleMessageUpdated = (data: { 
+      conversationId: string; 
+      messageId: string; 
+      updates: Partial<Message> 
+    }) => {
+      if (data.conversationId === conversationId) {
+        updateMessageInCache(data.messageId, data.updates);
+      }
+    };
+    
+    // Evento: Mensagem deletada
+    const handleMessageDeleted = (data: { 
+      conversationId: string; 
+      messageId: string 
+    }) => {
+      if (data.conversationId === conversationId) {
+        queryClient.setQueryData(queryKey, (oldData: any) => {
+          if (!oldData?.pages) return oldData;
+          
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page: MessageListResponse) => ({
+              ...page,
+              messages: page.messages.filter(msg => msg.id !== data.messageId),
+              total: Math.max(0, page.total - 1)
+            }))
+          };
+        });
+      }
+    };
+    
+    // Evento: Usuário começou a digitar
+    const handleTypingStart = (data: { 
+      conversationId: string; 
+      userId: string; 
+      userName: string 
+    }) => {
+      if (data.conversationId === conversationId) {
+        setTypingUsers(prev => [...prev.filter(id => id !== data.userId), data.userId]);
+      }
+    };
+    
+    // Evento: Usuário parou de digitar
+    const handleTypingStop = (data: { 
+      conversationId: string; 
+      userId: string 
+    }) => {
+      if (data.conversationId === conversationId) {
+        setTypingUsers(prev => prev.filter(id => id !== data.userId));
+      }
+    };
+    
+    // Registrar listeners
+    socket.on('message_received', handleNewMessage);
+    socket.on('message_sent', handleNewMessage);
+    socket.on('message_updated', handleMessageUpdated);
+    socket.on('message_deleted', handleMessageDeleted);
+    socket.on('typing_start', handleTypingStart);
+    socket.on('typing_stop', handleTypingStop);
+    
+    // Cleanup
+    return () => {
+      socket.off('message_received', handleNewMessage);
+      socket.off('message_sent', handleNewMessage);
+      socket.off('message_updated', handleMessageUpdated);
+      socket.off('message_deleted', handleMessageDeleted);
+      socket.off('typing_start', handleTypingStart);
+      socket.off('typing_stop', handleTypingStop);
+    };
+  }, [socket, isConnected, conversationId, addMessage, updateMessageInCache, queryClient, queryKey]);
+  
+  // Refetch automático quando reconectar
+  useEffect(() => {
+    if (isConnected && !isRefetching) {
+      refetch();
+    }
+  }, [isConnected, isRefetching, refetch]);
+  
+  // Auto-scroll para última mensagem quando adicionar nova
+  useEffect(() => {
+    if (messages.length > 0) {
+      // TODO: Implementar auto-scroll
+    }
+  }, [messages.length]);
+  
+            return {
+    // Dados
+    messages,
+    total,
+    
+    // Estados
+    isPending: combinedLoading,
+    error: combinedError,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    isRefetching,
+    isTyping,
+    typingUsers,
+    
+    // Mutations
+    isSending: sendMessageMutation.isPending,
+    isUpdating: updateMessageMutation.isPending,
+    isDeleting: deleteMessageMutation.isPending,
+    
+    // Ações
+    loadMore,
+    sendMessage,
+    updateMessage,
+    deleteMessage,
+    startTyping,
+    stopTyping,
+    refetch,
+    
+    // Utilitários
+    isEmpty: messages.length === 0,
+    hasData: messages.length > 0,
+    canLoadMore: hasNextPage && !isFetchingNextPage,
+    lastMessage: messages[messages.length - 1],
+    firstMessage: messages[0]
+  };
+}
+
+// Exportar query keys para uso em outros hooks
 export const messageKeys = {
   all: ['messages'] as const,
   lists: () => [...messageKeys.all, 'list'] as const,
-  list: (conversationId: string, params?: Record<string, any>) =>
-    [...messageKeys.lists(), conversationId, params] as const,
+  list: (conversationId: string, filters?: any) => [...messageKeys.lists(), conversationId, filters] as const,
   details: () => [...messageKeys.all, 'detail'] as const,
   detail: (id: string) => [...messageKeys.details(), id] as const,
 };
 
-// Hook para buscar mensagens com paginação infinita
-export const useMessages = (
-  conversationId: string,
-  params: {
-    limit?: number;
-  } = {}
-) => {
-  return useInfiniteQuery({
-    queryKey: messageKeys.list(conversationId, params),
-    initialPageParam: 0,
-    queryFn: async ({ pageParam = 0 }) => {
-      console.log('🔍 Buscando mensagens via API para conversa:', conversationId, 'offset:', pageParam);
-      const response = await apiService.getMessages(conversationId, {
-        ...params,
-        offset: pageParam as number,
-      });
-      console.log('✅ Mensagens recebidas:', (response.data as any)?.messages?.length || 0, 'itens');
-      return response.data;
-    },
-    // Forçar atualização quando o cache for invalidado
-    notifyOnChangeProps: ['data', 'error', 'isLoading'],
-    enabled: !!conversationId,
-    getNextPageParam: (lastPage: any, allPages: any[]) => {
-      if (lastPage?.hasMore) {
-        // Calcular offset para próxima página
-        const currentOffset = allPages.reduce((total, page: any) => total + (page?.messages?.length || 0), 0);
-        return currentOffset;
-      }
-      return undefined;
-    },
-    staleTime: 0, // Sempre considerar stale para permitir invalidação
-    gcTime: 1000 * 60 * 5, // 5 minutos
-    refetchOnWindowFocus: false,
-    // Removido polling agressivo - será atualizado apenas quando necessário
+// Hook para enviar mensagem (exportado separadamente)
+export const useSendMessage = (conversationId: string) => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data: { content: string; messageType?: 'text' | 'image' | 'audio' | 'video' | 'document'; replyTo?: string; media?: File }) => 
+      messageService.sendMessage(conversationId, {
+        content: data.content,
+        message_type: data.messageType,
+        reply_to: data.replyTo,
+        media_url: data.media ? URL.createObjectURL(data.media) : undefined
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: messageKeys.list(conversationId) });
+    }
   });
 };
 
-// Hook para buscar mensagens de uma conversa (versão simples sem paginação infinita)
-export const useMessagesSimple = (
-  conversationId: string,
-  params: {
-    limit?: number;
-    offset?: number;
-    before?: string;
-    after?: string;
-  } = {}
-) => {
-  return useQuery({
-    queryKey: messageKeys.list(conversationId, params),
-    queryFn: async () => {
-      const response = await apiService.getMessages(conversationId, params);
-      return response.data;
-    },
-    enabled: !!conversationId,
-    staleTime: 1000 * 30, // 30 segundos
-    gcTime: 1000 * 60 * 5, // 5 minutos
-    // Removido polling agressivo - será atualizado apenas quando necessário
-  });
-};
-
-// Hook para enviar áudio
-export const useSendAudio = () => {
+// Hook para enviar áudio (exportado separadamente)
+export const useSendAudio = (conversationId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      conversationId,
-      audioBlob,
-      reply_to,
-      scheduled_at
-    }: {
-      conversationId: string;
-      audioBlob: Blob;
-      reply_to?: string;
-      scheduled_at?: string;
-    }) => {
-      const response = await apiService.sendAudioMessage(conversationId, audioBlob, {
-        reply_to,
-        scheduled_at,
-      });
-      return { ...response.data, conversationId };
-    },
-    onSuccess: (newMessage, variables) => {
-      const conversationId = newMessage.conversationId || variables.conversationId;
-
-      console.log('🎵 Áudio enviado com sucesso. Atualizando cache:', {
-        newMessage,
-        conversationId,
-        hasMediaUrl: !!newMessage.media_url,
-        media_url: newMessage.media_url,
-        message_type: newMessage.message_type
-      });
-
-      // Em vez de invalidar, vamos adicionar a mensagem diretamente ao cache
-      queryClient.setQueryData(
-        messageKeys.list(conversationId, { limit: 50 }),
-        (oldData: any) => {
-          if (!oldData) return oldData;
-
-          // Adicionar a nova mensagem ao início da lista
-          const newMessages = [newMessage, ...oldData.messages];
-
-          return {
-            ...oldData,
-            messages: newMessages
-          };
-        }
-      );
-
-      // Para mensagens de áudio, usar o conteúdo correto baseado na resposta do backend
-      const lastMessageContent = newMessage.media_url ? '[Áudio]' : (newMessage.content || '[Áudio]');
-
-      // Atualizar cache da conversa
-      queryClient.setQueryData(
-        ['conversations', 'detail', conversationId],
-        (oldData: any) => {
-          if (!oldData) return oldData;
-          return {
-            ...oldData,
-            last_message: {
-              content: lastMessageContent,
-              timestamp: newMessage.timestamp,
-              sender_type: newMessage.sender_type,
-            },
-            updated_at: newMessage.timestamp,
-          };
-        }
-      );
-
-      // Atualizar lista de conversas
-      queryClient.setQueriesData(
-        { queryKey: ['conversations', 'list'] },
-        (oldData: any) => {
-          if (!oldData?.conversations) return oldData;
-
-          return {
-            ...oldData,
-            conversations: oldData.conversations.map((conv: any) =>
-              conv._id === conversationId
-                ? {
-                    ...conv,
-                    last_message: {
-                      content: lastMessageContent,
-                      timestamp: newMessage.timestamp,
-                      sender_type: newMessage.sender_type,
-                    },
-                    updated_at: newMessage.timestamp,
-                  }
-                : conv
-            )
-          };
-        }
-      );
-    },
-    onError: (error) => {
-      console.error('Erro ao enviar áudio:', error);
-    },
+    mutationFn: (audioFile: File) => 
+      messageService.sendMessage(conversationId, {
+        content: '',
+        message_type: 'audio',
+        media_url: URL.createObjectURL(audioFile)
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: messageKeys.list(conversationId) });
+    }
   });
 };
 
-// Hook para enviar mensagem
-export const useSendMessage = () => {
+// Hook para marcar mensagens como lidas (exportado separadamente)
+export const useMarkMessagesAsRead = (conversationId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      conversationId,
-      content,
-      message_type = 'text',
-      reply_to,
-      template_id,
-      scheduled_at,
-      recurrence
-    }: {
-      conversationId: string;
-      content: string;
-      message_type?: 'text' | 'image' | 'document' | 'audio';
-      reply_to?: string;
-      template_id?: string;
-      scheduled_at?: string;
-      recurrence?: any;
-    }) => {
-      const response = await apiService.sendMessage(conversationId, {
-        content,
-        message_type,
-        reply_to,
-        template_id,
-        scheduled_at,
-        recurrence,
-      });
-      return { ...response.data, conversationId };
-    },
-    onMutate: async (variables) => {
-      // Usar exatamente a mesma queryKey que o useMessages usa
-      const queryKey = messageKeys.list(variables.conversationId, { limit: 50 });
-      
-      console.log('🔄 onMutate: Query key sendo usada:', queryKey);
-      
-      // Cancelar queries em andamento para evitar conflitos
-      await queryClient.cancelQueries({ queryKey });
-
-      // Snapshot do estado anterior
-      const previousMessages = queryClient.getQueryData(queryKey);
-
-      // Criar mensagem otimista com ID único baseado no conteúdo e timestamp
-      const optimisticId = `temp-${Date.now()}-${variables.content.substring(0, 10)}`;
-      const optimisticMessage = {
-        _id: optimisticId,
-        conversation_id: variables.conversationId,
-        sender_type: 'human' as const,
-        sender_id: 'current-user',
-        content: variables.content,
-        message_type: variables.message_type || 'text',
-        status: 'sending' as const,
-        timestamp: new Date().toISOString(),
-      };
-      // Atualizar cache otimisticamente
-      queryClient.setQueryData(queryKey, (old: any) => {
-        if (!old) return old;
-
-        if (old.pages) {
-          // Para useInfiniteQuery
-          const newPages = [...old.pages];
-          if (newPages.length > 0) {
-            newPages[0] = {
-              ...newPages[0],
-              messages: [...newPages[0].messages, optimisticMessage]
-            };
-          }
-          return { ...old, pages: newPages };
-        } else if (old.messages) {
-          // Para query simples
-          return {
-            ...old,
-            messages: [...old.messages, optimisticMessage]
-          };
-        }
-        return old;
-      });
-
-      return { previousMessages, optimisticMessage, queryKey };
-    },
-    onSuccess: (newMessage, variables, context) => {
-      const conversationId = newMessage.conversationId || variables.conversationId;
-      const queryKey = messageKeys.list(conversationId, { limit: 50 });
-
-      console.log('🔄 onSuccess: Substituindo mensagem otimista pela real:', {
-        optimisticId: context?.optimisticMessage?._id,
-        realId: newMessage._id,
-        content: newMessage.content,
-        queryKey: queryKey
-      });
-
-      // Verificar se a query existe no cache
-      const currentData = queryClient.getQueryData(queryKey);
-      console.log('🔍 Dados atuais no cache:', currentData ? 'EXISTEM' : 'NÃO EXISTEM');
-
-      // Atualizar cache diretamente com a mensagem real do servidor
-      queryClient.setQueryData(queryKey, (old: any) => {
-        if (!old) return old;
-
-        if (old.pages) {
-          // Para useInfiniteQuery - substituir mensagem otimista pela real
-          const newPages = [...old.pages];
-          if (newPages.length > 0) {
-            console.log('🔍 Mensagens antes da substituição:', newPages[0].messages.map((m: any) => ({ id: m._id, content: m.content })));
-            
-            // Substituir mensagem otimista pela real
-            let messageReplaced = false;
-            newPages[0] = {
-              ...newPages[0],
-              messages: newPages[0].messages.map((msg: any) => {
-                if (msg._id === context?.optimisticMessage?._id) {
-                  console.log('✅ Substituindo mensagem otimista:', msg._id, '→', newMessage._id);
-                  messageReplaced = true;
-                  return newMessage;
-                }
-                return msg;
-              })
-            };
-
-            if (!messageReplaced) {
-              console.log('⚠️ Mensagem otimista não encontrada para substituição, removendo duplicatas por conteúdo');
-              // Se não encontrou a otimista, remover duplicatas por conteúdo
-              const uniqueMessages = [];
-              const seen = new Set();
-              
-              for (const msg of [...newPages[0].messages, newMessage]) {
-                const key = `${msg.content}-${msg.sender_type}`;
-                if (!seen.has(key)) {
-                  seen.add(key);
-                  uniqueMessages.push(msg);
-                }
-              }
-              
-              newPages[0] = {
-                ...newPages[0],
-                messages: uniqueMessages
-              };
-            }
-
-            console.log('🔍 Mensagens após substituição:', newPages[0].messages.map((m: any) => ({ id: m._id, content: m.content })));
-          }
-          return { ...old, pages: newPages };
-        } else if (old.messages) {
-          // Para query simples - substituir mensagem otimista pela real
-          console.log('🔍 Mensagens antes da substituição (simple):', old.messages.map((m: any) => ({ id: m._id, content: m.content })));
-          
-          let messageReplaced = false;
-          const updatedMessages = old.messages.map((msg: any) => {
-            if (msg._id === context?.optimisticMessage?._id) {
-              console.log('✅ Substituindo mensagem otimista (simple):', msg._id, '→', newMessage._id);
-              messageReplaced = true;
-              return newMessage;
-            }
-            return msg;
-          });
-
-          if (!messageReplaced) {
-            console.log('⚠️ Mensagem otimista não encontrada para substituição (simple), removendo duplicatas por conteúdo');
-            // Se não encontrou a otimista, remover duplicatas por conteúdo
-            const uniqueMessages = [];
-            const seen = new Set();
-            
-            for (const msg of [...updatedMessages, newMessage]) {
-              const key = `${msg.content}-${msg.sender_type}`;
-              if (!seen.has(key)) {
-                seen.add(key);
-                uniqueMessages.push(msg);
-              }
-            }
-            
-            return {
-              ...old,
-              messages: uniqueMessages
-            };
-          }
-
-          console.log('🔍 Mensagens após substituição (simple):', updatedMessages.map((m: any) => ({ id: m._id, content: m.content })));
-          return {
-            ...old,
-            messages: updatedMessages
-          };
-        }
-        return old;
-      });
-
-      // Atualizar cache da conversa diretamente
-      queryClient.setQueryData(
-        ['conversations', 'detail', conversationId],
-        (oldData: any) => {
-          if (!oldData) return oldData;
-          return {
-            ...oldData,
-            last_message: {
-              content: newMessage.content,
-              timestamp: newMessage.timestamp,
-              sender_type: newMessage.sender_type,
-            },
-            updated_at: newMessage.timestamp,
-          };
-        }
-      );
-
-      // Atualizar cache da lista de conversas diretamente
-      queryClient.setQueriesData(
-        { queryKey: ['conversations', 'list'] },
-        (oldData: any) => {
-          if (!oldData?.conversations) return oldData;
-          
-          return {
-            ...oldData,
-            conversations: oldData.conversations.map((conv: any) => 
-              conv._id === conversationId 
-                ? {
-                    ...conv,
-                    last_message: {
-                      content: newMessage.content,
-                      timestamp: newMessage.timestamp,
-                      sender_type: newMessage.sender_type,
-                    },
-                    updated_at: newMessage.timestamp,
-                  }
-                : conv
-            )
-          };
-        }
-      );
-    },
-    onError: (error, _variables, context) => {
-      console.error('Erro ao enviar mensagem:', error);
-
-      // Reverter cache para estado anterior
-      if (context?.previousMessages && context?.queryKey) {
-        queryClient.setQueryData(
-          context.queryKey,
-          context.previousMessages
-        );
-      }
-    },
-  });
-};
-
-// Hook para atualizar status da mensagem
-export const useUpdateMessageStatus = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      id,
-      status
-    }: {
-      id: string;
-      status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
-    }) => {
-      const response = await apiService.updateMessageStatus(id, status);
-      return response.data;
-    },
-    onSuccess: (updatedMessage) => {
-      // Atualizar cache das mensagens
-      queryClient.setQueryData(
-        messageKeys.list(updatedMessage.conversation_id),
-        (oldData: any) => {
-          if (!oldData) return oldData;
-
-          // Se for paginação infinita
-          if (oldData.pages) {
-            return {
-              ...oldData,
-              pages: oldData.pages.map((page: any) => ({
-                ...page,
-                messages: page.messages.map((msg: Message) =>
-                  msg._id === updatedMessage._id ? updatedMessage : msg
-                ),
-              })),
-            };
-          }
-
-          // Se for query simples
-          if (oldData.messages) {
-            return {
-              ...oldData,
-              messages: oldData.messages.map((msg: Message) =>
-                msg._id === updatedMessage._id ? updatedMessage : msg
-              ),
-            };
-          }
-
-          return oldData;
-        }
-      );
-    },
-  });
-};
-
-// Hook para deletar mensagem
-export const useDeleteMessage = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      // Como não temos endpoint de delete ainda, vamos simular
-      // await apiService.deleteMessage(id);
-      return { id };
-    },
-    onSuccess: (result) => {
-      // Remover mensagem do cache
-      queryClient.setQueryData(
-        messageKeys.lists(),
-        (oldData: any) => {
-          if (!oldData) return oldData;
-
-          if (oldData.pages) {
-            return {
-              ...oldData,
-              pages: oldData.pages.map((page: any) => ({
-                ...page,
-                messages: page.messages.filter((msg: Message) => msg._id !== result.id),
-              })),
-            };
-          }
-
-          if (oldData.messages) {
-            return {
-              ...oldData,
-              messages: oldData.messages.filter((msg: Message) => msg._id !== result.id),
-            };
-          }
-
-          return oldData;
-        }
-      );
-    },
-  });
-};
-
-// Hook para marcar mensagens como lidas
-export const useMarkMessagesAsRead = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (conversationId: string) => {
-      console.log('📖 [FRONTEND] Chamando API para marcar conversa como lida:', conversationId);
-      
-      // Chamar novo endpoint para marcar conversa inteira como lida
-      const response = await apiService.markConversationAsRead(conversationId);
-      
-      console.log('✅ [FRONTEND] Resposta da API:', response);
-      
-      return { 
-        conversationId, 
-        messagesUpdated: response.data?.messagesMarkedAsRead || 0 
-      };
-    },
-    onSuccess: (result) => {
-      // Atualizar status das mensagens no cache
-      queryClient.setQueryData(
-        messageKeys.list(result.conversationId),
-        (oldData: any) => {
-          if (!oldData) return oldData;
-
-          if (oldData.pages) {
-            return {
-              ...oldData,
-              pages: oldData.pages.map((page: any) => ({
-                ...page,
-                messages: page.messages.map((msg: Message) => ({
-                  ...msg,
-                  status: msg.sender_type === 'customer' && msg.status !== 'read' ? 'read' : msg.status,
-                  read_at: msg.sender_type === 'customer' && msg.status !== 'read' ? new Date().toISOString() : msg.read_at,
-                })),
-              })),
-            };
-          }
-
-          if (oldData.messages) {
-            return {
-              ...oldData,
-              messages: oldData.messages.map((msg: Message) => ({
-                ...msg,
-                status: msg.sender_type === 'customer' && msg.status !== 'read' ? 'read' : msg.status,
-                read_at: msg.sender_type === 'customer' && msg.status !== 'read' ? new Date().toISOString() : msg.read_at,
-              })),
-            };
-          }
-
-          return oldData;
-        }
-      );
-
-      // Atualizar conversa (zerar unread_count)
-      queryClient.setQueryData(
-        ['conversations', 'detail', result.conversationId],
-        (oldData: any) => {
-          if (!oldData) return oldData;
-          return { ...oldData, unread_count: 0 };
-        }
-      );
-
-      // Atualizar cache da lista de conversas diretamente
-      queryClient.setQueriesData(
-        { queryKey: ['conversations', 'list'] },
-        (oldData: any) => {
-          if (!oldData?.conversations) return oldData;
-          
-          return {
-            ...oldData,
-            conversations: oldData.conversations.map((conv: any) => 
-              conv._id === result.conversationId 
-                ? { ...conv, unread_count: 0 }
-                : conv
-            )
-          };
-        }
-      );
-    },
+    mutationFn: () => messageService.markMessagesAsRead(conversationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: messageKeys.list(conversationId) });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    }
   });
 };

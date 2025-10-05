@@ -28,6 +28,16 @@ export const TabsSegmented: React.FC<TabsSegmentedProps> = ({
   onChange,
   compactCount = true,
 }) => {
+  console.log('🔍 [TabsSegmented] Estado das abas:', {
+    active,
+    counts,
+    finalizadasCount: counts.finalizadas
+  });
+
+  const handleTabClick = (tab: TabKey) => {
+    console.log('🔍 [TabsSegmented] Clicando na aba:', tab);
+    onChange(tab);
+  };
   const fmt = (n: number) =>
     compactCount
       ? new Intl.NumberFormat("pt-BR", { notation: "compact" }).format(n)
@@ -59,7 +69,7 @@ export const TabsSegmented: React.FC<TabsSegmentedProps> = ({
             role="tab"
             aria-selected={isActive}
             className={pill}
-            onClick={() => onChange(key)}
+            onClick={() => handleTabClick(key)}
             type="button"
           >
             <span>{LABELS[key]}</span>

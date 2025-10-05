@@ -19,6 +19,7 @@ import type { TabKey } from './TabsSegmented';
 import { ConversationsLoading, EmptyState } from '../ui';
 import { useConversationsContext } from '../../context';
 import { useConversationMenu } from '../../hooks';
+import { useConversationActions } from '../../hooks/useConversationActions';
 import { Conversation } from '../../../../services/api';
 
 export const ConversationsList: React.FC = () => {
@@ -28,6 +29,7 @@ export const ConversationsList: React.FC = () => {
     searchTerm,
     activeTab,
     conversationsLoading,
+    tabCounters, // Adicionar tabCounters do contexto
     setSelectedConversation,
     setSearchTerm,
     setActiveTab,
@@ -58,50 +60,116 @@ export const ConversationsList: React.FC = () => {
   // Hook para gerenciar menu das conversas
   const { openMenuId, handleMenuClick, handleMenuAction } = useConversationMenu();
 
+  // Hook para ações de conversa
+  const conversationActions = useConversationActions('68cd84230e29f31cf5f5f1b8'); // TODO: pegar clinicId do contexto
+
+  // Handler para ações de conversa
+  const handleConversationAction = (action: string, conversation: Conversation) => {
+    console.log('🔍 [ConversationsList] Ação executada:', { action, conversationId: conversation._id });
+    
+    switch (action) {
+      case 'assumir':
+        conversationActions.assumeConversation(conversation._id);
+        break;
+      case 'iniciar':
+        conversationActions.startHandling(conversation._id);
+        break;
+      case 'finalizar':
+        conversationActions.closeConversation(conversation._id, 'Finalizada pelo atendente');
+        break;
+      default:
+        console.log('Ação não implementada:', action);
+    }
+  };
+
   // Nova estrutura de abas conforme especificação
   // Função para determinar a aba da conversa baseado na nova lógica
   const getConversationTab = (conversation: Conversation): TabKey => {
-    // Bot/IA: conversas em atendimento automatizado (mock para demonstração)
-    if (conversation.assigned_user_id === null && conversation.status === 'active') {
-      return 'bot';
-    }
+    console.log('🔍 [getConversationTab] Analisando conversa:', {
+      _id: conversation._id,
+      customer_name: conversation.customer_name,
+      status: conversation.status,
+      assigned_user_id: conversation.assigned_user_id,
+      state: (conversation as any).state
+    });
 
-    // Finalizadas: conversas encerradas
-    if (conversation.status === 'closed' || conversation.status === 'archived') {
+    const state = (conversation as any).state;
+
+    // Finalizadas: conversas encerradas OU com state RESOLVED/CLOSED/DROPPED
+    if (conversation.status === 'closed' || conversation.status === 'archived' || 
+        state === 'RESOLVED' || state === 'CLOSED' || state === 'DROPPED') {
+      console.log('🔍 [getConversationTab] Classificada como FINALIZADAS:', conversation.customer_name);
       return 'finalizadas';
     }
 
-    // Em atendimento: conversas ativamente sendo atendidas
-    if (conversation.assigned_user_id && conversation.status === 'active') {
-      return 'em_atendimento';
-    }
+    // Para conversas ativas, usar a lógica baseada no estado
+    if (conversation.status === 'active') {
+      
+      // Bot/IA: conversas com state = 'BOT_ACTIVE'
+      if (state === 'BOT_ACTIVE') {
+        console.log('🔍 [getConversationTab] Classificada como BOT (state):', conversation.customer_name);
+        return 'bot';
+      }
 
-    // Aguardando atendimento: atribuídas ao atendente mas não iniciadas (mock)
-    if (conversation.assigned_user_id && conversation.status === 'active') {
-      // Para demonstração, vamos considerar algumas como aguardando
-      const conversationIndex = conversations.indexOf(conversation);
-      if (conversationIndex % 3 === 1) {
+      // Entrada: conversas com state = 'ROUTING' e sem usuário atribuído
+      if (state === 'ROUTING' && !conversation.assigned_user_id) {
+        console.log('🔍 [getConversationTab] Classificada como ENTRADA (state):', conversation.customer_name);
+        return 'entrada';
+      }
+
+      // Aguardando: conversas com state = 'ASSIGNED'
+      if (state === 'ASSIGNED') {
+        console.log('🔍 [getConversationTab] Classificada como AGUARDANDO (state):', conversation.customer_name);
         return 'aguardando';
+      }
+
+      // Em atendimento: conversas com state = 'IN_PROGRESS' ou 'WAITING_CUSTOMER'
+      if (state === 'IN_PROGRESS' || state === 'WAITING_CUSTOMER') {
+        console.log('🔍 [getConversationTab] Classificada como EM_ATENDIMENTO (state):', conversation.customer_name);
+        return 'em_atendimento';
+      }
+
+      // Fallback para conversas ativas com state = 'NEW': entrada
+      if (state === 'NEW' && !conversation.assigned_user_id) {
+        console.log('🔍 [getConversationTab] Classificada como ENTRADA (NEW fallback):', conversation.customer_name);
+        return 'entrada';
       }
     }
 
-    // Entrada: roteadas mas não atribuídas
-    if (!conversation.assigned_user_id && conversation.status === 'active') {
-      return 'entrada';
-    }
-
     // Default para entrada
+    console.log('🔍 [getConversationTab] Classificada como ENTRADA (default):', conversation.customer_name);
     return 'entrada';
   };
 
   // Filtrar conversas baseado na aba ativa
   const filteredConversations = React.useMemo(() => {
+    console.log('🔍 [ConversationsList] Filtrando conversas:', {
+      totalConversations: conversations.length,
+      activeTab,
+      firstConversation: conversations[0] ? {
+        _id: conversations[0]._id,
+        customer_name: conversations[0].customer_name,
+        status: conversations[0].status
+      } : null
+    });
+    
     let filtered = conversations;
 
     // Filtrar por aba ativa
     filtered = filtered.filter(conversation => {
       const conversationTab = getConversationTab(conversation);
       return conversationTab === activeTab;
+    });
+
+    console.log('🔍 [ConversationsList] Conversas filtradas por aba:', {
+      filteredCount: filtered.length,
+      activeTab,
+      firstFiltered: filtered[0] ? {
+        _id: filtered[0]._id,
+        customer_name: filtered[0].customer_name,
+        status: filtered[0].status,
+        tab: getConversationTab(filtered[0])
+      } : null
     });
 
     // Filtrar por termo de busca
@@ -123,19 +191,27 @@ export const ConversationsList: React.FC = () => {
     return filtered;
   }, [conversations, activeTab, searchTerm]);
 
-  // Calcular contadores das novas abas
-  const getTabCount = (tab: TabKey): number => {
-    return conversations.filter(c => getConversationTab(c) === tab).length;
+  // Calcular contadores das novas abas usando dados do backend
+  const tabCounts = {
+    bot: tabCounters?.bot || 0,
+    entrada: tabCounters?.entrada || 0,
+    aguardando: tabCounters?.aguardando || 0,
+    em_atendimento: tabCounters?.em_atendimento || 0,
+    finalizadas: tabCounters?.finalizadas || 0
   };
 
-  // Contadores para cada aba
-  const tabCounts = {
-    bot: getTabCount('bot'),
-    entrada: getTabCount('entrada'),
-    aguardando: getTabCount('aguardando'),
-    em_atendimento: getTabCount('em_atendimento'),
-    finalizadas: getTabCount('finalizadas')
-  };
+  console.log('🔍 [ConversationsList] Contadores das abas:', {
+    tabCounters,
+    tabCounts,
+    activeTab,
+    detailedCounters: {
+      bot: tabCounters?.bot,
+      entrada: tabCounters?.entrada,
+      aguardando: tabCounters?.aguardando,
+      em_atendimento: tabCounters?.em_atendimento,
+      finalizadas: tabCounters?.finalizadas
+    }
+  });
 
   // Funções do header
   const toggleMultiSelect = () => {
@@ -356,7 +432,14 @@ export const ConversationsList: React.FC = () => {
                     agentAvatarUrl={mockAgentAvatar}
                     source="whatsapp"
                     activeTab={activeTab}
-                    onClick={() => setSelectedConversation(conversation)}
+                    onClick={() => {
+                      console.log('🔍 [ConversationsList] Conversa clicada:', {
+                        _id: conversation._id,
+                        customer_name: conversation.customer_name,
+                        status: conversation.status
+                      });
+                      setSelectedConversation(conversation);
+                    }}
                     onContextMenu={(e) => {
                       e.preventDefault();
                       handleMenuClick(conversation._id);
@@ -367,8 +450,8 @@ export const ConversationsList: React.FC = () => {
                     }}
                     onAction={(action, conversationId) => {
                       console.log('Action triggered:', action, 'for conversation:', conversationId);
-                      // Em produção, aqui faria a chamada para API para executar a ação
-                      handleMenuAction(action, conversation);
+                      // Usar nosso novo handler para ações de conversa
+                      handleConversationAction(action, conversation);
                     }}
                   />
 

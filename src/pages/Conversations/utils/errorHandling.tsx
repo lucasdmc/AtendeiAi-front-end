@@ -46,7 +46,7 @@ export const ErrorFallback: React.FC<{ error: Error }> = ({ error }) => (
       >
         Recarregar Página
       </button>
-      {process.env.NODE_ENV === 'development' && (
+      {import.meta.env.DEV && (
         <details className="mt-4 text-left">
           <summary className="cursor-pointer text-red-600 font-medium">
             Detalhes do erro

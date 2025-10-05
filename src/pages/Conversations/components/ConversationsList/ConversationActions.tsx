@@ -6,7 +6,8 @@ import {
   CheckCircle, 
   FileText,
   ArrowUp,
-  MessageSquare
+  MessageSquare,
+  UserPlus
 } from 'lucide-react';
 import { Conversation } from '../../../../services/api';
 
@@ -27,7 +28,19 @@ export const ConversationActions: React.FC<ConversationActionsProps> = ({
         return null;
 
       case 'entrada':
-        return null;
+        return (
+          <div className="flex gap-1">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 px-2 text-xs bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+              onClick={() => onAction('assumir', conversation)}
+            >
+              <UserPlus className="h-3 w-3 mr-1" />
+              Assumir
+            </Button>
+          </div>
+        );
 
       case 'aguardando':
         return (

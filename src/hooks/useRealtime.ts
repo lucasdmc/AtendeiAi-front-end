@@ -20,20 +20,31 @@ export const useRealtime = (clinicId: string, options?: {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
+  const isConnectingRef = useRef(false);
 
   useEffect(() => {
     if (!clinicId) return;
 
     const connectSSE = () => {
+      // Evitar múltiplas conexões simultâneas
+      if (isConnectingRef.current) {
+        console.log('🔌 Já conectando, ignorando nova tentativa');
+        return;
+      }
+
+      isConnectingRef.current = true;
+
       // Fechar conexão anterior se existir
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
+        eventSourceRef.current = null;
       }
 
       console.log('🔌 Conectando ao SSE para clínica:', clinicId);
-      const sseUrl = `/api/v1/events/subscribe?clinic_id=${clinicId}`;
+      const backendUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:3000';
+      const sseUrl = `${backendUrl}/api/v1/events/subscribe?clinic_id=${clinicId}`;
       console.log('🔗 URL SSE:', sseUrl);
-      console.log('🔗 URL completa:', window.location.origin + sseUrl);
+      console.log('🔗 Backend URL:', backendUrl);
 
       // Criar nova conexão SSE
       const eventSource = new EventSource(sseUrl);
@@ -53,6 +64,7 @@ export const useRealtime = (clinicId: string, options?: {
         });
         setIsConnected(true);
         setReconnectAttempts(0); // Reset tentativas quando conectar com sucesso
+        isConnectingRef.current = false; // Reset flag de conexão
       });
 
       eventSource.addEventListener('message', (event) => {
@@ -131,76 +143,98 @@ export const useRealtime = (clinicId: string, options?: {
           
           // Atualizar cache da lista de conversas diretamente
           queryClient.setQueriesData(
-            { queryKey: ['conversations', 'list'] },
+            { queryKey: ['conversations'] },
             (oldData: any) => {
-              if (!oldData?.conversations) {
-                console.log('⚠️ Dados antigos de conversas não encontrados');
+              // Para useInfiniteQuery, os dados estão em pages
+              if (!oldData?.pages) {
+                console.log('⚠️ Dados antigos de conversas não encontrados (infinite query)');
                 return oldData;
               }
               
-              console.log('🔄 Atualizando conversa na lista:', {
+              console.log('🔄 Atualizando conversa na lista (infinite query):', {
                 conversationId: conversation._id,
-                totalConversations: oldData.conversations.length,
+                totalPages: oldData.pages.length,
                 messageTimestamp: message.timestamp
               });
               
-              // Procurar a conversa na lista
-              const conversationIndex = oldData.conversations.findIndex((conv: any) => conv._id === conversation._id);
-              
-              if (conversationIndex >= 0) {
-                const existingConv = oldData.conversations[conversationIndex];
+              // Procurar a conversa em todas as páginas
+              let updated = false;
+              const updatedPages = oldData.pages.map((page: any) => {
+                if (!page.conversations) return page;
                 
-                // ✅ CORREÇÃO: Verificar se a mensagem é mais recente
-                const existingTimestamp = new Date(existingConv.last_message?.timestamp || existingConv.updated_at || 0);
-                const newTimestamp = new Date(message.timestamp);
+                const conversationIndex = page.conversations.findIndex((conv: any) => conv._id === conversation._id);
                 
-                if (newTimestamp <= existingTimestamp) {
-                  console.log('⏭️ Mensagem mais antiga que a existente, ignorando atualização:', {
-                    existing: existingTimestamp.toISOString(),
-                    new: newTimestamp.toISOString()
+                if (conversationIndex >= 0) {
+                  const existingConv = page.conversations[conversationIndex];
+                  
+                  // ✅ CORREÇÃO: Verificar se a mensagem é mais recente
+                  const existingTimestamp = new Date(existingConv.last_message?.timestamp || existingConv.updated_at || 0);
+                  const newTimestamp = new Date(message.timestamp);
+                  
+                  if (newTimestamp <= existingTimestamp) {
+                    console.log('⏭️ Mensagem mais antiga que a existente, ignorando atualização:', {
+                      existing: existingTimestamp.toISOString(),
+                      new: newTimestamp.toISOString()
+                    });
+                    return page;
+                  }
+                  
+                  // Atualizar conversa existente
+                  const updatedConversations = [...page.conversations];
+                  updatedConversations[conversationIndex] = {
+                    ...updatedConversations[conversationIndex],
+                    last_message: {
+                      content: message.content,
+                      timestamp: message.timestamp,
+                      sender_type: message.sender_type,
+                    },
+                    updated_at: message.timestamp,
+                    unread_count: message.sender_type === 'customer' 
+                      ? (updatedConversations[conversationIndex].unread_count || 0) + 1 
+                      : updatedConversations[conversationIndex].unread_count
+                  };
+                  
+                  console.log('✅ Conversa atualizada na página:', conversationIndex, {
+                    newContent: message.content,
+                    newTimestamp: message.timestamp
                   });
-                  return oldData;
+                  
+                  updated = true;
+                  return {
+                    ...page,
+                    conversations: updatedConversations
+                  };
                 }
                 
-                // Atualizar conversa existente
-                const updatedConversations = [...oldData.conversations];
-                updatedConversations[conversationIndex] = {
-                  ...updatedConversations[conversationIndex],
-                  last_message: {
-                    content: message.content,
-                    timestamp: message.timestamp,
-                    sender_type: message.sender_type,
-                  },
-                  updated_at: message.timestamp,
-                  unread_count: message.sender_type === 'customer' 
-                    ? (updatedConversations[conversationIndex].unread_count || 0) + 1 
-                    : updatedConversations[conversationIndex].unread_count
-                };
-                
-                console.log('✅ Conversa atualizada na posição:', conversationIndex, {
-                  newContent: message.content,
-                  newTimestamp: message.timestamp
-                });
-                
-                return {
-                  ...oldData,
-                  conversations: updatedConversations
-                };
-              } else {
-                console.log('⚠️ Conversa não encontrada na lista para atualização');
-                // Se não encontrou, adicionar no início da lista
-                return {
-                  ...oldData,
-                  conversations: [conversation, ...oldData.conversations]
-                };
+                return page;
+              });
+              
+              if (!updated) {
+                console.log('⚠️ Conversa não encontrada nas páginas para atualização');
+                // Se não encontrou, adicionar na primeira página
+                if (oldData.pages[0]?.conversations) {
+                  const firstPage = {
+                    ...oldData.pages[0],
+                    conversations: [conversation, ...oldData.pages[0].conversations]
+                  };
+                  return {
+                    ...oldData,
+                    pages: [firstPage, ...oldData.pages.slice(1)]
+                  };
+                }
               }
+              
+              return {
+                ...oldData,
+                pages: updatedPages
+              };
             }
           );
           
           // Também invalidar para garantir consistência
           console.log('🔄 Invalidando cache como backup...');
           queryClient.invalidateQueries({
-            queryKey: conversationKeys.lists(),
+            queryKey: ['conversations'], // Invalidar todas as queries de conversas
           });
 
           // Mostrar toast de nova mensagem
@@ -248,6 +282,9 @@ export const useRealtime = (clinicId: string, options?: {
         console.error('❌ Erro na conexão SSE:', event);
         console.error('❌ EventSource readyState:', eventSource.readyState);
         console.error('❌ EventSource URL:', eventSource.url);
+        
+        isConnectingRef.current = false; // Reset flag de conexão
+        setIsConnected(false);
         console.error('❌ Event details:', {
           type: event.type,
           target: event.target,
@@ -297,6 +334,8 @@ export const useRealtime = (clinicId: string, options?: {
     // Cleanup function
     return () => {
       console.log('🔌 Limpando conexão SSE...');
+      isConnectingRef.current = false; // Reset flag de conexão
+      
       if (eventSourceRef.current) {
         console.log('🔌 Estado antes de fechar:', {
           readyState: eventSourceRef.current.readyState,
@@ -312,8 +351,10 @@ export const useRealtime = (clinicId: string, options?: {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
+      
+      setIsConnected(false);
     };
-  }, [clinicId, queryClient, toast]);
+  }, [clinicId]); // Removendo queryClient e toast das dependências para evitar loop
 
   return {
     isConnected,

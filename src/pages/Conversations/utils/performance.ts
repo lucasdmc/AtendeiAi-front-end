@@ -213,7 +213,7 @@ export const useLazyComponent = <T>(
  * Performance monitoring
  */
 export const measurePerformance = (name: string, fn: () => void) => {
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     performance.mark(`${name}-start`);
     fn();
     performance.mark(`${name}-end`);

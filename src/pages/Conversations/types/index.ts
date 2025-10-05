@@ -154,6 +154,13 @@ export interface ConversationsContextType extends ConversationsState, Conversati
   messages: Message[];
   templates: Template[];
   flags: Flag[];
+  tabCounters?: {
+    bot: number;
+    entrada: number;
+    aguardando: number;
+    em_atendimento: number;
+    finalizadas: number;
+  };
   clinicSettings?: {
     conversations?: {
       show_newsletter?: boolean;

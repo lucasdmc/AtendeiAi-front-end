@@ -5,6 +5,7 @@ import { MessageInput } from './MessageInput';
 import { useConversationsContext } from '../../context';
 import { useSendMessage } from '../../../../hooks/useMessages';
 import { MessageInputRef, MessageInputMode } from '../../types';
+import { DEFAULT_AGENT_ID } from '../../../../constants/auth';
 
 export const ChatArea: React.FC = () => {
   const {
@@ -26,7 +27,36 @@ export const ChatArea: React.FC = () => {
   const messageInputRef = useRef<MessageInputRef>(null);
 
   // Hook para enviar mensagens
-  const { mutate: sendMessage, isPending: isSending, reset: resetSendMessage } = useSendMessage();
+  const { mutate: sendMessage, isPending: isSending, reset: resetSendMessage } = useSendMessage(selectedConversation?._id || '');
+
+  // Determinar se o input deve estar desabilitado baseado no estado da conversa
+  const isInputDisabled = React.useMemo(() => {
+    if (!selectedConversation) return true;
+    
+    const conversationState = (selectedConversation as any).state;
+    const assignedUserId = selectedConversation.assigned_user_id;
+    
+    // TODO: Pegar o ID do usuário logado do contexto de autenticação
+    const currentUserId = DEFAULT_AGENT_ID; // Atendente padrão temporário
+    
+    // Desabilitar se:
+    // 1. Conversa não está ASSIGNED ao usuário atual
+    // 2. Conversa não está em IN_PROGRESS ou WAITING_CUSTOMER
+    if (conversationState === 'NEW' || conversationState === 'ROUTING') {
+      return true; // Conversa ainda não foi assumida
+    }
+    
+    if (conversationState === 'ASSIGNED' && assignedUserId !== currentUserId) {
+      return true; // Conversa foi assumida por outro agente
+    }
+    
+    if (conversationState === 'RESOLVED' || conversationState === 'CLOSED' || conversationState === 'DROPPED') {
+      return true; // Conversa já foi finalizada
+    }
+    
+    // Permitir apenas se a conversa está ASSIGNED, IN_PROGRESS ou WAITING_CUSTOMER para o usuário atual
+    return !(assignedUserId === currentUserId && ['ASSIGNED', 'IN_PROGRESS', 'WAITING_CUSTOMER'].includes(conversationState));
+  }, [selectedConversation]);
 
   // Efeito para inserir template selecionado no campo de texto
   React.useEffect(() => {
@@ -54,7 +84,6 @@ export const ChatArea: React.FC = () => {
     });
 
     sendMessage({
-      conversationId: selectedConversation._id,
       content: messageText.trim()
     }, {
       onSuccess: (data) => {
@@ -103,15 +132,15 @@ export const ChatArea: React.FC = () => {
 
     console.log('📅 Processando agendamento no ChatArea:', data);
 
-    // Criar data de agendamento
-    const scheduledAt = new Date(`${data.date}T${data.time}`);
+    // TODO: Implementar lógica de agendamento
+    // const scheduledAt = new Date(`${data.date}T${data.time}`);
 
     // Enviar mensagem agendada
     sendMessage({
-      conversationId: selectedConversation._id,
-      content: data.message,
-      scheduled_at: scheduledAt.toISOString(),
-      recurrence: data.recurrence
+      content: data.message
+      // TODO: Implementar agendamento
+      // scheduled_at: scheduledAt.toISOString(),
+      // recurrence: data.recurrence
     }, {
       onSuccess: (response) => {
         console.log('✅ Mensagem agendada com sucesso:', response);
@@ -194,6 +223,7 @@ export const ChatArea: React.FC = () => {
         agentAvatarUrl="/assets/agent-example.png"
         appendAgentSignature={appendAgentSignature}
         onToggleAppendSignature={setAppendAgentSignature}
+        disabled={isInputDisabled}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useConversations } from '../../../hooks/useConversations';
-import { useMessages, useMarkMessagesAsRead } from '../../../hooks/useMessages';
+import { useMessages } from '../../../hooks/useMessages';
 import { useTemplates } from '../../../hooks/useTemplates';
 import { useRealtime } from '../../../hooks/useRealtime';
 import { useClinicSettings } from '../../../hooks/useClinicSettings';
@@ -76,16 +76,35 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
   // Hooks da API
   const clinicId = '68cd84230e29f31cf5f5f1b8';
   const { 
-    data: conversationsData, 
+    conversations: conversationsData, 
     isLoading: conversationsLoading, 
-    error: conversationsError 
-  } = useConversations({ clinic_id: clinicId });
+    error: conversationsError,
+    tabCounters // Adicionar tabCounters
+  } = useConversations({ 
+    clinic_id: clinicId,
+    tab: conversationsState.activeTab
+  });
+
+  // Log detalhado do useConversations
+  React.useEffect(() => {
+    console.log('🔍 [ConversationsContext] Estado atual:', {
+      activeTab: conversationsState.activeTab,
+      conversationsCount: conversationsData?.length || 0,
+      isLoading: conversationsLoading,
+      hasError: !!conversationsError,
+      firstConversation: conversationsData?.[0] ? {
+        _id: conversationsData[0]._id,
+        status: conversationsData[0].status,
+        customer_name: conversationsData[0].customer_name
+      } : null
+    });
+  }, [conversationsState.activeTab, conversationsData, conversationsLoading, conversationsError]);
 
   const { 
-    data: messagesData = [], 
-    isLoading: messagesLoading, 
+    messages: messagesData = [], 
+    isPending: messagesLoading, 
     error: messagesError 
-  } = useMessages(conversationsState.selectedConversation?._id || '', { limit: 50 });
+  } = useMessages(conversationsState.selectedConversation?._id || '');
 
   // Extrair mensagens do useInfiniteQuery
   const messages = React.useMemo(() => {
@@ -139,8 +158,8 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     data: clinicSettings 
   } = useClinicSettings(clinicId);
 
-  // Hook para marcar mensagens como lidas (antigo)
-  const { mutate: markMessagesAsRead } = useMarkMessagesAsRead();
+  // Hook para marcar mensagens como lidas (será usado dinamicamente)
+  // const { mutate: markMessagesAsRead } = useMarkMessagesAsRead();
 
   // Hook para receipts do WhatsApp
   const { mutate: markAsRead } = useMarkAsRead();
@@ -210,14 +229,14 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
       // SEMPRE invalidar cache de conversas para atualizar last_message
       console.log('🎯 [CONTEXT] Invalidando cache de conversas...');
       queryClient.invalidateQueries({
-        queryKey: ['conversations', 'list'],
+        queryKey: ['conversations'], // Invalidar todas as queries de conversas
         refetchType: 'active'
       });
     }
   });
 
   // Extrair arrays dos dados da API
-  const conversations = conversationsData?.conversations || [];
+  const conversations = conversationsData || [];
   const templates = (templatesData as any)?.templates || [];
 
   // ✅ Marcar mensagens como lidas quando uma conversa é selecionada
@@ -239,8 +258,9 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
         customerName: conversationsState.selectedConversation.customer_name || conversationsState.selectedConversation.group_name
       });
       
-      // Marcar como lida no backend (antigo sistema)
-      markMessagesAsRead(conversationsState.selectedConversation._id);
+      // Marcar como lida no backend (usando hook dinamicamente)
+      // TODO: Implementar markMessagesAsRead dinamicamente se necessário
+      // markMessagesAsRead(conversationsState.selectedConversation._id);
 
       // Enviar read receipts para WhatsApp (novo sistema)
       if (messages.length > 0) {
@@ -268,6 +288,11 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
 
   // Actions para ConversationsState
   const setSelectedConversation = (conversation: Conversation | null) => {
+    console.log('🔍 [ConversationsContext] Selecionando conversa:', conversation ? {
+      _id: conversation._id,
+      customer_name: conversation.customer_name,
+      status: conversation.status
+    } : null);
     setConversationsState(prev => ({ ...prev, selectedConversation: conversation }));
   };
 
@@ -280,6 +305,7 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
   };
 
   const setActiveTab = (tab: 'bot' | 'entrada' | 'aguardando' | 'em_atendimento' | 'finalizadas') => {
+    console.log('🔍 [ConversationsContext] Mudando aba de', conversationsState.activeTab, 'para', tab);
     setConversationsState(prev => ({ ...prev, activeTab: tab }));
   };
 
@@ -330,14 +356,15 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     templates,
     flags: mockFlags,
     clinicSettings,
+    tabCounters, // Adicionar tabCounters
     
     // Estados de loading
     conversationsLoading,
     messagesLoading,
     
-    // Estados de erro
-    conversationsError,
-    messagesError,
+    // Estados de erro (convertidos para Error | null)
+    conversationsError: conversationsError instanceof Error ? conversationsError : (conversationsError ? new Error(conversationsError) : null),
+    messagesError: messagesError instanceof Error ? messagesError : (messagesError ? new Error(messagesError) : null),
     
     // Configurações
     clinicId,

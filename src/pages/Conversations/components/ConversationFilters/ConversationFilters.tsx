@@ -142,7 +142,7 @@ export const ConversationFilters: React.FC<ConversationFiltersProps> = ({
       case 'Não lidas':
         const unreadCount = configFilteredConversations.filter(c => (c.unread_count || 0) > 0).length;
         // Debug temporário
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.DEV) {
           console.log('🔍 [DEBUG] Contadores de filtros:', {
             totalConversations: conversations.length,
             configFiltered: configFilteredConversations.length,

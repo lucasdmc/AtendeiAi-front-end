@@ -7,6 +7,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useConversationsContext } from '../../context/ConversationsContext';
+import { useConversationActions } from '../../hooks/useConversationActions';
+import { useToast } from '@/components/ui/use-toast';
 
 interface Chatbot {
   id: string;
@@ -33,7 +35,12 @@ const mockChatbots: Chatbot[] = [
 ];
 
 export const FinishConversationDrawer: React.FC = () => {
-  const { finishConversationDrawerOpen, setFinishConversationDrawerOpen } = useConversationsContext();
+  const { 
+    finishConversationDrawerOpen, 
+    setFinishConversationDrawerOpen,
+    selectedConversation 
+  } = useConversationsContext();
+  
   const [activeTab, setActiveTab] = useState('finish');
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -44,15 +51,53 @@ export const FinishConversationDrawer: React.FC = () => {
   // Chatbot state
   const [selectedChatbot, setSelectedChatbot] = useState<string>('');
 
+  // Hooks
+  const { toast } = useToast();
+  const { closeConversation, isClosing } = useConversationActions(
+    selectedConversation?.clinic_id || ''
+  );
+
   const filteredChatbots = mockChatbots.filter(bot =>
     bot.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     bot.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleFinish = () => {
-    // TODO: Implement finish conversation logic
-    console.log('Finishing conversation');
-    setFinishConversationDrawerOpen(false);
+  const handleFinish = async () => {
+    if (!selectedConversation) {
+      toast({
+        title: "Erro",
+        description: "Nenhuma conversa selecionada",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const result = await closeConversation(
+        selectedConversation._id, 
+        'Conversa finalizada pelo usuário'
+      );
+
+      if (result.success) {
+        toast({
+          title: "Conversa finalizada",
+          description: "A conversa foi finalizada com sucesso",
+        });
+        setFinishConversationDrawerOpen(false);
+      } else {
+        toast({
+          title: "Erro",
+          description: result.message || "Erro ao finalizar conversa",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro inesperado ao finalizar conversa",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSendMessageAndFinish = () => {
@@ -163,9 +208,10 @@ export const FinishConversationDrawer: React.FC = () => {
               <div className="pt-4">
                 <Button
                   onClick={handleFinish}
-                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg"
+                  disabled={isClosing || !selectedConversation}
+                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg disabled:opacity-50"
                 >
-                  Finalizar
+                  {isClosing ? 'Finalizando...' : 'Finalizar'}
                 </Button>
               </div>
             </TabsContent>
