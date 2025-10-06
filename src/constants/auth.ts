@@ -10,3 +10,5 @@ export const DEFAULT_AGENT_NAME = 'Atendente Padrão';
 // Clínica padrão temporária
 export const DEFAULT_CLINIC_ID = '68cd84230e29f31cf5f5f1b8';
 
+
+

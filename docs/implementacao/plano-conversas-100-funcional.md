@@ -430,3 +430,5 @@ Implementar completamente a tela de conversas (`http://localhost:8080/conversati
 
 **Este plano será atualizado conforme o progresso da implementação.**
 
+
+
