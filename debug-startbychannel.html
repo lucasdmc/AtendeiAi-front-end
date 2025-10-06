@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste Debug - Nó StartByChannel</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .debug { background: #f0f0f0; padding: 10px; margin: 10px 0; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+    </style>
+</head>
+<body>
+    <h1>🐛 Debug - Nó StartByChannel</h1>
+    
+    <div class="debug">
+        <h3>📋 Passos para testar:</h3>
+        <ol>
+            <li>Abra o editor: <code>http://localhost:8080/settings/chatbots/editor</code></li>
+            <li>Adicione um nó "Iniciar por um canal"</li>
+            <li>Abra o Console do navegador (F12)</li>
+            <li>Clique no dropdown do nó</li>
+            <li>Selecione "Canal de Teste"</li>
+            <li>Observe os logs no console</li>
+        </ol>
+    </div>
+
+    <div class="debug">
+        <h3>🔍 Logs esperados:</h3>
+        <pre>
+🔄 StartByChannelNode - handleChannelChange: {nodeId: "xxx", ids: ["68e231..."]}
+🔄 StartByChannelNode - Calling onChange callback
+🔄 ChatbotFlowEditor - onChange callback: {nodeId: "xxx", channelIds: ["68e231..."]}
+🔄 ChatbotFlowEditor - Updating nodes, current count: X
+🎯 ChatbotFlowEditor - Found target node, updating: xxx
+✅ ChatbotFlowEditor - Updated nodes count: X
+        </pre>
+    </div>
+
+    <div class="debug">
+        <h3>❌ Possíveis problemas:</h3>
+        <ul>
+            <li><strong>Nó some:</strong> Callback está removendo o nó em vez de atualizar</li>
+            <li><strong>ID não encontrado:</strong> O callback não encontra o nó para atualizar</li>
+            <li><strong>Referência circular:</strong> O callback está causando re-render infinito</li>
+            <li><strong>Estado dessincrono:</strong> O estado do React Flow não está sincronizado</li>
+        </ul>
+    </div>
+
+    <div class="debug">
+        <h3>✅ Soluções aplicadas:</h3>
+        <ul>
+            <li>✅ Usar <code>setNodes(callback)</code> em vez de <code>setNodes(array)</code></li>
+            <li>✅ Logs detalhados para debug</li>
+            <li>✅ Verificação de existência do callback</li>
+            <li>✅ Correção de referências circulares</li>
+        </ul>
+    </div>
+
+    <script>
+        console.log('🚀 Debug page loaded - Ready to test!');
+    </script>
+</body>
+</html>

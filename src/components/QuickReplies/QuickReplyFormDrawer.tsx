@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  X,
   Save,
   Eye,
   EyeOff,
@@ -37,7 +36,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { useToast } from '@/components/ui/use-toast';
 import {
   useCreateQuickReply,
   useUpdateQuickReply,
@@ -73,7 +71,6 @@ const QuickReplyFormDrawer: React.FC<QuickReplyFormDrawerProps> = ({
   quickReply,
   mode,
 }) => {
-  const { toast } = useToast();
   const [formData, setFormData] = useState<FormData>({
     title: '',
     content: '',
@@ -83,7 +80,6 @@ const QuickReplyFormDrawer: React.FC<QuickReplyFormDrawerProps> = ({
   });
   const [errors, setErrors] = useState<Partial<FormData>>({});
   const [showPreview, setShowPreview] = useState(false);
-  const [cursorPosition, setCursorPosition] = useState(0);
 
   // Hooks para dados e mutations
   const { data: categoriesData } = useActiveCategories();
@@ -423,9 +419,7 @@ const QuickReplyFormDrawer: React.FC<QuickReplyFormDrawerProps> = ({
                 value={formData.content}
                 onChange={(e) => {
                   setFormData(prev => ({ ...prev, content: e.target.value }));
-                  setCursorPosition(e.target.selectionStart);
                 }}
-                onSelect={(e) => setCursorPosition((e.target as HTMLTextAreaElement).selectionStart)}
                 placeholder="Digite o conteúdo da resposta rápida...&#10;&#10;Use placeholders como @nome, @telefone, @data para personalizar a mensagem."
                 className={`min-h-32 ${errors.content ? 'border-red-500' : ''}`}
                 rows={6}

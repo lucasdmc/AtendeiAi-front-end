@@ -41,12 +41,6 @@ import { AskDateConfig, DateFormat } from '@/types/askDate';
 import { CompactRichEditor } from '../ask-to-choose/CompactRichEditor';
 import { getDateFormatExample } from '@/lib/dateValidators';
 
-interface Field {
-  key: string;
-  type: string;
-  label: string;
-}
-
 interface AskDateDrawerProps {
   open: boolean;
   onClose: () => void;

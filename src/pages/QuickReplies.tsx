@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import {
   Plus,
   Search,
-  Filter,
   MoreHorizontal,
   Edit,
   Copy,
@@ -12,7 +11,6 @@ import {
   Tag,
   Globe,
   User,
-  Clock,
   TrendingUp,
   Folder,
   FilterX,
@@ -20,7 +18,7 @@ import {
   Eye,
   Settings
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -47,7 +45,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useToast } from '@/components/ui/use-toast';
 import {
   useQuickReplies,
   useActiveCategories,
@@ -67,7 +64,6 @@ import QuickReplyViewDrawer from '@/components/QuickReplies/QuickReplyViewDrawer
 import CategoryManagementDrawer from '@/components/QuickReplies/CategoryManagementDrawer';
 
 const QuickReplies: React.FC = () => {
-  const { toast } = useToast();
 
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState('');

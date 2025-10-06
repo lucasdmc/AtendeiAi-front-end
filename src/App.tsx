@@ -17,6 +17,9 @@ import Auth from './pages/Auth';
 import Settings from './pages/Settings';
 import ConversationSettings from './pages/ConversationSettings';
 import Channels from './pages/Channels';
+import NewChannel from './pages/NewChannel';
+import ChannelSetup from './pages/ChannelSetup';
+import ChannelSync from './pages/ChannelSync';
 import Attendants from './pages/Attendants';
 import Departments from './pages/Departments';
 import ServiceProviders from './pages/ServiceProviders';
@@ -146,6 +149,17 @@ function App() {
               <Channels />
             </Layout>
           } />
+          <Route path="/settings/channels/new" element={
+            <Layout>
+              <NewChannel />
+            </Layout>
+          } />
+          <Route path="/settings/channels/new/:channelType" element={
+            <Layout>
+              <ChannelSetup />
+            </Layout>
+          } />
+          <Route path="/settings/channels/sync" element={<ChannelSync />} />
         <Route path="/settings/attendants" element={
           <Layout>
             <Attendants />

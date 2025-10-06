@@ -159,6 +159,29 @@ export function FlowCanvas() {
         y: event.clientY,
       });
 
+      // ✅ VALIDAÇÃO: Apenas um nó inicial por fluxo
+      const isStartNode = block.type === 'start-channel' || block.type === 'start-manual';
+      if (isStartNode) {
+        const existingStartNodes = nodes.filter(node => 
+          node.type === 'start-channel' || node.type === 'start-manual'
+        );
+        
+        console.log('🔍 [VALIDATION] Verificando nós iniciais:', {
+          blockType: block.type,
+          isStartNode,
+          existingStartNodes: existingStartNodes.length,
+          existingTypes: existingStartNodes.map(n => n.type)
+        });
+        
+        if (existingStartNodes.length > 0) {
+          toast.error('Apenas um nó inicial permitido', {
+            description: 'Um fluxo pode ter apenas um ponto de partida. Remova o nó inicial existente primeiro.',
+          });
+          console.log('❌ [VALIDATION] Bloqueado: já existe nó inicial');
+          return;
+        }
+      }
+
       const newNode: Node = {
         id: `${block.type}-${Date.now()}`,
         type: block.type,
@@ -172,7 +195,7 @@ export function FlowCanvas() {
       setNodes((nds) => [...nds, newNode]);
       pushHistory();
     },
-    [screenToFlowPosition, setNodes, pushHistory]
+    [screenToFlowPosition, setNodes, pushHistory, nodes]
   );
 
   const onDragOver = useCallback((event: React.DragEvent) => {

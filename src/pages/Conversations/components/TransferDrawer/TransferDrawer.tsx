@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { X, Search, Building, User, MessageSquare, Users } from 'lucide-react';
+import { X, Search, Building, User, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useConversationsContext } from '../../context/ConversationsContext';
 

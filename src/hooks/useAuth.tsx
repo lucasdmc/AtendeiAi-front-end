@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   });
   const [loading, setLoading] = useState(false);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string) => {
     setLoading(true);
     // Simular login
     setTimeout(() => {

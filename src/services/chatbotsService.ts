@@ -58,6 +58,9 @@ class ChatbotsService {
   async list(filters: ChatbotFilters = {}): Promise<ChatbotsResponse> {
     const params = new URLSearchParams();
     
+    // Adicionar clinic_id obrigatório
+    params.append('clinic_id', 'test-clinic-123');
+    
     if (filters.query) params.append('query', filters.query);
     if (filters.channelId) params.append('channelId', filters.channelId);
     if (filters.page) params.append('page', filters.page.toString());
@@ -71,7 +74,10 @@ class ChatbotsService {
 
   // Criar chatbot
   async create(payload: CreateChatbotDto): Promise<Chatbot> {
-    return this.request<Chatbot>('/chatbots', {
+    const params = new URLSearchParams();
+    params.append('clinic_id', 'test-clinic-123');
+    
+    return this.request<Chatbot>(`/chatbots?${params.toString()}`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
@@ -79,7 +85,10 @@ class ChatbotsService {
 
   // Atualizar chatbot
   async update(id: string, payload: UpdateChatbotDto): Promise<Chatbot> {
-    return this.request<Chatbot>(`/chatbots/${id}`, {
+    const params = new URLSearchParams();
+    params.append('clinic_id', 'test-clinic-123');
+    
+    return this.request<Chatbot>(`/chatbots/${id}?${params.toString()}`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
     });
@@ -87,14 +96,20 @@ class ChatbotsService {
 
   // Excluir chatbot
   async remove(id: string): Promise<void> {
-    return this.request<void>(`/chatbots/${id}`, {
+    const params = new URLSearchParams();
+    params.append('clinic_id', 'test-clinic-123');
+    
+    return this.request<void>(`/chatbots/${id}?${params.toString()}`, {
       method: 'DELETE',
     });
   }
 
   // Excluir múltiplos chatbots
   async removeBulk(ids: string[]): Promise<void> {
-    return this.request<void>('/chatbots/bulk-delete', {
+    const params = new URLSearchParams();
+    params.append('clinic_id', 'test-clinic-123');
+    
+    return this.request<void>(`/chatbots/bulk-delete?${params.toString()}`, {
       method: 'POST',
       body: JSON.stringify({ ids }),
     });
@@ -102,28 +117,40 @@ class ChatbotsService {
 
   // Ativar chatbot
   async activate(id: string): Promise<void> {
-    return this.request<void>(`/chatbots/${id}/activate`, {
+    const params = new URLSearchParams();
+    params.append('clinic_id', 'test-clinic-123');
+    
+    return this.request<void>(`/chatbots/${id}/activate?${params.toString()}`, {
       method: 'POST',
     });
   }
 
   // Pausar chatbot
   async pause(id: string): Promise<void> {
-    return this.request<void>(`/chatbots/${id}/pause`, {
+    const params = new URLSearchParams();
+    params.append('clinic_id', 'test-clinic-123');
+    
+    return this.request<void>(`/chatbots/${id}/pause?${params.toString()}`, {
       method: 'POST',
     });
   }
 
   // Clonar chatbot
   async clone(id: string): Promise<{ id: string }> {
-    return this.request<{ id: string }>(`/chatbots/${id}/clone`, {
+    const params = new URLSearchParams();
+    params.append('clinic_id', 'test-clinic-123');
+    
+    return this.request<{ id: string }>(`/chatbots/${id}/clone?${params.toString()}`, {
       method: 'POST',
     });
   }
 
   // Reordenar chatbots
   async reorder(orderedIds: string[]): Promise<void> {
-    return this.request<void>('/chatbots/reorder', {
+    const params = new URLSearchParams();
+    params.append('clinic_id', 'test-clinic-123');
+    
+    return this.request<void>(`/chatbots/reorder?${params.toString()}`, {
       method: 'PATCH',
       body: JSON.stringify({ orderedIds }),
     });

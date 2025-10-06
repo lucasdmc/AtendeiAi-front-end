@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { conversationKeys } from './useConversations';
 // import { messageKeys } from './useMessages'; // Removido pois não está sendo usado
 import { useToast } from '@/components/ui/use-toast';
 

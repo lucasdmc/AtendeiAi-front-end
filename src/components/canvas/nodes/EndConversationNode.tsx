@@ -6,8 +6,6 @@ import { memo, useState, useCallback } from 'react';
 import { NodeProps, Position, useStore, useReactFlow } from '@xyflow/react';
 import { CheckCircle, UserCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -27,10 +25,6 @@ export interface EndConversationData {
   onChange?: (value: EndConversationConfig) => void;
 }
 
-const CLOSED_BY_LABELS: Record<ClosedBy, string> = {
-  none: 'Ninguém',
-  chat_owner: 'Dono do chat',
-};
 
 export const EndConversationNode = memo(({ id, data, selected }: NodeProps) => {
   const nodeData = (data || {}) as EndConversationData;

@@ -10,6 +10,7 @@ export * from './useReceipts';
 export * from './useCategories';
 export * from './useQuickReplies';
 export * from './useQuickReplyPicker';
+export * from './use-mobile';
 
 // Re-exportar React Query hooks comuns para conveniência
 export { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';

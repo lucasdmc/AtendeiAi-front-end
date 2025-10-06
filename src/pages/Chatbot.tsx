@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -14,6 +14,7 @@ import {
   Play,
   Pause,
   HelpCircle,
+  RefreshCw,
 } from 'lucide-react';
 import {
   DndContext,
@@ -61,42 +62,11 @@ import { ChannelChip } from '@/components/chatbots/ChannelChip';
 import { EmptyState } from '@/components/chatbots/EmptyState';
 import { Chatbot as ChatbotType, Channel } from '@/types/chatbot';
 import { chatbotsService } from '@/services/chatbotsService';
+import { channelsService } from '@/services/channelsService';
 
 // Configurar dayjs
 dayjs.extend(relativeTime);
 dayjs.locale('pt-br');
-
-// Mock data
-const MOCK_CHANNELS: Channel[] = [
-  {
-    id: 'c1',
-    name: 'Canal do suporte',
-    kind: 'whatsapp',
-  },
-];
-
-const MOCK_CHATBOTS: ChatbotType[] = [
-  {
-    id: '1',
-    name: 'Fluxo Paulão',
-    channels: [MOCK_CHANNELS[0]],
-    createdAt: dayjs().subtract(8, 'minutes').toISOString(),
-    updatedAt: dayjs().subtract(8, 'minutes').toISOString(),
-    runsToday: 0,
-    active: false,
-    order: 0,
-  },
-  {
-    id: '2',
-    name: 'Fluxo',
-    channels: [],
-    createdAt: dayjs().subtract(5, 'minutes').toISOString(),
-    updatedAt: dayjs().subtract(5, 'minutes').toISOString(),
-    runsToday: 0,
-    active: false,
-    order: 1,
-  },
-];
 
 // Componente de linha sortable
 interface SortableRowProps {
@@ -338,13 +308,95 @@ export default function Chatbot() {
   const { toast } = useToast();
 
   // Estados principais
-  const [chatbots, setChatbots] = useState<ChatbotType[]>(MOCK_CHATBOTS);
-  const [channels] = useState<Channel[]>(MOCK_CHANNELS);
+  const [chatbots, setChatbots] = useState<ChatbotType[]>([]);
+  const [channels, setChannels] = useState<Channel[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedChannelId, setSelectedChannelId] = useState<string>('all');
   const [selectedChatbots, setSelectedChatbots] = useState<string[]>([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingChatbots, setDeletingChatbots] = useState<ChatbotType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Carregar dados do backend
+  const loadData = useCallback(async (showRefreshIndicator = false) => {
+    try {
+      if (showRefreshIndicator) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+
+      console.log('🔄 Carregando chatbots e canais do backend...');
+      
+      // Carregar chatbots e canais em paralelo
+      const [chatbotsResponse, channelsResponse] = await Promise.all([
+        chatbotsService.list(),
+        channelsService.list()
+      ]);
+
+        console.log('✅ Dados carregados:', {
+          chatbots: chatbotsResponse.items?.length || 0,
+          channels: Array.isArray(channelsResponse) ? channelsResponse.length : 0
+        });
+
+      // Mapear chatbots para o formato esperado
+        const mappedChatbots = (chatbotsResponse.items || []).map((chatbot: any) => ({
+        id: chatbot.id,
+        name: chatbot.name,
+        channels: chatbot.channels || [],
+        createdAt: chatbot.created_at,
+        updatedAt: chatbot.updated_at,
+        runsToday: chatbot.runs_today || 0,
+        active: chatbot.active || false,
+        order: chatbot.order || 0,
+      }));
+
+      // Mapear canais para o formato esperado
+      const channelsData = Array.isArray(channelsResponse) ? channelsResponse : [];
+      const mappedChannels = channelsData.map((channel: any) => ({
+        id: channel.id,
+        name: channel.name,
+        kind: channel.type || channel.kind,
+      }));
+
+      setChatbots(mappedChatbots);
+      setChannels(mappedChannels);
+
+      toast({
+        title: "Dados atualizados",
+        description: `${mappedChatbots.length} chatbots e ${mappedChannels.length} canais carregados.`,
+      });
+
+    } catch (error) {
+      console.error('❌ Erro ao carregar dados:', error);
+      toast({
+        title: "Erro ao carregar dados",
+        description: error instanceof Error ? error.message : "Não foi possível carregar os dados.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [toast]);
+
+  // Carregar dados na inicialização
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadInitialData = async () => {
+      if (isMounted) {
+        await loadData();
+      }
+    };
+    
+    loadInitialData();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Remover dependência de loadData para evitar loops
 
   // Drag & Drop
   const sensors = useSensors(
@@ -517,7 +569,29 @@ export default function Chatbot() {
 
   const allSelected = selectedChatbots.length === filteredChatbots.length && filteredChatbots.length > 0;
   const someSelected = selectedChatbots.length > 0 && selectedChatbots.length < filteredChatbots.length;
-  const showEmptyState = chatbots.length === 0 && !searchTerm && selectedChannelId === 'all';
+  const showEmptyState = chatbots.length === 0 && !searchTerm && selectedChannelId === 'all' && !isLoading;
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#F4F6FD]">
+        <div className="px-6 py-6">
+          <div className="mb-6">
+            <h1 className="text-3xl font-semibold text-slate-900 mb-1">Chatbots</h1>
+            <p className="text-slate-500">
+              Aqui você consegue criar e gerenciar os chatbots da sua organização.
+            </p>
+          </div>
+          <div className="mt-6 rounded-2xl bg-white shadow-sm border border-slate-100 p-12">
+            <div className="flex items-center justify-center">
+              <RefreshCw className="h-8 w-8 animate-spin text-slate-400 mr-3" />
+              <span className="text-slate-600">Carregando chatbots...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F4F6FD]">
@@ -562,6 +636,17 @@ export default function Chatbot() {
                 ))}
               </SelectContent>
             </Select>
+
+            {/* Botão Atualizar */}
+            <Button
+              variant="outline"
+              onClick={() => loadData(true)}
+              disabled={isRefreshing}
+              className="h-10"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
 
             {/* Botão Novo */}
             <Button onClick={handleCreateNew} className="h-10">

@@ -15,6 +15,8 @@ export interface ValidationError {
  */
 export function validateFlow(nodes: Node[]): ValidationError[] {
   const errors: ValidationError[] = [];
+  
+  console.log(`🔍 [VALIDATION] Iniciando validação de ${nodes.length} nós:`, nodes.map(n => ({ id: n.id, type: n.type })));
 
   nodes.forEach((node) => {
     const nodeType = node.type || '';
@@ -131,16 +133,31 @@ export function validateFlow(nodes: Node[]): ValidationError[] {
     // Validar nós "Enviar mensagem"
     if (nodeType === 'action-message') {
       const blocks = nodeValue?.blocks || [];
+      console.log(`🔍 [VALIDATION] Validando nó Enviar mensagem:`, {
+        nodeId: node.id,
+        nodeType,
+        blocks,
+        blocksCount: blocks.length
+      });
+      
       const hasContent = blocks.some((block: any) => {
         if (block?.type === 'text') {
-          return block.content && block.content.trim().length > 0;
+          const hasTextContent = block.content && block.content.trim().length > 0;
+          console.log(`📝 [VALIDATION] Block texto:`, { content: block.content, hasContent: hasTextContent });
+          return hasTextContent;
         } else if (block?.blockType === 'media') {
-          return block.url && block.url.trim().length > 0;
+          const hasMediaContent = block.url && block.url.trim().length > 0;
+          console.log(`📎 [VALIDATION] Block mídia:`, { url: block.url, hasContent: hasMediaContent });
+          return hasMediaContent;
         }
+        console.log(`❓ [VALIDATION] Block desconhecido:`, block);
         return false;
       });
 
+      console.log(`✅ [VALIDATION] Resultado final:`, { hasContent, nodeId: node.id });
+
       if (!hasContent) {
+        console.log(`❌ [VALIDATION] Nó ${node.id} falhou na validação - sem conteúdo`);
         errors.push({
           nodeId: node.id,
           nodeType,
@@ -167,8 +184,16 @@ export function validateFlow(nodes: Node[]): ValidationError[] {
 
     // Validar nós "Iniciar por um canal"
     if (nodeType === 'start-channel') {
+      console.log('🔍 [VALIDATION] Validando nó start-channel:', {
+        nodeId: node.id,
+        nodeData,
+        nodeValue,
+        channelIds: nodeValue?.channelIds
+      });
+      
       const channelIds = nodeValue?.channelIds || [];
       if (channelIds.length === 0) {
+        console.log('❌ [VALIDATION] Nó start-channel sem canais selecionados');
         errors.push({
           nodeId: node.id,
           nodeType,
@@ -176,8 +201,16 @@ export function validateFlow(nodes: Node[]): ValidationError[] {
           field: 'Canais',
           message: 'É necessário selecionar pelo menos um canal',
         });
+      } else {
+        console.log('✅ [VALIDATION] Nó start-channel com canais:', channelIds);
       }
     }
+  });
+
+  console.log(`✅ [VALIDATION] Validação concluída:`, {
+    totalNodes: nodes.length,
+    errorsFound: errors.length,
+    errors: errors.map(e => ({ nodeId: e.nodeId, nodeType: e.nodeType, field: e.field, message: e.message }))
   });
 
   return errors;

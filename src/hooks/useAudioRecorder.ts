@@ -488,7 +488,7 @@ export const useAudioRecorder = () => {
       mediaRecorder.onerror = (event) => {
         console.error('❌ Erro no MediaRecorder:', event);
         console.error('🔍 Detalhes do erro:', {
-          error: event.error,
+          error: (event as any).error,
           state: mediaRecorder.state,
           streamActive: streamRef.current?.active
         });

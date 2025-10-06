@@ -1,5 +1,5 @@
 // Toolbar principal do editor
-import { Plus, Lightbulb, Undo2, Redo2, Save, Pencil } from 'lucide-react';
+import { Plus, Lightbulb, Undo2, Redo2, Save, Pencil, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -19,6 +19,7 @@ interface EditorToolbarProps {
   onRedo: () => void;
   onSave: () => void;
   onRename: () => void;
+  onTestFlow: () => void;
   isSaving?: boolean;
 }
 
@@ -33,6 +34,7 @@ export function EditorToolbar({
   onRedo,
   onSave,
   onRename,
+  onTestFlow,
   isSaving,
 }: EditorToolbarProps) {
   return (
@@ -128,6 +130,23 @@ export function EditorToolbar({
               </Button>
             </TooltipTrigger>
             <TooltipContent>Salvar (Ctrl+S)</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        {/* Testar fluxo */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="default"
+                size="icon"
+                onClick={onTestFlow}
+                className="rounded-full size-9 shadow-sm bg-green-600 hover:bg-green-700"
+              >
+                <Play className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Testar Fluxo</TooltipContent>
           </Tooltip>
         </TooltipProvider>
 

@@ -16,21 +16,15 @@ export interface StartByChannelData {
   getActiveChannels?: () => Promise<Channel[]>;
 }
 
-// Mock de canais (será substituído por dados reais)
-const MOCK_CHANNELS: Channel[] = [
-  { id: '1', name: 'Canal do suporte' },
-  { id: '2', name: 'Canal de vendas' },
-  { id: '3', name: 'Canal geral' },
-];
-
 export const StartByChannelNode = memo(({ id, data, selected }: NodeProps) => {
   const nodeData = data as StartByChannelData;
   const { getNodes, setNodes } = useReactFlow();
   const pushHistory = useEditorStore((state) => state.pushHistory);
   
-  const [channels, setChannels] = useState<Channel[]>(MOCK_CHANNELS);
+  const [channels, setChannels] = useState<Channel[]>([]);
   const [selectedChannels, setSelectedChannels] = useState<string[]>(nodeData.channelIds || []);
   const [showInfo, setShowInfo] = useState(false);
+  const [isLoadingChannels, setIsLoadingChannels] = useState(false);
 
   // Verificar se o conector de saída está conectado (observando edges diretamente)
   const isConnected = useStore((store) => 
@@ -40,13 +34,18 @@ export const StartByChannelNode = memo(({ id, data, selected }: NodeProps) => {
   // Carrega canais ativos
   useEffect(() => {
     if (nodeData.getActiveChannels) {
+      setIsLoadingChannels(true);
       nodeData.getActiveChannels()
         .then(setChannels)
         .catch((err: Error) => {
           console.error('Erro ao carregar canais:', err);
+          setChannels([]); // Fallback para array vazio
+        })
+        .finally(() => {
+          setIsLoadingChannels(false);
         });
     }
-  }, [nodeData]);
+  }, [nodeData.getActiveChannels]);
 
   // Atualiza seleção quando data muda
   useEffect(() => {
@@ -56,8 +55,15 @@ export const StartByChannelNode = memo(({ id, data, selected }: NodeProps) => {
   }, [nodeData.channelIds]);
 
   const handleChannelChange = (ids: string[]) => {
+    console.log('🔄 StartByChannelNode - handleChannelChange:', { nodeId: id, ids });
     setSelectedChannels(ids);
-    nodeData.onChange?.(ids);
+    
+    if (nodeData.onChange) {
+      console.log('🔄 StartByChannelNode - Calling onChange callback');
+      nodeData.onChange(ids);
+    } else {
+      console.warn('⚠️ StartByChannelNode - onChange callback not available');
+    }
   };
 
   const hasError = selectedChannels.length === 0;
@@ -176,7 +182,7 @@ O funcionamento desse bloco é sujeito a o status de ativado/desativado do bot. 
           channels={channels}
           selectedIds={selectedChannels}
           onChange={handleChannelChange}
-          placeholder="Selecione"
+          placeholder={isLoadingChannels ? "Carregando canais..." : "Selecione"}
         />
 
         {/* Mensagem de erro */}

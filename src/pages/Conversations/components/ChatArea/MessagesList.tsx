@@ -23,10 +23,8 @@ export const MessagesList: React.FC = () => {
   } = useConversationsContext();
 
   // Hook para mensagens agendadas
-  const { 
-    data: scheduledMessages = [],
-    isLoading: scheduledLoading,
-    error: scheduledError
+  const {
+    data: scheduledMessages = []
   } = useScheduledMessages(selectedConversation?._id || '');
 
   // Hook para gerenciar menu das mensagens

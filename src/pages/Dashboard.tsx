@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  MessageSquare, 
-  Users, 
-  Clock, 
-  TrendingUp, 
+import React, { useState } from 'react';
+import {
+  MessageSquare,
+  Users,
+  Clock,
   Calendar,
   Phone,
   Mail,
   CheckCircle,
   AlertCircle,
-  XCircle,
   Activity,
   BarChart3,
   PieChart,
@@ -23,7 +21,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Interfaces para tipagem dos dados

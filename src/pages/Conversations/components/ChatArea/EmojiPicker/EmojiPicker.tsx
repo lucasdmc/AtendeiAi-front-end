@@ -61,7 +61,6 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
     
     // Verificar se há espaço acima
     const spaceAbove = anchorRect.top;
-    const spaceBelow = window.innerHeight - anchorRect.bottom;
     
     let top: number;
     let bottom: number | undefined;
@@ -127,8 +126,6 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
           categories={emojiCategories}
           searchQuery={searchQuery}
           onEmojiClick={handleEmojiClick}
-          activeCategory={activeCategory}
-          onCategoryChange={setActiveCategory}
         />
       </div>
     </div>

@@ -3,14 +3,7 @@ import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
 import { Badge } from '../../../../components/ui/badge';
 import { ScrollArea } from '../../../../components/ui/scroll-area';
-import { Avatar, AvatarImage, AvatarFallback } from '../../../../components/ui/avatar';
-import { 
-  X, 
-  Search, 
-  Plus,
-  User,
-  FileText
-} from 'lucide-react';
+import { X, Search, Plus, User, FileText } from 'lucide-react';
 import { useConversationsContext } from '../../context';
 import { Template } from '../../types';
 import { useUseTemplate } from '../../../../hooks/useTemplates';

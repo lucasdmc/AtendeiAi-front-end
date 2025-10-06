@@ -73,24 +73,11 @@ export const FinishConversationDrawer: React.FC = () => {
     }
 
     try {
-      const result = await closeConversation(
-        selectedConversation._id, 
+      closeConversation(
+        selectedConversation._id,
         'Conversa finalizada pelo usuário'
       );
-
-      if (result.success) {
-        toast({
-          title: "Conversa finalizada",
-          description: "A conversa foi finalizada com sucesso",
-        });
-        setFinishConversationDrawerOpen(false);
-      } else {
-        toast({
-          title: "Erro",
-          description: result.message || "Erro ao finalizar conversa",
-          variant: "destructive",
-        });
-      }
+      setFinishConversationDrawerOpen(false);
     } catch (error) {
       toast({
         title: "Erro",
@@ -127,13 +114,6 @@ export const FinishConversationDrawer: React.FC = () => {
     setFinishConversationDrawerOpen(false);
   };
 
-  const handleCancel = () => {
-    setFinishConversationDrawerOpen(false);
-    setMessage('');
-    setQuickReply('');
-    setSelectedChatbot('');
-    setSearchTerm('');
-  };
 
   if (!finishConversationDrawerOpen) return null;
 

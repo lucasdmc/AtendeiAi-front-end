@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { X, Trash2, HelpCircle, Plus } from 'lucide-react';
+import { Trash2, HelpCircle, Plus } from 'lucide-react';
 import {
   Sheet,
   SheetContent,

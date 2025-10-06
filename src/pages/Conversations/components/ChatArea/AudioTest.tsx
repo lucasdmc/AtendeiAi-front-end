@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '../../../../components/ui/button';
-import { Mic, MicOff, Volume2 } from 'lucide-react';
+import { Mic, Volume2 } from 'lucide-react';
 
 interface AudioTestProps {
   onTestComplete: (success: boolean) => void;

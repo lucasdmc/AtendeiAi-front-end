@@ -9,7 +9,6 @@ import {
   StickyNote, Code, AlertCircle, Copy, Trash2, Pencil, HelpCircle,
 } from 'lucide-react';
 import { BLOCK_DEFINITIONS } from '@/lib/blockDefinitions';
-import { NodeType } from '@/types/flow';
 import {
   Tooltip,
   TooltipContent,
@@ -36,7 +35,7 @@ interface FlowNodeProps extends NodeProps {
   };
 }
 
-export const FlowNode = memo(({ id, type, data, selected }: FlowNodeProps) => {
+export const FlowNode = memo(({ type, data, selected }: FlowNodeProps) => {
   const blockDef = useMemo(
     () => BLOCK_DEFINITIONS.find((b) => b.type === type),
     [type]

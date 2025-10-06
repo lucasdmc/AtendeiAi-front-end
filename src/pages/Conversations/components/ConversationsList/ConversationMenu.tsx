@@ -7,7 +7,8 @@ import {
   Pin, 
   VolumeX 
 } from 'lucide-react';
-import { Conversation, ConversationMenuAction } from '../../types';
+import { Conversation } from '../../../../services/api';
+import { ConversationMenuAction } from '../../types';
 import { keyboardHandlers } from '../../utils/accessibility';
 
 interface ConversationMenuProps {

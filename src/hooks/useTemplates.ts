@@ -89,7 +89,7 @@ export const useUseTemplate = () => {
     onSuccess: (updatedTemplate) => {
       // Atualizar cache do template específico
       queryClient.setQueryData(
-        templateKeys.detail(updatedTemplate.id),
+        templateKeys.detail(updatedTemplate._id),
         updatedTemplate
       );
 

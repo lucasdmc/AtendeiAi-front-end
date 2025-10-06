@@ -3,7 +3,7 @@
  */
 
 import { memo, useState, useCallback, useEffect } from 'react';
-import { NodeProps, Position, useStore, useReactFlow } from '@xyflow/react';
+import { NodeProps, Position, useStore } from '@xyflow/react';
 import { Code, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,6 @@ import { NodeConnector } from './parts/NodeConnector';
 import { NodeActionsMenu } from './parts/NodeActionsMenu';
 import { NodeInfoDialog } from './parts/NodeInfoDialog';
 import { NODE_TOKENS } from './styles';
-import { useEditorStore } from '@/stores/editorStore';
 import { WebhookConfig } from '@/types/webhookNode';
 
 export interface WebhookData {
@@ -23,8 +22,6 @@ export interface WebhookData {
 
 export const WebhookNode = memo(({ id, data, selected }: NodeProps) => {
   const nodeData = (data || {}) as WebhookData;
-  const { getNodes, setNodes } = useReactFlow();
-  const pushHistory = useEditorStore((state) => state.pushHistory);
   
   // Garantir que sempre temos um valor padrão
   const defaultValue: WebhookConfig = {
@@ -58,21 +55,6 @@ export const WebhookNode = memo(({ id, data, selected }: NodeProps) => {
   // Validação
   const isConfigured = value.endpoint?.trim().length > 0;
 
-  // Handler para mudanças no value
-  const handleValueChange = useCallback(
-    (newValue: WebhookConfig) => {
-      setValue(newValue);
-      
-      // Atualizar o nó no store
-      const nodes = getNodes();
-      const updatedNodes = nodes.map((n) =>
-        n.id === id ? { ...n, data: { ...n.data, value: newValue } } : n
-      );
-      setNodes(updatedNodes);
-      pushHistory();
-    },
-    [id, getNodes, setNodes, pushHistory]
-  );
 
   const handleOpenDrawer = useCallback(() => {
     if (nodeData.onOpenDrawer) {

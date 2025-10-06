@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Plus,
   Edit,
@@ -8,9 +8,6 @@ import {
   AlertCircle,
   Loader2,
   Save,
-  X,
-  Palette,
-  Smile,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +26,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -52,7 +48,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useToast } from '@/components/ui/use-toast';
 import {
   useCategories,
   useCreateCategory,
@@ -84,7 +79,6 @@ const CategoryManagementDrawer: React.FC<CategoryManagementDrawerProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { toast } = useToast();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState<CategoryFormData>({

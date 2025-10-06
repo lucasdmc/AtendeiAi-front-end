@@ -1,4 +1,5 @@
-// Hook minimalista - apenas para evitar erros de importação
+// Hook funcional que usa Sonner toast
+import { toast as sonnerToast } from './sonner';
 
 interface ToastProps {
   title?: string;
@@ -9,11 +10,27 @@ interface ToastProps {
 export const useToast = () => {
   return {
     toast: (props: ToastProps) => {
-      console.log('Toast:', props);
+      if (props.variant === 'destructive') {
+        sonnerToast.error(props.title || 'Erro', {
+          description: props.description,
+        });
+      } else {
+        sonnerToast.success(props.title || 'Sucesso', {
+          description: props.description,
+        });
+      }
     }
   };
 };
 
 export const toast = (props: ToastProps) => {
-  console.log('Toast:', props);
+  if (props.variant === 'destructive') {
+    sonnerToast.error(props.title || 'Erro', {
+      description: props.description,
+    });
+  } else {
+    sonnerToast.success(props.title || 'Sucesso', {
+      description: props.description,
+    });
+  }
 };

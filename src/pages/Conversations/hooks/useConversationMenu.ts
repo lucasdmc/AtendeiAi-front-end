@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Conversation, UseConversationMenuReturn } from '../types';
+import { Conversation } from '../../../services/api';
+import { UseConversationMenuReturn } from '../types';
 
 export const useConversationMenu = (): UseConversationMenuReturn => {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);

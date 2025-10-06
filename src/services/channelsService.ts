@@ -3,6 +3,23 @@ import { Channel } from '@/types/chatbot';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
 
+export interface CreateChannelRequest {
+  name: string;
+  type: 'whatsapp' | 'telegram' | 'instagram' | 'email' | 'sms';
+  config?: any;
+}
+
+export interface AssociateSessionRequest {
+  session_id: string;
+  session_type: 'whatsapp' | 'telegram' | 'instagram' | 'email' | 'sms';
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+}
+
 class ChannelsService {
   private baseURL: string;
 
@@ -46,7 +63,98 @@ class ChannelsService {
 
   // Listar canais
   async list(): Promise<Channel[]> {
-    return this.request<Channel[]>('/channels');
+    const response = await this.request<ApiResponse<{ items: Channel[], total: number, page: number, limit: number, pages: number }>>('/channels?clinic_id=test-clinic-123');
+    return response.data?.items || [];
+  }
+
+  // Criar canal
+  async create(channelData: CreateChannelRequest): Promise<Channel> {
+    const response = await this.request<ApiResponse<Channel>>('/channels?clinic_id=test-clinic-123', {
+      method: 'POST',
+      body: JSON.stringify(channelData),
+    });
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Erro ao criar canal');
+    }
+    
+    return response.data;
+  }
+
+  // Atualizar canal
+  async update(id: string, channelData: Partial<CreateChannelRequest>): Promise<Channel> {
+    const response = await this.request<ApiResponse<Channel>>(`/channels/${id}?clinic_id=test-clinic-123`, {
+      method: 'PUT',
+      body: JSON.stringify(channelData),
+    });
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.message || 'Erro ao atualizar canal');
+    }
+    
+    return response.data;
+  }
+
+  // Deletar canal
+  async delete(id: string): Promise<void> {
+    const response = await this.request<ApiResponse<null>>(`/channels/${id}?clinic_id=test-clinic-123`, {
+      method: 'DELETE',
+    });
+    
+    if (!response.success) {
+      throw new Error(response.message || 'Erro ao deletar canal');
+    }
+  }
+
+  // Associar sessão ao canal
+  async associateSession(channelId: string, sessionData: AssociateSessionRequest): Promise<void> {
+    const response = await this.request<ApiResponse<null>>(`/channels/${channelId}/session?clinic_id=test-clinic-123`, {
+      method: 'POST',
+      body: JSON.stringify(sessionData),
+    });
+    
+    if (!response.success) {
+      throw new Error(response.message || 'Erro ao associar sessão ao canal');
+    }
+  }
+
+  // Desassociar sessão do canal
+  async dissociateSession(channelId: string): Promise<void> {
+    const response = await this.request<ApiResponse<null>>(`/channels/${channelId}/session?clinic_id=test-clinic-123`, {
+      method: 'DELETE',
+    });
+    
+    if (!response.success) {
+      throw new Error(response.message || 'Erro ao desassociar sessão do canal');
+    }
+  }
+
+  // Obter informações da sessão do canal
+  async getSessionInfo(channelId: string): Promise<any> {
+    const response = await this.request<ApiResponse<any>>(`/channels/${channelId}/session?clinic_id=test-clinic-123`);
+    
+    if (!response.success) {
+      throw new Error(response.message || 'Erro ao obter informações da sessão');
+    }
+    
+    return response.data;
+  }
+
+  // Listar canais ativos (com sessão conectada)
+  async listActive(): Promise<Channel[]> {
+    const response = await this.request<ApiResponse<Channel[]>>('/channels/active?clinic_id=test-clinic-123');
+    return response.data || [];
+  }
+
+  // Desconectar sessão do canal
+  async disconnectSession(channelId: string): Promise<void> {
+    const response = await this.request<ApiResponse<null>>(`/channels/${channelId}/disconnect?clinic_id=test-clinic-123`, {
+      method: 'POST',
+    });
+    
+    if (!response.success) {
+      throw new Error(response.message || 'Erro ao desconectar sessão do canal');
+    }
   }
 }
 

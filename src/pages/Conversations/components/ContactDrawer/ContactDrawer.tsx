@@ -2,17 +2,14 @@ import React, { useState } from 'react';
 import { Button } from '../../../../components/ui/button';
 import { Badge } from '../../../../components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../../components/ui/avatar';
-import { 
-  X, 
-  Edit, 
-  User, 
-  MessageSquare, 
-  Tag, 
-  Clock, 
+import {
+  X,
+  User,
+  MessageSquare,
+  Tag,
+  Clock,
   Calendar,
   Phone,
-  Mail,
-  MapPin,
   ChevronRight,
   Download,
   MessageCircle,
@@ -108,7 +105,7 @@ export const ContactDrawer: React.FC<ContactDrawerProps> = ({
 };
 
 // Aba Contato
-const ContactTab: React.FC<{ conversation: any }> = ({ conversation }) => {
+const ContactTab: React.FC<{ conversation: any }> = () => {
   return (
     <div className="p-4 space-y-6">
       {/* Etiquetas do contato */}
@@ -193,7 +190,7 @@ const ContactTab: React.FC<{ conversation: any }> = ({ conversation }) => {
 };
 
 // Aba Detalhes da Conversa
-const ConversationTab: React.FC<{ conversation: any }> = ({ conversation }) => {
+const ConversationTab: React.FC<{ conversation: any }> = () => {
   return (
     <div className="p-4 space-y-6">
       {/* Etiquetas da conversa */}

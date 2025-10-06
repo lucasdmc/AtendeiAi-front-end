@@ -5,19 +5,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Badge } from '../components/ui/badge';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Switch } from '../components/ui/switch';
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { 
-  Filter, 
-  MoreVertical, 
-  Plus, 
-  Search, 
+import {
+  Filter,
+  MoreVertical,
+  Plus,
+  Search,
   Paperclip,
   Smile,
   Mic,
   Image as ImageIcon,
-  Send,
   Pencil,
-  ChevronDown,
   Phone,
   Video,
   MoreHorizontal,
@@ -130,7 +127,7 @@ const Chats: React.FC = () => {
   const [activeTab, setActiveTab] = useState('inbox');
   const [message, setMessage] = useState('');
   const [chatbotEnabled, setChatbotEnabled] = useState(false);
-  const [assignedUser, setAssignedUser] = useState('PauloRobertoBunior');
+  const [assignedUser] = useState('PauloRobertoBunior');
 
   const getInitials = (name: string) => {
     const parts = name.split(' ');

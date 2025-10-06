@@ -80,6 +80,14 @@ export function MessagesDrawer({
 
   // Atualizar blocos no value
   const updateBlocks = (newBlocks: ContentBlock[]) => {
+    console.log(`🔄 [MESSAGES DRAWER] Atualizando blocks:`, {
+      oldBlocks: blocks,
+      newBlocks,
+      hasContent: newBlocks.some(block =>
+        block.type === 'text' ? block.content?.trim().length > 0 :
+        'url' in block ? block.url?.trim().length > 0 : false
+      )
+    });
     setBlocks(newBlocks);
     onChange({ ...value, blocks: newBlocks });
   };
@@ -96,6 +104,7 @@ export function MessagesDrawer({
 
   // Atualizar conteúdo de uma mensagem
   const handleMessageChange = (id: string, content: string) => {
+    console.log(`📝 [MESSAGES DRAWER] Alterando conteúdo da mensagem:`, { id, content, contentLength: content?.length || 0 });
     const updated = blocks.map((block) =>
       block.id === id && block.type === 'text' ? { ...block, content } : block
     );

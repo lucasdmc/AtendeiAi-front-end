@@ -24,7 +24,7 @@ interface User {
   updated_at: string;
 }
 
-export const useConversations = (clinicId: string) => {
+export const useConversations = () => {
   return {
     data: { data: [] },
     loading: false,
@@ -33,21 +33,21 @@ export const useConversations = (clinicId: string) => {
   };
 };
 
-export const useActiveConversations = (clinicId: string) => {
+export const useActiveConversations = () => {
   return {
     data: { data: [] },
     loading: false
   };
 };
 
-export const useConversationHistory = (clinicId: string, phone: string, limit: number, offset: number) => {
+export const useConversationHistory = () => {
   return {
     data: null,
     loading: false
   };
 };
 
-export const useUsers = (clinicId: string | undefined): {
+export const useUsers = (_clinicId: string | undefined): {
   data: User[];
   loading: boolean;
   error: Error | null;
@@ -75,7 +75,7 @@ export const useClinics = (): {
   };
 };
 
-export const useAppointments = (clinicId: string) => {
+export const useAppointments = () => {
   return {
     data: [],
     loading: false,
@@ -84,7 +84,7 @@ export const useAppointments = (clinicId: string) => {
   };
 };
 
-export const useClinic = (clinicId: string) => {
+export const useClinic = () => {
   return {
     data: null,
     loading: false,
@@ -92,7 +92,7 @@ export const useClinic = (clinicId: string) => {
   };
 };
 
-export const useClinicProfessionals = (clinicId: string) => {
+export const useClinicProfessionals = () => {
   return {
     data: [],
     loading: false,
@@ -100,7 +100,7 @@ export const useClinicProfessionals = (clinicId: string) => {
   };
 };
 
-export const useClinicServices = (clinicId: string) => {
+export const useClinicServices = () => {
   return {
     data: [],
     loading: false,

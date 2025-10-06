@@ -97,8 +97,29 @@ export const SendMessageNode = memo(({ id, data, selected }: NodeProps) => {
 
   // Atualizar valor do drawer
   const handleValueChange = (newValue: SendMessageValue) => {
+    console.log(`🔄 [SEND MESSAGE NODE] Recebendo mudança do drawer:`, {
+      nodeId: id,
+      newValue,
+      hasOnChange: !!nodeData.onChange,
+      blocksCount: newValue.blocks?.length || 0
+    });
+    
     setValue(newValue);
-    nodeData.onChange?.(newValue);
+    
+    if (nodeData.onChange) {
+      console.log(`📤 [SEND MESSAGE NODE] Chamando onChange callback`);
+      nodeData.onChange(newValue);
+    } else {
+      console.warn(`⚠️ [SEND MESSAGE NODE] onChange callback não definido! Atualizando nó manualmente...`);
+      
+      // Fallback: atualizar o nó diretamente
+      const nodes = getNodes();
+      const updatedNodes = nodes.map((n) =>
+        n.id === id ? { ...n, data: { ...n.data, value: newValue } } : n
+      );
+      setNodes(updatedNodes);
+      pushHistory();
+    }
   };
 
   const nodeInfo = {

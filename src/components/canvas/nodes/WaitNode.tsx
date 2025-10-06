@@ -23,7 +23,7 @@ import { NodeActionsMenu } from './parts/NodeActionsMenu';
 import { NodeInfoDialog } from './parts/NodeInfoDialog';
 import { NODE_TOKENS } from './styles';
 import { useEditorStore } from '@/stores/editorStore';
-import { WaitConfig, WaitMode, WaitUnit, WAIT_UNIT_LABELS } from '@/types/waitNode';
+import { WaitConfig, WaitUnit, WAIT_UNIT_LABELS } from '@/types/waitNode';
 
 export interface WaitData {
   value?: WaitConfig;

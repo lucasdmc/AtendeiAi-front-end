@@ -25,11 +25,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         ws: true,
-        configure: (proxy, options) => {
-          proxy.on('error', (err, req, res) => {
+        configure: (_proxy, _options) => {
+          _proxy.on('error', (err, _req, _res) => {
             console.log('🔌 Proxy error:', err);
           });
-          proxy.on('proxyReq', (proxyReq, req, res) => {
+          _proxy.on('proxyReq', (proxyReq, req, _res) => {
             console.log('📤 Sending Request to Target:', req.method, req.url);
             // Manter headers importantes para SSE
             if (req.headers.accept && req.headers.accept.includes('text/event-stream')) {
@@ -37,7 +37,7 @@ export default defineConfig({
               proxyReq.setHeader('Accept', 'text/event-stream');
             }
           });
-          proxy.on('proxyRes', (proxyRes, req, res) => {
+          _proxy.on('proxyRes', (proxyRes, req, _res) => {
             console.log('📥 Received Response from Target:', proxyRes.statusCode, req.url);
             // Verificar se é uma resposta SSE
             if (proxyRes.headers['content-type'] && proxyRes.headers['content-type'].includes('text/event-stream')) {
@@ -54,7 +54,7 @@ export default defineConfig({
         target: 'http://localhost:3000',
         changeOrigin: true,
         secure: false,
-        configure: (proxy, options) => {
+        configure: (_proxy, _options) => {
           // Configuração silenciosa para mídia - sem logs desnecessários
         },
       }

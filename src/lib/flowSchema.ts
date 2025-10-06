@@ -8,7 +8,7 @@ export const flowNodeSchema = z.object({
     x: z.number(),
     y: z.number(),
   }),
-  data: z.record(z.any()),
+  data: z.record(z.string(), z.unknown()),
 });
 
 export const flowEdgeSchema = z.object({

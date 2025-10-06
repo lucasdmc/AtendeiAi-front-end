@@ -27,7 +27,6 @@ const ChatIntegrationExample: React.FC<ChatIntegrationExampleProps> = ({
   const {
     isOpen,
     query,
-    position,
     closePicker,
     handleTextareaKeyDown,
     handleTextareaInput,

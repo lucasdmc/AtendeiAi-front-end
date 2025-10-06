@@ -41,12 +41,6 @@ import { AskFileConfig, FileExtension } from '@/types/askFile';
 import { CompactRichEditor } from '../ask-to-choose/CompactRichEditor';
 import { FILE_EXTENSION_LABELS, FILE_CATEGORIES } from '@/lib/fileValidators';
 
-interface Field {
-  key: string;
-  type: string;
-  label: string;
-}
-
 interface AskFileDrawerProps {
   open: boolean;
   onClose: () => void;

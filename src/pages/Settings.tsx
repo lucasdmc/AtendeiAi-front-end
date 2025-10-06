@@ -2,10 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
-  User,
   Users,
   Building2,
-  Shield,
   LogOut,
   Radio,
   MessageSquare,

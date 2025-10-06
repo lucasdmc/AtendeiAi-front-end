@@ -75,7 +75,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
   } = useConversationsContext();
 
   // Hook para enviar áudio
-  const { mutate: sendAudio, isPending: isSendingAudio } = useSendAudio();
+  const { mutate: sendAudio, isPending: isSendingAudio } = useSendAudio(selectedConversation?._id || '');
 
   // Monitorar mudanças nos dados de agendamento do contexto
   useEffect(() => {
@@ -234,11 +234,9 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
     try {
       console.log('Enviando áudio:', audioBlob);
       
-      sendAudio({
-        conversationId: selectedConversation._id,
-        audioBlob
-      }, {
-        onSuccess: (data) => {
+      const audioFile = new File([audioBlob], 'audio.webm', { type: audioBlob.type });
+      sendAudio(audioFile, {
+        onSuccess: (data: any) => {
           console.log('✅ Áudio enviado com sucesso:', {
             messageId: data._id,
             message_type: data.message_type,

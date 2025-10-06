@@ -5,16 +5,12 @@ interface EmojiGridProps {
   categories: EmojiCategory[];
   searchQuery: string;
   onEmojiClick: (emoji: string) => void;
-  activeCategory: string;
-  onCategoryChange: (category: string) => void;
 }
 
 export const EmojiGrid: React.FC<EmojiGridProps> = ({
   categories,
   searchQuery,
-  onEmojiClick,
-  activeCategory,
-  onCategoryChange
+  onEmojiClick
 }) => {
   const recentEmojis = getRecentEmojis();
 

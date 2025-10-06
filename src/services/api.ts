@@ -200,6 +200,71 @@ class ApiService {
     }
   }
 
+  // Método GET genérico
+  async get<T>(endpoint: string, params?: Record<string, string | number | boolean>): Promise<T> {
+    let finalEndpoint = endpoint;
+
+    if (params) {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, value.toString());
+        }
+      });
+
+      if (searchParams.toString()) {
+        finalEndpoint += `?${searchParams.toString()}`;
+      }
+    }
+
+    return this.request<T>(finalEndpoint);
+  }
+
+  // Método POST genérico
+  async post<T>(endpoint: string, data?: any, params?: Record<string, string | number | boolean>): Promise<T> {
+    let finalEndpoint = endpoint;
+
+    if (params) {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, value.toString());
+        }
+      });
+
+      if (searchParams.toString()) {
+        finalEndpoint += `?${searchParams.toString()}`;
+      }
+    }
+
+    return this.request<T>(finalEndpoint, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined
+    });
+  }
+
+  // Método DELETE genérico
+  async delete<T>(endpoint: string, params?: Record<string, string | number | boolean>): Promise<T> {
+    let finalEndpoint = endpoint;
+
+    if (params) {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, value.toString());
+        }
+      });
+
+      if (searchParams.toString()) {
+        finalEndpoint += `?${searchParams.toString()}`;
+      }
+    }
+
+    return this.request<T>(finalEndpoint, {
+      method: 'DELETE'
+    });
+  }
+
   // Conversations API
   async getConversations(params: {
     clinic_id: string;
@@ -743,6 +808,10 @@ class ApiService {
 
 // Instância singleton da API
 export const apiService = new ApiService(API_BASE_URL);
+
+// Exportar instância padrão para uso direto
+const api = apiService;
+export default api;
 
 // Exportar instância específica para usuários (compatibilidade)
 export const userApi = apiService;

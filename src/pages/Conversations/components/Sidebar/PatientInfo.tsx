@@ -17,7 +17,7 @@ import {
   User,
   Clock
 } from 'lucide-react';
-import { Conversation } from '../../types';
+import { Conversation } from '../../../../services/api';
 import { useConversationsContext } from '../../context';
 import { getInitials } from '../../utils';
 
@@ -52,7 +52,7 @@ export const PatientInfo: React.FC<PatientInfoProps> = ({ conversation, onClose 
           <div className="text-center">
             <Avatar className="h-20 w-20 mx-auto mb-3">
               <AvatarImage 
-                src={conversation.customer_profile_pic || conversation.avatar} 
+                src={conversation.customer_profile_pic} 
                 alt={displayName} 
               />
               <AvatarFallback className="bg-gray-200 text-gray-600 text-lg">
