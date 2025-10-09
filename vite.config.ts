@@ -9,6 +9,23 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    minify: 'terser',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'router': ['react-router-dom'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
+          'utils': ['axios', 'clsx', 'tailwind-merge'],
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000,
+    assetsInlineLimit: 4096,
+  },
   server: {
     port: 8080,
     host: true,
