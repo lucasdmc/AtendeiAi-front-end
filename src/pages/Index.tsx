@@ -6,9 +6,9 @@ const Index = () => {
   const modules = [
     {
       title: "Gestão de Clínicas",
-      description: "Cadastre e gerencie as clínicas do sistema",
+      description: "Cadastre e gerencie as instituiçãos do sistema",
       icon: Building2,
-      href: "/clinics",
+      href: "/institutions",
       color: "text-blue-600"
     },
     {
@@ -57,7 +57,7 @@ const Index = () => {
           Sistema de Gestão de Atendimento Virtual
         </h1>
         <p className="text-lg text-muted-foreground">
-          Gerencie seu chatbot para clínicas médicas de forma simples e eficiente
+          Gerencie seu chatbot para instituiçãos médicas de forma simples e eficiente
         </p>
       </div>
 

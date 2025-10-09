@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Loader2, CheckCircle, Phone } from 'lucide-react';
 import { flowsService } from '../../services/flowsService';
 import { useToast } from '../ui/use-toast';
+import { useInstitution } from '../../contexts/InstitutionContext';
 
 interface FlowTestModalProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ interface TestResult {
 
 export function FlowTestModal({ isOpen, onClose, flowId, flowName }: FlowTestModalProps) {
   const { toast } = useToast();
+  const { selectedInstitution } = useInstitution();
   const [isActivating, setIsActivating] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
 
@@ -55,11 +57,16 @@ export function FlowTestModal({ isOpen, onClose, flowId, flowName }: FlowTestMod
     try {
       setIsActivating(true);
       
+      const institutionId = selectedInstitution?._id || '';
+      if (!institutionId) {
+        throw new Error('Nenhuma instituição selecionada');
+      }
+      
       // 1. Ativar o fluxo
-      await flowsService.activateFlow(flowId);
+      await flowsService.activateFlow(flowId, institutionId);
       
       // 2. Testar o fluxo com mensagem padrão
-      const result = await flowsService.testFlow(flowId, 'Olá', '');
+      const result = await flowsService.testFlow(flowId, 'Olá', institutionId, '');
       setTestResult(result);
       
       toast({

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Search,
   Users,
@@ -21,12 +22,23 @@ import { Input } from '@/components/ui/input';
 export default function Settings() {
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
+  const { user, attendant, logout } = useAuth();
 
-  // Configurações do usuário (simuladas)
+  // Dados do usuário autenticado
   const userProfile = {
-    name: 'Paulo',
+    name: attendant?.name || user?.email || 'Usuário',
     status: 'Olá! Eu estou usando o WhatsApp',
-    avatar: '/api/placeholder/64/64'
+    avatar: attendant?.avatar || `https://via.placeholder.com/64x64/f3f4f6/6b7280?text=${attendant?.name?.charAt(0) || 'U'}`
+  };
+
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
   };
 
   // Lista de configurações principais
@@ -95,7 +107,7 @@ export default function Settings() {
       icon: Building2,
       title: 'Configurações da organização',
       subtitle: 'Configurações gerais da sua organização',
-      href: '/settings/organization'
+      href: '/settings/institution'
     }
   ];
 
@@ -183,7 +195,10 @@ export default function Settings() {
 
           {/* Botão de desconectar */}
         <div className="px-6 py-3">
-          <button className="flex items-center space-x-4 w-full text-left hover:bg-gray-50 -mx-6 px-6 py-2 rounded-lg transition-colors">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center space-x-4 w-full text-left hover:bg-gray-50 -mx-6 px-6 py-2 rounded-lg transition-colors"
+          >
             <LogOut className="h-5 w-5 text-red-500" />
             <span className="font-medium text-red-500">Desconectar</span>
           </button>

@@ -94,7 +94,7 @@ export const useSimulateCustomerMessage = () => {
         }
       );
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Erro ao simular mensagem do cliente:', error);
     },
   });

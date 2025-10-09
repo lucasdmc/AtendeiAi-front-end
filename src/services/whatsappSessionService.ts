@@ -23,7 +23,7 @@ export interface SessionStatusResponse {
   success: boolean;
   data?: {
     session_id: string;
-    clinic_id: string;
+    institution_id: string;
     status: 'connecting' | 'connected' | 'disconnected' | 'error';
     phone_number?: string;
     device_name: string;
@@ -39,10 +39,10 @@ export const whatsappSessionService = {
   /**
    * Criar nova sessão WhatsApp
    */
-  async createSession(clinicId: string, deviceName?: string, userName?: string): Promise<WhatsAppSessionResponse> {
+  async createSession(institutionId: string, deviceName?: string, userName?: string): Promise<WhatsAppSessionResponse> {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/v1/whatsapp/sessions`, {
-        clinic_id: clinicId,
+        institution_id: institutionId,
         device_name: deviceName || `Dispositivo ${Date.now()}`,
         user_name: userName || 'Usuário'
       });
@@ -99,12 +99,32 @@ export const whatsappSessionService = {
   },
 
   /**
-   * Limpar sessões antigas de uma clínica
+   * Validar se um telefone pode ser usado antes de criar sessão
    */
-  async cleanupSessions(clinicId: string): Promise<{ success: boolean; message?: string }> {
+  async validatePhone(phoneNumber: string): Promise<{ success: boolean; message?: string; canUse: boolean }> {
     try {
-      const response = await axios.delete(`${API_BASE_URL}/api/v1/whatsapp/sessions/cleanup`, {
-        data: { clinic_id: clinicId }
+      const response = await axios.get(`${API_BASE_URL}/api/v1/whatsapp-validation/validate-phone/${encodeURIComponent(phoneNumber)}`);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao validar telefone:', error);
+      if (axios.isAxiosError(error) && error.response) {
+        return error.response.data;
+      }
+      return {
+        success: false,
+        message: 'Erro de conexão com o servidor',
+        canUse: false
+      };
+    }
+  },
+
+  /**
+   * Limpar sessões antigas de uma instituição
+   */
+  async cleanupSessions(institutionId: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/v1/whatsapp/sessions/cleanup`, {
+        institution_id: institutionId
       });
       return response.data;
     } catch (error) {

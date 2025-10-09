@@ -7,7 +7,7 @@ import { useConversationFilters } from './useConversationFilters';
 // Interfaces
 interface Conversation {
   id: string;
-  clinic_id: string;
+  institution_id: string;
   customer_name: string;
   customer_phone: string;
   status: 'active' | 'closed' | 'archived';
@@ -25,7 +25,7 @@ interface Conversation {
 }
 
 interface ConversationFilters {
-  clinic_id: string;
+  institution_id: string;
   status?: 'active' | 'closed' | 'archived';
   assigned_to?: string;
   search?: string;
@@ -54,7 +54,7 @@ interface TabCounters {
 export function useConversations(filters: ConversationFilters) {
   const queryClient = useQueryClient();
   const { filters: activeFilters, updateFilters } = useConversationFilters();
-  const { socket, isConnected } = useWebSocket({ roomId: filters.clinic_id, roomType: 'clinic' });
+  const { socket, isConnected } = useWebSocket({ roomId: filters.institution_id, roomType: 'institution' });
   
   // Estado local
   const [isLoading, setIsLoading] = useState(false);
@@ -63,7 +63,7 @@ export function useConversations(filters: ConversationFilters) {
   // Chave de cache baseada nos filtros
   const queryKey = useMemo(() => [
     'conversations',
-    filters.clinic_id,
+    filters.institution_id,
     filters.status,
     filters.assigned_to,
     filters.search,
@@ -131,12 +131,12 @@ export function useConversations(filters: ConversationFilters) {
     isLoading: countersLoading,
     refetch: refetchCounters
   } = useQuery({
-    queryKey: ['conversation-counters', filters.clinic_id],
-    queryFn: () => conversationService.getTabCounters(filters.clinic_id),
+    queryKey: ['conversation-counters', filters.institution_id],
+    queryFn: () => conversationService.getTabCounters(filters.institution_id),
     staleTime: 30 * 1000, // 30 segundos
     gcTime: 2 * 60 * 1000, // 2 minutos
     refetchInterval: 30 * 1000, // Refetch a cada 30 segundos
-    enabled: !!filters.clinic_id
+    enabled: !!filters.institution_id
   });
   
   // Combinar dados de todas as páginas
@@ -294,7 +294,7 @@ export function useConversations(filters: ConversationFilters) {
     
     // Evento: Contadores atualizados
     const handleCountersUpdated = (data: { counters: TabCounters }) => {
-      queryClient.setQueryData(['conversation-counters', filters.clinic_id], data.counters);
+      queryClient.setQueryData(['conversation-counters', filters.institution_id], data.counters);
     };
     
     // Registrar listeners
@@ -310,7 +310,7 @@ export function useConversations(filters: ConversationFilters) {
       socket.off('conversation_removed', handleConversationRemoved);
       socket.off('counters_updated', handleCountersUpdated);
     };
-  }, [socket, isConnected, addConversation, updateConversation, removeConversation, queryClient, filters.clinic_id]);
+  }, [socket, isConnected, addConversation, updateConversation, removeConversation, queryClient, filters.institution_id]);
   
   // Refetch automático quando reconectar
   useEffect(() => {
@@ -370,5 +370,5 @@ export const conversationKeys = {
   list: (filters: ConversationFilters) => [...conversationKeys.lists(), filters] as const,
   details: () => [...conversationKeys.all, 'detail'] as const,
   detail: (id: string) => [...conversationKeys.details(), id] as const,
-  counters: (clinicId: string) => [...conversationKeys.all, 'counters', clinicId] as const,
+  counters: (institutionId: string) => [...conversationKeys.all, 'counters', institutionId] as const,
 };

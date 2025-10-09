@@ -2,11 +2,12 @@ import { useState, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { conversationService } from '../services/api/ConversationService';
 import { useWebSocket } from './useWebSocket';
+import { useAuth } from '../contexts/AuthContext';
 
 // Interfaces
 interface ConversationActionData {
   conversationId: string;
-  clinicId: string;
+  institutionId: string;
   userId?: string;
   reason?: string;
   feedback?: string;
@@ -24,9 +25,10 @@ interface ActionResult {
 /**
  * Hook para gerenciar ações de conversas (assumir, transferir, fechar, etc.)
  */
-export function useConversationActions(clinicId: string) {
+export function useConversationActions(institutionId: string) {
   const queryClient = useQueryClient();
-  const { socket, isConnected } = useWebSocket({ clinicId });
+  const { socket, isConnected } = useWebSocket({ institutionId });
+  const { attendant } = useAuth();
   
   // Estado local
   const [isPending, setIsLoading] = useState(false);
@@ -36,7 +38,7 @@ export function useConversationActions(clinicId: string) {
   const assumeConversationMutation = useMutation({
     mutationFn: async (data: ConversationActionData) => {
       return await conversationService.assignConversation(data.conversationId, {
-        agentId: data.userId || 'current-user', // TODO: pegar do contexto de auth
+        agentId: attendant?.id || data.userId || 'current-user',
         reason: data.reason || 'Conversa assumida pelo usuário'
       });
     },
@@ -49,13 +51,13 @@ export function useConversationActions(clinicId: string) {
       if (socket && isConnected) {
         socket.emit('conversation_assigned', {
           conversationId: variables.conversationId,
-          clinicId: variables.clinicId,
+          institutionId: variables.institutionId,
           agentId: variables.userId,
           agentName: 'Usuário Atual' // TODO: pegar nome do usuário
         });
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       setError(error instanceof Error ? error.message : 'Erro ao assumir conversa');
     }
   });
@@ -78,14 +80,14 @@ export function useConversationActions(clinicId: string) {
       if (socket && isConnected) {
         socket.emit('conversation_transferred', {
           conversationId: variables.conversationId,
-          clinicId: variables.clinicId,
+          institutionId: variables.institutionId,
           fromAgentId: variables.userId,
           toAgentId: variables.agentId,
           reason: variables.reason
         });
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       setError(error instanceof Error ? error.message : 'Erro ao transferir conversa');
     }
   });
@@ -96,7 +98,7 @@ export function useConversationActions(clinicId: string) {
       return await conversationService.closeConversation(data.conversationId, {
         reason: data.reason || 'Conversa fechada pelo usuário',
         feedback: data.feedback,
-        closedBy: data.userId || 'current-user' // TODO: pegar do contexto de auth
+        closedBy: attendant?.id || 'current-user'
       });
     },
     onSuccess: (_, variables) => {
@@ -108,13 +110,13 @@ export function useConversationActions(clinicId: string) {
       if (socket && isConnected) {
         socket.emit('conversation_closed', {
           conversationId: variables.conversationId,
-          clinicId: variables.clinicId,
+          institutionId: variables.institutionId,
           closedBy: variables.userId,
           reason: variables.reason
         });
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       setError(error instanceof Error ? error.message : 'Erro ao fechar conversa');
     }
   });
@@ -135,12 +137,12 @@ export function useConversationActions(clinicId: string) {
       if (socket && isConnected) {
         socket.emit('conversation_archived', {
           conversationId: variables.conversationId,
-          clinicId: variables.clinicId,
+          institutionId: variables.institutionId,
           archivedBy: variables.userId
         });
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       setError(error instanceof Error ? error.message : 'Erro ao arquivar conversa');
     }
   });
@@ -160,13 +162,13 @@ export function useConversationActions(clinicId: string) {
       if (socket && isConnected) {
         socket.emit('conversation_flagged', {
           conversationId: variables.conversationId,
-          clinicId: variables.clinicId,
+          institutionId: variables.institutionId,
           flagId: variables.flagId,
           appliedBy: variables.userId
         });
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       setError(error instanceof Error ? error.message : 'Erro ao aplicar flag');
     }
   });
@@ -184,13 +186,13 @@ export function useConversationActions(clinicId: string) {
       if (socket && isConnected) {
         socket.emit('conversation_unflagged', {
           conversationId: variables.conversationId,
-          clinicId: variables.clinicId,
+          institutionId: variables.institutionId,
           flagId: variables.flagId,
           removedBy: variables.userId
         });
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       setError(error instanceof Error ? error.message : 'Erro ao remover flag');
     }
   });
@@ -203,7 +205,7 @@ export function useConversationActions(clinicId: string) {
     try {
       await assumeConversationMutation.mutateAsync({
         conversationId,
-        clinicId,
+        institutionId,
         reason
       });
       
@@ -221,7 +223,7 @@ export function useConversationActions(clinicId: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [assumeConversationMutation, clinicId]);
+  }, [assumeConversationMutation, institutionId]);
   
   // Função para transferir conversa
   const transferConversation = useCallback(async (
@@ -236,7 +238,7 @@ export function useConversationActions(clinicId: string) {
     try {
       await transferConversationMutation.mutateAsync({
         conversationId,
-        clinicId,
+        institutionId,
         agentId,
         sectorId,
         reason
@@ -256,7 +258,7 @@ export function useConversationActions(clinicId: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [transferConversationMutation, clinicId]);
+  }, [transferConversationMutation, institutionId]);
   
   // Função para fechar conversa
   const closeConversation = useCallback(async (
@@ -270,7 +272,7 @@ export function useConversationActions(clinicId: string) {
     try {
       await closeConversationMutation.mutateAsync({
         conversationId,
-        clinicId,
+        institutionId,
         reason,
         feedback
       });
@@ -289,7 +291,7 @@ export function useConversationActions(clinicId: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [closeConversationMutation, clinicId]);
+  }, [closeConversationMutation, institutionId]);
   
   // Função para arquivar conversa
   const archiveConversation = useCallback(async (conversationId: string): Promise<ActionResult> => {
@@ -299,7 +301,7 @@ export function useConversationActions(clinicId: string) {
     try {
       await archiveConversationMutation.mutateAsync({
         conversationId,
-        clinicId
+        institutionId
       });
       
       return {
@@ -316,7 +318,7 @@ export function useConversationActions(clinicId: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [archiveConversationMutation, clinicId]);
+  }, [archiveConversationMutation, institutionId]);
   
   // Função para aplicar flag
   const applyFlag = useCallback(async (conversationId: string, flagId: string): Promise<ActionResult> => {
@@ -326,7 +328,7 @@ export function useConversationActions(clinicId: string) {
     try {
       await applyFlagMutation.mutateAsync({
         conversationId,
-        clinicId,
+        institutionId,
         flagId
       });
       
@@ -344,7 +346,7 @@ export function useConversationActions(clinicId: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [applyFlagMutation, clinicId]);
+  }, [applyFlagMutation, institutionId]);
   
   // Função para remover flag
   const removeFlag = useCallback(async (conversationId: string, flagId: string): Promise<ActionResult> => {
@@ -354,7 +356,7 @@ export function useConversationActions(clinicId: string) {
     try {
       await removeFlagMutation.mutateAsync({
         conversationId,
-        clinicId,
+        institutionId,
         flagId
       });
       
@@ -372,7 +374,7 @@ export function useConversationActions(clinicId: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [removeFlagMutation, clinicId]);
+  }, [removeFlagMutation, institutionId]);
   
   // Função para limpar erro
   const clearError = useCallback(() => {
@@ -411,6 +413,7 @@ export function useConversationActions(clinicId: string) {
     canPerformAction: !isPending && !error
   };
 }
+
 
 
 

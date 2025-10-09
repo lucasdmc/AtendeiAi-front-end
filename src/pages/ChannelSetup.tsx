@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { channelsService } from '@/services/channelsService';
+import { useInstitution } from '@/contexts/InstitutionContext';
 
 // Configuração dos tipos de canal
 const channelTypeConfig = {
@@ -39,6 +40,7 @@ export default function ChannelSetup() {
   const navigate = useNavigate();
   const { channelType } = useParams<{ channelType: string }>();
   const { toast } = useToast();
+  const { selectedInstitution } = useInstitution();
   
   const [channelName, setChannelName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -63,6 +65,15 @@ export default function ChannelSetup() {
       return;
     }
 
+    if (!selectedInstitution?._id) {
+      toast({
+        title: "Instituição não selecionada",
+        description: "Por favor, selecione uma instituição antes de criar o canal.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -71,10 +82,24 @@ export default function ChannelSetup() {
         name: channelName.trim(),
         type: 'whatsapp',
         config: {
-          device_name: channelName.trim(),
-          user_name: 'Usuário'
+          phone_number: '', // Será preenchido quando conectar
+          auto_reply: true,
+          welcome_message: 'Olá! Como posso ajudá-lo?',
+          business_hours: {
+            enabled: false,
+            timezone: 'America/Sao_Paulo',
+            schedule: {
+              monday: { start: '09:00', end: '18:00', enabled: true },
+              tuesday: { start: '09:00', end: '18:00', enabled: true },
+              wednesday: { start: '09:00', end: '18:00', enabled: true },
+              thursday: { start: '09:00', end: '18:00', enabled: true },
+              friday: { start: '09:00', end: '18:00', enabled: true },
+              saturday: { start: '09:00', end: '12:00', enabled: false },
+              sunday: { start: '09:00', end: '12:00', enabled: false }
+            }
+          }
         }
-      });
+      }, selectedInstitution._id);
       
       // Navegar para a tela de sincronização (modal)
       navigate(`/settings/channels/sync`, { 

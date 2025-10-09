@@ -1,5 +1,9 @@
 import { useState } from "react"
+import React from "react"
 import { Link } from "react-router-dom"
+import { useAuth } from "@/contexts/AuthContext"
+import { TERMINOLOGY } from "@/constants/terminology"
+import { institutionService, InstitutionWithStats } from "@/services/institutionService"
 import { Building2, MapPin, Phone, Mail, Plus, Edit, Trash2, Search, Brain, Upload, Loader2, AlertTriangle, ArrowLeft } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,9 +14,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { useClinics } from "@/hooks/useApi"
 
-interface Clinic {
+interface Institution {
   id: string
   name: string
   whatsapp_number: string
@@ -26,30 +29,78 @@ interface Clinic {
 
 // Mock data removed - now using real API data
 
-export default function Clinics() {
+export default function Institutions() {
+  const { isAdminLify, isSuporteLify } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isJsonDialogOpen, setIsJsonDialogOpen] = useState(false)
-  const [editingClinic, setEditingClinic] = useState<Clinic | null>(null)
-  const [selectedClinicForJson, setSelectedClinicForJson] = useState<Clinic | null>(null)
+  const [editingInstitution, setEditingInstitution] = useState<Institution | null>(null)
+  const [selectedInstitutionForJson, setSelectedInstitutionForJson] = useState<Institution | null>(null)
   const [jsonConfig, setJsonConfig] = useState("")
   const [isCreating, setIsCreating] = useState(false)
+  const [institutions, setInstitutions] = useState<InstitutionWithStats[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // API hooks
-  const { data: clinics = [], loading: clinicsLoading, error: clinicsError, refetch: refetchClinics } = useClinics()
-  
-  // Debug: Log quando clinics mudam
-  console.log('🔍 Clinics data changed:', { 
-    count: clinics?.length || 0, 
-    loading: clinicsLoading, 
-    error: clinicsError,
-    clinics: clinics?.map(c => ({ id: c.id, name: c.name, status: c.status }))
-  })
+  // Funções para compatibilidade com hooks
+  const refetchInstitutions = async () => {
+    await loadInstitutions()
+  }
 
-  const filteredClinics = (clinics || []).filter(clinic =>
-    clinic.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    clinic.whatsapp_number.toLowerCase().includes(searchTerm.toLowerCase())
+  const institutionsLoading = isLoading
+  const institutionsError = error ? { message: error } : null
+
+  // Verificar se o usuário tem permissão para acessar esta página
+  const hasAccess = isAdminLify() || isSuporteLify()
+
+  // Carregar instituições
+  const loadInstitutions = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const response = await institutionService.getInstitutions()
+      setInstitutions(response.institutions)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao carregar instituições')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Carregar instituições na montagem do componente
+  React.useEffect(() => {
+    if (hasAccess) {
+      loadInstitutions()
+    }
+  }, [hasAccess])
+
+  // Verificação de acesso
+  if (!hasAccess) {
+    return (
+      <div className="h-full bg-gray-50 flex items-center justify-center">
+        <Card className="w-96">
+          <CardContent className="p-8 text-center">
+            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Acesso Negado
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Você não tem permissão para acessar a gestão de {TERMINOLOGY.INSTITUTION.pluralLower}.
+            </p>
+            <p className="text-sm text-gray-500">
+              Esta funcionalidade está disponível apenas para administradores e suporte da plataforma.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const filteredInstitutions = institutions.filter(institution =>
+    institution.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    institution.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    institution.phone?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -58,78 +109,47 @@ export default function Clinics() {
     
     try {
       const formData = new FormData(e.currentTarget)
-      const clinicData = {
+      const institutionData = {
         name: formData.get('name') as string,
-        whatsapp_number: formData.get('whatsapp') as string,
-        meta_webhook_url: formData.get('webhook') as string,
-        status: formData.get('status') as string || 'active',
-        context_json: {
-          clinica: {
-            informacoes_basicas: {
-              nome: formData.get('name') as string,
-              descricao: formData.get('description') as string || ''
-            },
-            localizacao: {
-              endereco_principal: formData.get('address') as string || ''
-            },
-            contatos: {
-              telefone_principal: formData.get('whatsapp') as string,
-              email_principal: formData.get('email') as string || ''
-            }
-          }
+        type: formData.get('type') as string,
+        description: formData.get('description') as string,
+        email: formData.get('email') as string,
+        phone: formData.get('phone') as string,
+        whatsapp_config: {
+          phone_number: formData.get('whatsapp') as string
         }
       }
       
-      console.log('Criando clínica:', clinicData)
+      console.log('Criando instituição:', institutionData)
       
-      // Chamada real para API de criação
-      const response = await fetch('https://atendeai-20-production.up.railway.app/api/clinics', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer test',
-        },
-        body: JSON.stringify({
-          name: clinicData.name,
-          whatsapp_id_number: clinicData.whatsapp_number,
-          status: clinicData.status
-        })
-      })
+      await institutionService.createInstitution(institutionData)
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(`Erro ${response.status}: ${errorData.message || 'Falha ao criar clínica'}`)
-      }
-      
-      const result = await response.json()
-      console.log('Clínica criada com sucesso:', result)
-      
-      // Recarregar lista de clínicas
-      await refetchClinics()
+      // Recarregar lista de instituições
+      await loadInstitutions()
       
       // Fechar modal e limpar formulário
       setIsCreateDialogOpen(false)
       e.currentTarget.reset()
       
       // Mostrar notificação de sucesso
-      alert('Clínica criada com sucesso!')
+      alert('Instituição criada com sucesso!')
       
     } catch (error) {
-      console.error('Erro ao criar clínica:', error)
-      alert('Erro ao criar clínica. Verifique os dados e tente novamente.')
+      console.error('Erro ao criar instituição:', error)
+      alert('Erro ao criar instituição. Verifique os dados e tente novamente.')
     } finally {
       setIsCreating(false)
     }
   }
 
-  const handleEdit = (clinic: Clinic) => {
-    setEditingClinic(clinic)
+  const handleEdit = (institution: InstitutionWithStats) => {
+    setEditingInstitution(institution as Institution)
     setIsEditDialogOpen(true)
   }
 
   const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!editingClinic) return
+    if (!editingInstitution) return
     
     try {
       const formData = new FormData(e.currentTarget)
@@ -140,10 +160,10 @@ export default function Clinics() {
         status: formData.get('edit-status') as string || 'active'
       }
       
-      console.log('Atualizando clínica:', editingClinic.id, updateData)
+      console.log('Atualizando instituição:', editingInstitution.id, updateData)
       
       // Chamada real para API de atualização
-      const response = await fetch(`https://atendeai-20-production.up.railway.app/api/clinics/${editingClinic.id}`, {
+      const response = await fetch(`https://atendeai-20-production.up.railway.app/api/institutions/${editingInstitution.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -154,43 +174,43 @@ export default function Clinics() {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(`Erro ${response.status}: ${errorData.message || 'Falha ao atualizar clínica'}`)
+        throw new Error(`Erro ${response.status}: ${errorData.message || 'Falha ao atualizar instituição'}`)
       }
       
       const result = await response.json()
       console.log('Clínica atualizada com sucesso:', result)
       
-      // Recarregar lista de clínicas
-      await refetchClinics()
+      // Recarregar lista de instituiçãos
+      await refetchInstitutions()
       
       // Fechar modal
       setIsEditDialogOpen(false)
-      setEditingClinic(null)
+      setEditingInstitution(null)
       
       // Mostrar notificação de sucesso
       alert('Clínica atualizada com sucesso!')
       
     } catch (error) {
-      console.error('Erro ao atualizar clínica:', error)
-      alert(`Erro ao atualizar clínica: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
+      console.error('Erro ao atualizar instituição:', error)
+      alert(`Erro ao atualizar instituição: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
     }
   }
 
-  const handleJsonConfig = (clinic: Clinic) => {
-    setSelectedClinicForJson(clinic)
+  const handleJsonConfig = (institution: InstitutionWithStats) => {
+    setSelectedInstitutionForJson(institution as Institution)
     setJsonConfig("")
     setIsJsonDialogOpen(true)
   }
 
-  const handleDelete = async (clinic: Clinic) => {
-    console.log('🗑️ Iniciando processo de deleção para clínica:', clinic.id, clinic.name)
+  const handleDelete = async (institution: InstitutionWithStats) => {
+    console.log('🗑️ Iniciando processo de deleção para instituição:', institution.id, institution.name)
     
-    if (window.confirm(`Tem certeza que deseja deletar a clínica "${clinic.name}"? Esta ação não pode ser desfeita.`)) {
+    if (window.confirm(`Tem certeza que deseja deletar a instituição "${institution.name}"? Esta ação não pode ser desfeita.`)) {
       try {
-        console.log('✅ Confirmação recebida. Fazendo chamada DELETE para:', clinic.id)
+        console.log('✅ Confirmação recebida. Fazendo chamada DELETE para:', institution.id)
         
         // Chamada real para API de deleção
-        const response = await fetch(`https://atendeai-20-production.up.railway.app/api/clinics/${clinic.id}`, {
+        const response = await fetch(`https://atendeai-20-production.up.railway.app/api/institutions/${institution.id}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -203,23 +223,23 @@ export default function Clinics() {
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
           console.error('❌ Erro na resposta da API:', errorData)
-          throw new Error(`Erro ${response.status}: ${errorData.message || 'Falha ao deletar clínica'}`)
+          throw new Error(`Erro ${response.status}: ${errorData.message || 'Falha ao deletar instituição'}`)
         }
         
         const result = await response.json()
         console.log('✅ Clínica deletada com sucesso:', result)
         
-        // Recarregar lista de clínicas
-        console.log('🔄 Recarregando lista de clínicas...')
-        await refetchClinics()
-        console.log('✅ Lista de clínicas recarregada')
+        // Recarregar lista de instituiçãos
+        console.log('🔄 Recarregando lista de instituiçãos...')
+        await refetchInstitutions()
+        console.log('✅ Lista de instituiçãos recarregada')
         
         // Mostrar notificação de sucesso
         alert('Clínica deletada com sucesso!')
         
       } catch (error) {
-        console.error('❌ Erro ao deletar clínica:', error)
-        alert(`Erro ao deletar clínica: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
+        console.error('❌ Erro ao deletar instituição:', error)
+        alert(`Erro ao deletar instituição: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
       }
     } else {
       console.log('❌ Deleção cancelada pelo usuário')
@@ -248,27 +268,27 @@ export default function Clinics() {
   }
 
   // Loading state
-  if (clinicsLoading) {
+  if (institutionsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Carregando clínicas...</span>
+        <span className="ml-2">Carregando instituiçãos...</span>
       </div>
     )
   }
 
   // Error state
-  if (clinicsError) {
+  if (institutionsError) {
     return (
       <div className="flex items-center justify-center h-64">
         <AlertTriangle className="h-8 w-8 text-destructive" />
         <div className="ml-2 text-center">
-          <p className="text-destructive font-medium">Erro ao carregar clínicas</p>
-          <p className="text-sm text-muted-foreground">{clinicsError?.message || 'Erro desconhecido'}</p>
+          <p className="text-destructive font-medium">Erro ao carregar instituiçãos</p>
+          <p className="text-sm text-muted-foreground">{institutionsError?.message || 'Erro desconhecido'}</p>
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => refetchClinics()}
+            onClick={() => refetchInstitutions()}
             className="mt-2"
           >
             Tentar novamente
@@ -292,7 +312,7 @@ export default function Clinics() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-xl font-semibold text-gray-900">Gestão de Clínicas</h1>
+        <h1 className="text-xl font-semibold text-gray-900">{TERMINOLOGY.INSTITUTION.plural}</h1>
       </div>
 
       {/* Conteúdo da tela */}
@@ -302,7 +322,7 @@ export default function Clinics() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-muted-foreground">
-                Gerencie as clínicas do sistema e suas configurações
+                Gerencie as {TERMINOLOGY.INSTITUTION.pluralLower} do sistema e suas configurações
               </p>
             </div>
         
@@ -310,26 +330,26 @@ export default function Clinics() {
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Nova Clínica
+              Nova {TERMINOLOGY.INSTITUTION.singular}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden">
             <DialogHeader>
-              <DialogTitle>Criar Nova Clínica</DialogTitle>
+              <DialogTitle>Criar Nova {TERMINOLOGY.INSTITUTION.singular}</DialogTitle>
               <DialogDescription>
-                Preencha as informações da nova clínica
+                Preencha as informações da nova {TERMINOLOGY.INSTITUTION.singularLower}
               </DialogDescription>
             </DialogHeader>
             <div className="max-h-[60vh] overflow-y-auto pr-4">
               <form onSubmit={handleCreate} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nome da Clínica *</Label>
-                <Input id="name" name="name" placeholder="Digite o nome da clínica" required />
+                <Label htmlFor="name">{TERMINOLOGY.LABELS.institutionName} *</Label>
+                <Input id="name" name="name" placeholder={TERMINOLOGY.PLACEHOLDERS.institutionName} required />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="description">Descrição</Label>
-                <Input id="description" name="description" placeholder="Descrição da clínica" />
+                <Input id="description" name="description" placeholder="Descrição da instituição" />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
@@ -339,7 +359,7 @@ export default function Clinics() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" name="email" type="email" placeholder="contato@clinica.com" />
+                  <Input id="email" name="email" type="email" placeholder="contato@institutiona.com" />
                 </div>
               </div>
               
@@ -350,7 +370,7 @@ export default function Clinics() {
               
               <div className="space-y-2">
                 <Label htmlFor="webhook">Meta Webhook (Opcional)</Label>
-                <Input id="webhook" name="webhook" placeholder="https://api.clinica.com/webhook" />
+                <Input id="webhook" name="webhook" placeholder="https://api.institutiona.com/webhook" />
               </div>
 
               <div className="space-y-2">
@@ -397,7 +417,7 @@ export default function Clinics() {
                 <Label htmlFor="specialties">Especialidades Oferecidas</Label>
                 <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded p-2 bg-gray-50">
                   <label className="flex items-center space-x-2">
-                    <input type="checkbox" name="specialties" value="clinica-geral" />
+                    <input type="checkbox" name="specialties" value="institutiona-geral" />
                     <span className="text-sm">Clínica Geral</span>
                   </label>
                   <label className="flex items-center space-x-2">
@@ -446,7 +466,7 @@ export default function Clinics() {
                 <textarea 
                   id="description" 
                   name="description" 
-                  placeholder="Descreva os serviços e diferenciais da clínica..." 
+                  placeholder="Descreva os serviços e diferenciais da instituição..." 
                   className="w-full p-2 border border-gray-300 rounded-md resize-none h-20"
                 />
               </div>
@@ -469,7 +489,7 @@ export default function Clinics() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Buscar clínicas..."
+            placeholder={`Buscar ${TERMINOLOGY.INSTITUTION.pluralLower}...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
@@ -482,7 +502,7 @@ export default function Clinics() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Clínica</TableHead>
+                <TableHead>{TERMINOLOGY.INSTITUTION.singular}</TableHead>
                 <TableHead>Endereço</TableHead>
                 <TableHead>Contato</TableHead>
                 <TableHead>WhatsApp</TableHead>
@@ -493,19 +513,26 @@ export default function Clinics() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredClinics.map((clinic) => (
-                <TableRow key={clinic.id} className="hover:bg-muted/50">
+              {filteredInstitutions.map((institution) => (
+                <TableRow key={institution.id} className="hover:bg-muted/50">
                   <TableCell>
                     <div className="space-y-1">
                       <div className="font-medium flex items-center space-x-2">
                         <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <span>{clinic.name}</span>
+                        <span>{institution.name}</span>
                       </div>
-                      {clinic.context_json?.clinica?.informacoes_basicas?.descricao && (
-                        <div className="text-sm text-muted-foreground line-clamp-2">
-                          {clinic.context_json.clinica.informacoes_basicas.descricao}
-                        </div>
-                      )}
+                      {institution.context_json && (() => {
+                        try {
+                          const contextData = JSON.parse(institution.context_json);
+                          return contextData?.institution?.informacoes_basicas?.descricao && (
+                            <div className="text-sm text-muted-foreground line-clamp-2">
+                              {contextData.institution.informacoes_basicas.descricao}
+                            </div>
+                          );
+                        } catch {
+                          return null;
+                        }
+                      })()}
                     </div>
                   </TableCell>
                   
@@ -513,10 +540,16 @@ export default function Clinics() {
                     <div className="flex items-start space-x-2 max-w-xs">
                       <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                       <span className="text-sm line-clamp-2">
-                        {typeof clinic.context_json?.clinica?.localizacao?.endereco_principal === 'string' ? 
-                          clinic.context_json.clinica.localizacao.endereco_principal :
-                          'Endereço não informado'
-                        }
+                        {(() => {
+                          if (!institution.context_json) return 'Endereço não informado';
+                          try {
+                            const contextData = JSON.parse(institution.context_json);
+                            const endereco = contextData?.institution?.localizacao?.endereco_principal;
+                            return typeof endereco === 'string' ? endereco : 'Endereço não informado';
+                          } catch {
+                            return 'Endereço não informado';
+                          }
+                        })()}
                       </span>
                     </div>
                   </TableCell>
@@ -525,28 +558,44 @@ export default function Clinics() {
                     <div className="space-y-1">
                       <div className="flex items-center space-x-2 text-sm">
                         <Phone className="h-3 w-3 text-muted-foreground" />
-                        <span>{clinic.context_json?.clinica?.contatos?.telefone_principal || 'Não informado'}</span>
+                        <span>{(() => {
+                          if (!institution.context_json) return 'Não informado';
+                          try {
+                            const contextData = JSON.parse(institution.context_json);
+                            return contextData?.institution?.contatos?.telefone_principal || 'Não informado';
+                          } catch {
+                            return 'Não informado';
+                          }
+                        })()}</span>
                       </div>
                       <div className="flex items-center space-x-2 text-sm">
                         <Mail className="h-3 w-3 text-muted-foreground" />
-                        <span className="truncate max-w-[150px]">{clinic.context_json?.clinica?.contatos?.email_principal || 'Não informado'}</span>
+                        <span className="truncate max-w-[150px]">{(() => {
+                          if (!institution.context_json) return 'Não informado';
+                          try {
+                            const contextData = JSON.parse(institution.context_json);
+                            return contextData?.institution?.contatos?.email_principal || 'Não informado';
+                          } catch {
+                            return 'Não informado';
+                          }
+                        })()}</span>
                       </div>
                     </div>
                   </TableCell>
                   
                   <TableCell>
-                    <span className="text-sm">{clinic.whatsapp_number}</span>
+                    <span className="text-sm">{institution.whatsapp_number}</span>
                   </TableCell>
                   
                   <TableCell>
                     <Badge 
-                      variant={clinic.status === 'active' ? 'default' : 'secondary'}
-                      className={clinic.status === 'active' 
+                      variant={institution.status === 'active' ? 'default' : 'secondary'}
+                      className={institution.status === 'active' 
                         ? 'bg-green-100 text-green-800 border-green-200' 
                         : 'bg-gray-100 text-gray-800 border-gray-200'
                       }
                     >
-                      {clinic.status === 'active' ? 'Ativa' : 'Inativa'}
+                      {institution.status === 'active' ? 'Ativa' : 'Inativa'}
                     </Badge>
                   </TableCell>
                   
@@ -558,23 +607,23 @@ export default function Clinics() {
                   
                   <TableCell>
                     <span className="text-sm text-muted-foreground">
-                      {new Date(clinic.created_at).toLocaleDateString('pt-BR')}
+                      {new Date(institution.created_at).toLocaleDateString('pt-BR')}
                     </span>
                   </TableCell>
                   
                    <TableCell className="text-right">
                      <div className="flex justify-end space-x-1">
-                       <Button variant="ghost" size="sm" onClick={() => handleJsonConfig(clinic)}>
+                       <Button variant="ghost" size="sm" onClick={() => handleJsonConfig(institution)}>
                          <Brain className="h-4 w-4" />
                        </Button>
-                       <Button variant="ghost" size="sm" onClick={() => handleEdit(clinic)}>
+                       <Button variant="ghost" size="sm" onClick={() => handleEdit(institution)}>
                          <Edit className="h-4 w-4" />
                        </Button>
                        <Button 
                          variant="ghost" 
                          size="sm" 
                          className="text-destructive hover:text-destructive"
-                         onClick={() => handleDelete(clinic)}
+                         onClick={() => handleDelete(institution)}
                        >
                          <Trash2 className="h-4 w-4" />
                        </Button>
@@ -587,13 +636,13 @@ export default function Clinics() {
         </CardContent>
       </Card>
 
-      {filteredClinics.length === 0 && (
+      {filteredInstitutions.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Nenhuma clínica encontrada</h3>
+            <h3 className="text-lg font-semibold mb-2">Nenhuma instituição encontrada</h3>
             <p className="text-muted-foreground text-center max-w-sm">
-              Não há clínicas que correspondam à sua busca.
+              Não há instituiçãos que correspondam à sua busca.
             </p>
           </CardContent>
         </Card>
@@ -605,21 +654,21 @@ export default function Clinics() {
           <DialogHeader>
             <DialogTitle>Editar Clínica</DialogTitle>
             <DialogDescription>
-              Altere as informações da clínica
+              Altere as informações da instituição
             </DialogDescription>
           </DialogHeader>
-          {editingClinic && (
+          {editingInstitution && (
             <div className="max-h-[60vh] overflow-y-auto pr-4">
               <form onSubmit={handleUpdate} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-name">Nome da Clínica</Label>
-                <Input id="edit-name" name="edit-name" defaultValue={editingClinic.name} required />
+                <Input id="edit-name" name="edit-name" defaultValue={editingInstitution.name} required />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-whatsapp">WhatsApp</Label>
-                  <Input id="edit-whatsapp" name="edit-whatsapp" defaultValue={editingClinic.whatsapp_number} required />
+                  <Input id="edit-whatsapp" name="edit-whatsapp" defaultValue={editingInstitution.whatsapp_number} required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-verify-token">WhatsApp Verify Token</Label>
@@ -629,12 +678,12 @@ export default function Clinics() {
               
               <div className="space-y-2">
                 <Label htmlFor="edit-webhook">Meta Webhook (Opcional)</Label>
-                <Input id="edit-webhook" name="edit-webhook" defaultValue={editingClinic.meta_webhook_url || ""} />
+                <Input id="edit-webhook" name="edit-webhook" defaultValue={editingInstitution.meta_webhook_url || ""} />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="edit-status">Status</Label>
-                <Select name="edit-status" defaultValue={editingClinic.status}>
+                <Select name="edit-status" defaultValue={editingInstitution.status}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -663,9 +712,9 @@ export default function Clinics() {
       <Dialog open={isJsonDialogOpen} onOpenChange={setIsJsonDialogOpen}>
         <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle>Configuração JSON - {selectedClinicForJson?.name}</DialogTitle>
+            <DialogTitle>Configuração JSON - {selectedInstitutionForJson?.name}</DialogTitle>
             <DialogDescription>
-              Insira a configuração JSON para esta clínica
+              Insira a configuração JSON para esta instituição
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto pr-4">

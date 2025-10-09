@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useInstitution } from '@/contexts/InstitutionContext';
 import {
   Search,
   Plus,
@@ -322,6 +323,7 @@ function ChannelRow({ channel, isSelected, onSelect, onEdit, onDelete, onDeactiv
 export default function Channels() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { selectedInstitution } = useInstitution();
   
   // Estados principais
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -346,11 +348,16 @@ export default function Channels() {
     }
     
     try {
-      console.log('Iniciando carregamento de canais...');
+      console.log('Iniciando carregamento de canais para instituição:', selectedInstitution?.name);
       setIsLoadingRef(true);
       setLoading(true);
       
-      const channelsData = await channelsService.list();
+      if (!selectedInstitution?._id) {
+        console.log('Nenhuma instituição selecionada, não carregando canais');
+        return;
+      }
+      
+      const channelsData = await channelsService.list(selectedInstitution._id);
       console.log('Canais carregados:', channelsData.length);
       
       setChannels(channelsData as Channel[]);
@@ -366,15 +373,21 @@ export default function Channels() {
       setLoading(false);
       setIsLoadingRef(false);
     }
-  }, [toast, hasLoaded, isLoadingRef]);
+  }, [selectedInstitution, toast, hasLoaded, isLoadingRef]);
 
-  // Carregar canais na inicialização (apenas uma vez)
+  // Reset hasLoaded quando a instituição mudar
   useEffect(() => {
-    console.log('useEffect executado - hasLoaded:', hasLoaded, 'isLoadingRef:', isLoadingRef);
-    if (!hasLoaded && !isLoadingRef) {
+    console.log('Instituição mudou, resetando hasLoaded');
+    setHasLoaded(false);
+  }, [selectedInstitution?._id]);
+
+  // Carregar canais na inicialização e quando a instituição mudar
+  useEffect(() => {
+    console.log('useEffect executado - hasLoaded:', hasLoaded, 'isLoadingRef:', isLoadingRef, 'selectedInstitution:', selectedInstitution?.name);
+    if (selectedInstitution?._id && !isLoadingRef && !hasLoaded) {
       loadChannels();
     }
-  }, []); // Array vazio para executar apenas uma vez
+  }, [selectedInstitution?._id, hasLoaded, isLoadingRef, loadChannels]);
 
   // Filtrar canais
   const filteredChannels = useMemo(() => {
@@ -424,7 +437,16 @@ export default function Channels() {
 
   const handleDeleteChannel = async (channelId: string) => {
     try {
-      await channelsService.delete(channelId);
+      if (!selectedInstitution?._id) {
+        toast({
+          title: "Instituição não selecionada",
+          description: "Por favor, selecione uma instituição antes de excluir o canal.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await channelsService.delete(channelId, selectedInstitution._id);
       toast({
         title: "Canal excluído",
         description: "Canal foi excluído com sucesso.",
@@ -443,11 +465,19 @@ export default function Channels() {
 
   const handleDeactivateChannel = async (channelId: string) => {
     try {
-      // Implementar desativação no backend
-      console.log('Deactivate channel:', channelId);
+      if (!selectedInstitution?._id) {
+        toast({
+          title: "Instituição não selecionada",
+          description: "Por favor, selecione uma instituição antes de desativar o canal.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await channelsService.deactivate(channelId, selectedInstitution._id);
       toast({
         title: "Canal desativado",
-        description: "Canal foi desativado com sucesso.",
+        description: "Canal foi desativado com sucesso. Sessão desconectada se estava ativa.",
       });
       loadChannels(true);
     } catch (error) {
@@ -462,8 +492,16 @@ export default function Channels() {
 
   const handleReactivateChannel = async (channelId: string) => {
     try {
-      // Implementar reativação no backend
-      console.log('Reactivate channel:', channelId);
+      if (!selectedInstitution?._id) {
+        toast({
+          title: "Instituição não selecionada",
+          description: "Por favor, selecione uma instituição antes de reativar o canal.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await channelsService.activate(channelId, selectedInstitution._id);
       toast({
         title: "Canal reativado",
         description: "Canal foi reativado com sucesso.",
@@ -481,7 +519,16 @@ export default function Channels() {
 
   const handleRestartSession = async (channelId: string) => {
     try {
-      await channelsService.disconnectSession(channelId);
+      if (!selectedInstitution?._id) {
+        toast({
+          title: "Instituição não selecionada",
+          description: "Por favor, selecione uma instituição antes de desconectar a sessão.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await channelsService.disconnectSession(channelId, selectedInstitution._id);
       toast({
         title: "Sessão desconectada",
         description: "A sessão foi desconectada com sucesso.",

@@ -1,10 +1,9 @@
 import { apiClient } from './apiClient';
-import { DEFAULT_AGENT_ID } from '../../constants/auth';
 
 // Interfaces
 interface Conversation {
   id: string;
-  clinic_id: string;
+  institution_id: string;
   customer_name: string;
   customer_phone: string;
   status: 'active' | 'closed' | 'archived';
@@ -22,7 +21,7 @@ interface Conversation {
 }
 
 interface ConversationFilters {
-  clinic_id: string;
+  institution_id: string;
   status?: 'active' | 'closed' | 'archived';
   assigned_to?: string;
   search?: string;
@@ -214,12 +213,12 @@ export class ConversationService {
   /**
    * Assume uma conversa (ROUTING → ASSIGNED)
    */
-  async assumeConversation(conversationId: string): Promise<any> {
+  async assumeConversation(conversationId: string, agentId: string): Promise<any> {
     try {
       console.log('🔍 [ConversationService] Assumindo conversa:', conversationId);
       
       const response = await apiClient.put(`/conversations/${conversationId}/assume`, {
-        agent_id: DEFAULT_AGENT_ID // TODO: Pegar do contexto de autenticação
+        agent_id: agentId
       });
       
       console.log('🔍 [ConversationService] Conversa assumida:', response.data);
@@ -234,12 +233,12 @@ export class ConversationService {
   /**
    * Inicia o atendimento (ASSIGNED → IN_PROGRESS)
    */
-  async startHandling(conversationId: string): Promise<any> {
+  async startHandling(conversationId: string, agentId: string): Promise<any> {
     try {
       console.log('🔍 [ConversationService] Iniciando atendimento:', conversationId);
       
       const response = await apiClient.put(`/conversations/${conversationId}/start-handling`, {
-        agent_id: DEFAULT_AGENT_ID // TODO: Pegar do contexto de autenticação
+        agent_id: agentId
       });
       
       console.log('🔍 [ConversationService] Atendimento iniciado:', response.data);
@@ -254,11 +253,11 @@ export class ConversationService {
   /**
    * Obter contadores por aba
    */
-  async getTabCounters(clinicId: string): Promise<TabCounters> {
+  async getTabCounters(institutionId: string): Promise<TabCounters> {
     try {
       const response = await apiClient.get('/conversations', {
         params: {
-          clinic_id: clinicId,
+          institution_id: institutionId,
           include_counters: 'true'
         }
       } as any);
@@ -280,7 +279,7 @@ export class ConversationService {
    * Criar nova conversa
    */
   async createConversation(data: {
-    clinic_id: string;
+    institution_id: string;
     customer_phone: string;
     customer_name?: string;
     initial_message?: string;

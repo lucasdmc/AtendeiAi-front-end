@@ -5,7 +5,7 @@ export * from './useTemplates';
 export * from './useSimulateMessage';
 export * from './useAudioRecorder';
 export * from './useScheduledMessages';
-export * from './useClinicSettings';
+export * from './useInstitutionSettings';
 export * from './useReceipts';
 export * from './useCategories';
 export * from './useQuickReplies';

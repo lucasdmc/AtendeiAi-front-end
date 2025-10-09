@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   ArrowLeft,
   Camera,
@@ -41,6 +42,7 @@ interface UserProfile {
 export default function Profile() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, attendant } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -48,13 +50,13 @@ export default function Profile() {
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Dados do usuário (simulados - em produção viriam da API)
+  // Dados do usuário autenticado
   const [userProfile, setUserProfile] = useState<UserProfile>({
-    id: '1',
-    name: 'Paulo',
-    email: 'paulo@email.com',
-    phone: '+55 11 99999-9999',
-    avatar: '/api/placeholder/150/150',
+    id: user?.id || '',
+    name: attendant?.name || user?.email || 'Usuário',
+    email: user?.email || '',
+    phone: attendant?.phone || '',
+    avatar: attendant?.avatar || `https://via.placeholder.com/150x150/f3f4f6/6b7280?text=${attendant?.name?.charAt(0) || 'U'}`,
     status: 'Olá! Eu estou usando o WhatsApp'
   });
 
@@ -65,6 +67,16 @@ export default function Profile() {
     phone: userProfile.phone || '',
     status: userProfile.status
   });
+
+  // Atualizar formData quando userProfile mudar
+  useEffect(() => {
+    setFormData({
+      name: userProfile.name,
+      email: userProfile.email,
+      phone: userProfile.phone || '',
+      status: userProfile.status
+    });
+  }, [userProfile]);
 
   // Formulário de senha
   const [passwordData, setPasswordData] = useState({
@@ -194,7 +206,13 @@ export default function Profile() {
   };
 
   const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .slice(0, 2) // Limitar a apenas 2 palavras
+      .map(n => n[0])
+      .join('')
+      .toUpperCase();
   };
 
   return (

@@ -3,7 +3,7 @@ import { io, Socket } from 'socket.io-client';
 // Interfaces
 interface WebSocketConfig {
   url?: string;
-  clinicId: string;
+  institutionId: string;
   userId?: string;
   autoConnect?: boolean;
   reconnectAttempts?: number;
@@ -43,15 +43,23 @@ interface WebSocketEvents {
   // Eventos de sessão
   'session_started': (data: { conversationId: string; sessionId: string; agentId: string }) => void;
   'session_ended': (data: { conversationId: string; sessionId: string; agentId: string; reason?: string }) => void;
+  'phoneConflict': (data: { 
+    sessionId: string; 
+    phoneNumber: string; 
+    error: string;
+    existingSession?: any;
+    existingChannel?: any;
+    existingInstitution?: any;
+  }) => void;
   
   // Eventos de notificação
   'notification': (data: { type: 'info' | 'success' | 'warning' | 'error'; title: string; message: string }) => void;
   'counters_updated': (data: { counters: any }) => void;
   
   // Eventos de usuário
-  'user_joined': (data: { userId: string; clinicId: string; timestamp: Date }) => void;
-  'user_left': (data: { userId: string; clinicId: string; timestamp: Date }) => void;
-  'user_disconnected': (data: { userId: string; clinicId: string; timestamp: Date }) => void;
+  'user_joined': (data: { userId: string; institutionId: string; timestamp: Date }) => void;
+  'user_left': (data: { userId: string; institutionId: string; timestamp: Date }) => void;
+  'user_disconnected': (data: { userId: string; institutionId: string; timestamp: Date }) => void;
   
   // Eventos de sistema
   'ping': () => void;
@@ -109,7 +117,7 @@ export class WebSocketService {
     try {
       this.socket = io(this.config.url!, {
         query: {
-          clinicId: this.config.clinicId,
+          institutionId: this.config.institutionId,
           userId: this.config.userId || 'anonymous'
         },
         transports: ['websocket', 'polling'],
@@ -255,6 +263,7 @@ export class WebSocketService {
     // Eventos de sessão
     this.socket.on('session_started', (data) => this.emit('session_started', data));
     this.socket.on('session_ended', (data) => this.emit('session_ended', data));
+    this.socket.on('phoneConflict', (data) => this.emit('phoneConflict', data));
     
     // Eventos de notificação
     this.socket.on('notification', (data) => this.emit('notification', data));
@@ -352,8 +361,8 @@ export class WebSocketService {
   updateConfig(newConfig: Partial<WebSocketConfig>): void {
     this.config = { ...this.config, ...newConfig };
     
-    // Reconectar se clinicId ou userId mudaram
-    if (newConfig.clinicId || newConfig.userId) {
+    // Reconectar se institutionId ou userId mudaram
+    if (newConfig.institutionId || newConfig.userId) {
       this.reconnect();
     }
   }

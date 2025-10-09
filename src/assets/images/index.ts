@@ -5,7 +5,7 @@
 
 // Logos
 // export { default as atendeiAiLogo } from './logos/atendei-ai-logo.png';
-// export { default as clinicLogo } from './logos/clinic-logo.png';
+// export { default as institutionLogo } from './logos/institution-logo.png';
 
 // Ícones
 // export { default as whatsappIcon } from './icons/whatsapp-icon.svg';
@@ -13,7 +13,7 @@
 
 // Avatares
 // export { default as defaultUserAvatar } from './avatars/default-user.png';
-// export { default as defaultClinicAvatar } from './avatars/default-clinic.png';
+// export { default as defaultInstitutionAvatar } from './avatars/default-institution.png';
 
 // Backgrounds
 // export { default as loginBackground } from './backgrounds/login-bg.jpg';

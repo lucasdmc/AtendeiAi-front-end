@@ -53,7 +53,7 @@ export interface UpdateScheduledMessageData {
 
 // Hook para buscar todas as mensagens programadas
 export const useGlobalScheduledMessages = (params: {
-  clinic_id?: string;
+  institution_id?: string;
   status?: 'pending' | 'sent' | 'cancelled' | 'failed';
   limit?: number;
   offset?: number;

@@ -54,7 +54,7 @@ export const FinishConversationDrawer: React.FC = () => {
   // Hooks
   const { toast } = useToast();
   const { closeConversation, isClosing } = useConversationActions(
-    selectedConversation?.clinic_id || ''
+    selectedConversation?.institution_id || ''
   );
 
   const filteredChatbots = mockChatbots.filter(bot =>

@@ -1,7 +1,7 @@
 // Hooks minimalistas apenas para evitar erros de importação
 
 // Interfaces básicas
-interface Clinic {
+interface Institution {
   id: string;
   name: string;
   whatsapp_number: string;
@@ -18,7 +18,7 @@ interface User {
   name: string;
   login: string;
   role: 'admin_lify' | 'suporte_lify' | 'atendente' | 'gestor' | 'administrador';
-  clinic_id: string;
+  institution_id: string;
   status: 'active' | 'inactive';
   created_at: string;
   updated_at: string;
@@ -47,7 +47,7 @@ export const useConversationHistory = () => {
   };
 };
 
-export const useUsers = (_clinicId: string | undefined): {
+export const useUsers = (_institutionId: string | undefined): {
   data: User[];
   loading: boolean;
   error: Error | null;
@@ -61,14 +61,14 @@ export const useUsers = (_clinicId: string | undefined): {
   };
 };
 
-export const useClinics = (): {
-  data: Clinic[];
+export const useInstitutions = (): {
+  data: Institution[];
   loading: boolean;
   error: Error | null;
   refetch: () => void;
 } => {
   return {
-    data: [] as Clinic[],
+    data: [] as Institution[],
     loading: false,
     error: null,
     refetch: () => {}
@@ -84,7 +84,7 @@ export const useAppointments = () => {
   };
 };
 
-export const useClinic = () => {
+export const useInstitution = () => {
   return {
     data: null,
     loading: false,
@@ -92,7 +92,7 @@ export const useClinic = () => {
   };
 };
 
-export const useClinicProfessionals = () => {
+export const useInstitutionProfessionals = () => {
   return {
     data: [],
     loading: false,
@@ -100,7 +100,7 @@ export const useClinicProfessionals = () => {
   };
 };
 
-export const useClinicServices = () => {
+export const useInstitutionServices = () => {
   return {
     data: [],
     loading: false,

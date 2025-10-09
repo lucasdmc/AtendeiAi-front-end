@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQueryClient, useInfiniteQuery, useMutation } from '@tanstack/react-query';
 import { messageService } from '../services/api/MessageService';
 import { useWebSocket } from './useWebSocket';
+import { useAuth } from '../contexts/AuthContext';
 
 // Interfaces
 interface Message {
@@ -40,6 +41,7 @@ export function useMessages(conversationId: string) {
   
   const queryClient = useQueryClient();
   const { socket, isConnected } = useWebSocket({ roomId: conversationId, roomType: 'conversation' });
+  const { attendant } = useAuth();
   
   // Estado local
   const [isPending, setIsLoading] = useState(false);
@@ -124,7 +126,7 @@ export function useMessages(conversationId: string) {
         id: `temp-${Date.now()}`,
         conversation_id: conversationId,
         sender_type: 'human',
-        sender_id: 'current-user', // TODO: pegar do contexto de auth
+        sender_id: attendant?.id || 'current-user',
         content: newMessage.content,
         message_type: newMessage.message_type || 'text',
         status: 'sent',

@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useInstitution } from '@/contexts/InstitutionContext';
 import {
   Search,
   Plus,
@@ -7,7 +8,8 @@ import {
   Trash,
   GripVertical,
   Save,
-  AlertTriangle
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 import {
   DndContext,
@@ -19,7 +21,6 @@ import {
   DragEndEvent,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -55,12 +56,18 @@ import {
 } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/components/ui/use-toast';
+import { 
+  useDepartments, 
+  useCreateDepartment, 
+  useUpdateDepartment, 
+  useDeleteDepartment, 
+  useReorderDepartments 
+} from '@/hooks/useDepartments';
+import { Department } from '@/services/departmentService';
 
 // Tipos
-interface Sector {
-  id: string;
-  name: string;
-  isDefault: boolean;
+interface Sector extends Department {
+  isDefault?: boolean; // Campo adicional para identificar setor padrão
 }
 
 // Componente de linha sortable
@@ -187,14 +194,9 @@ function SortableRow({ sector, isSelected, onSelect, onMakeDefault, onEdit, onDe
 export default function Departments() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { selectedInstitution } = useInstitution();
   
   // Estados principais
-  const [sectors, setSectors] = useState<Sector[]>([
-    { id: '1', name: 'Geral', isDefault: true },
-    { id: '2', name: 'Comercial', isDefault: false },
-    { id: '3', name: 'Suporte', isDefault: false },
-  ]);
-  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSectors, setSelectedSectors] = useState<string[]>([]);
   
@@ -208,8 +210,34 @@ export default function Departments() {
   const [editingSector, setEditingSector] = useState<Sector | null>(null);
   const [editSectorName, setEditSectorName] = useState('');
   const [deletingSector, setDeletingSector] = useState<Sector | null>(null);
-  const [moveChatsToSector, setMoveChatsToSector] = useState('1'); // Default para "Geral"
+  const [moveChatsToSector, setMoveChatsToSector] = useState('');
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+  // Hooks da API
+  const institutionId = selectedInstitution?._id || '';
+  
+  const { 
+    data: departmentsData, 
+    isLoading: departmentsLoading, 
+    error: departmentsError 
+  } = useDepartments({ 
+    institution_id: institutionId,
+    is_active: true 
+  }, { 
+    enabled: !!institutionId 
+  });
+
+  const createDepartmentMutation = useCreateDepartment();
+  const updateDepartmentMutation = useUpdateDepartment();
+  const deleteDepartmentMutation = useDeleteDepartment();
+  const reorderDepartmentsMutation = useReorderDepartments();
+
+  // Converter dados da API para o formato esperado
+  const sectors: Sector[] = departmentsData?.items?.map(dept => ({
+    ...dept,
+    id: dept._id,
+    isDefault: dept.order === 0 // Considera o primeiro setor como padrão
+  })) || [];
 
   // Drag & Drop
   const sensors = useSensors(
@@ -245,26 +273,25 @@ export default function Departments() {
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
 
-    if (active.id !== over?.id) {
-      setSectors((items) => {
-        const oldIndex = items.findIndex(item => item.id === active.id);
-        const newIndex = items.findIndex(item => item.id === over?.id);
+    if (active.id !== over?.id && institutionId) {
+      const oldIndex = sectors.findIndex(item => item.id === active.id);
+      const newIndex = sectors.findIndex(item => item.id === over?.id);
 
-        const newOrder = arrayMove(items, oldIndex, newIndex);
-        
-        toast({
-          title: "Ordem atualizada",
-          description: "A ordem dos setores foi alterada com sucesso.",
-        });
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newOrder = [...sectors];
+        const [movedItem] = newOrder.splice(oldIndex, 1);
+        newOrder.splice(newIndex, 0, movedItem);
 
-        return newOrder;
-      });
+        // Atualizar ordem no backend
+        const departmentIds = newOrder.map(sector => sector.id);
+        reorderDepartmentsMutation.mutate({ departmentIds, institution_id: institutionId });
+      }
     }
-  }, [toast]);
+  }, [sectors, institutionId, reorderDepartmentsMutation]);
 
   // Handlers de ações
   const handleCreateSector = useCallback(() => {
-    if (!newSectorName.trim()) return;
+    if (!newSectorName.trim() || !institutionId) return;
 
     const nameExists = sectors.some(s => 
       s.name.toLowerCase() === newSectorName.trim().toLowerCase()
@@ -279,21 +306,17 @@ export default function Departments() {
       return;
     }
 
-    const newSector: Sector = {
-      id: Date.now().toString(),
+    createDepartmentMutation.mutate({
       name: newSectorName.trim(),
-      isDefault: false,
-    };
-
-    setSectors(prev => [...prev, newSector]);
-    setNewSectorName('');
-    setIsNewModalOpen(false);
-
-    toast({
-      title: "Setor criado",
-      description: `O setor "${newSector.name}" foi criado com sucesso.`,
+      institution_id: institutionId,
+      order: sectors.length
+    }, {
+      onSuccess: () => {
+        setNewSectorName('');
+        setIsNewModalOpen(false);
+      }
     });
-  }, [newSectorName, sectors, toast]);
+  }, [newSectorName, sectors, institutionId, createDepartmentMutation, toast]);
 
   const handleEditSector = useCallback(() => {
     if (!editingSector || !editSectorName.trim()) return;
@@ -312,50 +335,52 @@ export default function Departments() {
       return;
     }
 
-    setSectors(prev => prev.map(s => 
-      s.id === editingSector.id 
-        ? { ...s, name: editSectorName.trim() }
-        : s
-    ));
-
-    setIsEditModalOpen(false);
-    setEditingSector(null);
-    setEditSectorName('');
-
-    toast({
-      title: "Setor atualizado",
-      description: `O setor foi renomeado para "${editSectorName.trim()}".`,
+    updateDepartmentMutation.mutate({
+      id: editingSector.id,
+      data: { name: editSectorName.trim() }
+    }, {
+      onSuccess: () => {
+        setIsEditModalOpen(false);
+        setEditingSector(null);
+        setEditSectorName('');
+      }
     });
-  }, [editingSector, editSectorName, sectors, toast]);
+  }, [editingSector, editSectorName, sectors, updateDepartmentMutation, toast]);
 
   const handleDeleteSector = useCallback(() => {
     if (!deletingSector || deleteConfirmText !== deletingSector.name) return;
 
-    setSectors(prev => prev.filter(s => s.id !== deletingSector.id));
-
-    setIsDeleteModalOpen(false);
-    setDeletingSector(null);
-    setDeleteConfirmText('');
-    setMoveChatsToSector('1');
-
-    toast({
-      title: "Setor excluído",
-      description: `O setor "${deletingSector.name}" foi excluído com sucesso.`,
+    deleteDepartmentMutation.mutate(deletingSector.id, {
+      onSuccess: () => {
+        setIsDeleteModalOpen(false);
+        setDeletingSector(null);
+        setDeleteConfirmText('');
+        setMoveChatsToSector('');
+      }
     });
-  }, [deletingSector, deleteConfirmText, toast]);
+  }, [deletingSector, deleteConfirmText, deleteDepartmentMutation]);
 
   const handleMakeDefault = useCallback((sectorId: string) => {
-    setSectors(prev => prev.map(s => ({
-      ...s,
-      isDefault: s.id === sectorId
-    })));
+    // Encontrar o setor atual
+    const currentSector = sectors.find(s => s.id === sectorId);
+    if (!currentSector) return;
 
-    const sector = sectors.find(s => s.id === sectorId);
-    toast({
-      title: "Setor padrão alterado",
-      description: `"${sector?.name}" agora é o setor padrão da organização.`,
+    // Atualizar ordem: o setor padrão deve ter order = 0
+    const updatedSectors = sectors.map(s => ({
+      ...s,
+      order: s.id === sectorId ? 0 : (s.order === 0 ? 1 : s.order)
+    }));
+
+    // Reordenar no backend
+    const departmentIds = updatedSectors
+      .sort((a, b) => a.order - b.order)
+      .map(s => s.id);
+
+    reorderDepartmentsMutation.mutate({ 
+      departmentIds, 
+      institution_id: institutionId 
     });
-  }, [sectors, toast]);
+  }, [sectors, institutionId, reorderDepartmentsMutation]);
 
   // Handlers dos modais
   const openEditModal = useCallback((sector: Sector) => {
@@ -367,12 +392,52 @@ export default function Departments() {
   const openDeleteModal = useCallback((sector: Sector) => {
     setDeletingSector(sector);
     setDeleteConfirmText('');
-    setMoveChatsToSector('1');
+    // Definir o primeiro setor disponível como padrão para mover os chats
+    const defaultSector = sectors.find(s => s.id !== sector.id);
+    setMoveChatsToSector(defaultSector?.id || '');
     setIsDeleteModalOpen(true);
-  }, []);
+  }, [sectors]);
+
+  // Definir setor padrão quando abrir modal de exclusão
+  useEffect(() => {
+    if (isDeleteModalOpen && deletingSector && !moveChatsToSector) {
+      const defaultSector = sectors.find(s => s.id !== deletingSector.id);
+      setMoveChatsToSector(defaultSector?.id || '');
+    }
+  }, [isDeleteModalOpen, deletingSector, sectors, moveChatsToSector]);
 
   const allSelected = selectedSectors.length === sectors.length && sectors.length > 0;
   const someSelected = selectedSectors.length > 0 && selectedSectors.length < sectors.length;
+
+  // Estados de loading
+  const isLoading = departmentsLoading;
+  const isCreating = createDepartmentMutation.isPending;
+  const isUpdating = updateDepartmentMutation.isPending;
+  const isDeleting = deleteDepartmentMutation.isPending;
+
+  // Verificar se não há instituição selecionada
+  if (!selectedInstitution) {
+    return (
+      <div className="min-h-screen bg-[#F4F6FD] flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-slate-900 mb-2">Nenhuma instituição selecionada</h2>
+          <p className="text-slate-500">Selecione uma instituição para gerenciar os departamentos.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Verificar se há erro
+  if (departmentsError) {
+    return (
+      <div className="min-h-screen bg-[#F4F6FD] flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-slate-900 mb-2">Erro ao carregar departamentos</h2>
+          <p className="text-slate-500">Ocorreu um erro ao carregar os departamentos. Tente novamente.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F4F6FD]">
@@ -415,6 +480,7 @@ export default function Departments() {
             <Button 
               onClick={() => setIsNewModalOpen(true)}
               className="h-11 rounded-lg"
+              disabled={isLoading}
             >
               <Plus className="h-4 w-4 mr-2" />
               Novo setor
@@ -453,7 +519,12 @@ export default function Departments() {
                 items={filteredSectors.map(s => s.id)}
                 strategy={verticalListSortingStrategy}
               >
-                {filteredSectors.length === 0 ? (
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                    <span className="ml-2 text-slate-500">Carregando departamentos...</span>
+                  </div>
+                ) : filteredSectors.length === 0 ? (
                   <div className="flex items-center justify-center py-12 text-slate-500">
                     <div className="text-center">
                       <p className="mb-2">Nenhum setor encontrado</p>
@@ -514,10 +585,14 @@ export default function Departments() {
             </Button>
             <Button
               onClick={handleCreateSector}
-              disabled={!newSectorName.trim()}
+              disabled={!newSectorName.trim() || isCreating}
             >
-              <Save className="h-4 w-4 mr-2" />
-              Save
+              {isCreating ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {isCreating ? 'Criando...' : 'Salvar'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -555,10 +630,14 @@ export default function Departments() {
             </Button>
             <Button
               onClick={handleEditSector}
-              disabled={!editSectorName.trim()}
+              disabled={!editSectorName.trim() || isUpdating}
             >
-              <Save className="h-4 w-4 mr-2" />
-              Save
+              {isUpdating ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {isUpdating ? 'Salvando...' : 'Salvar'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -638,10 +717,13 @@ export default function Departments() {
             </Button>
             <Button
               onClick={handleDeleteSector}
-              disabled={deleteConfirmText !== deletingSector?.name}
+              disabled={deleteConfirmText !== deletingSector?.name || isDeleting}
               variant="destructive"
             >
-              Confirmar
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
+              {isDeleting ? 'Excluindo...' : 'Confirmar'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -38,7 +38,7 @@ interface ContactInfo {
   phone?: string;
 }
 
-interface ClinicInfo {
+interface InstitutionInfo {
   name?: string;
 }
 
@@ -48,7 +48,7 @@ interface UserInfo {
 
 interface PlaceholderContext {
   contact?: ContactInfo;
-  clinic?: ClinicInfo;
+  institution?: InstitutionInfo;
   user?: UserInfo;
 }
 
@@ -141,7 +141,7 @@ const QuickReplyPicker: React.FC<QuickReplyPickerProps> = ({
     // Simular dados do contexto (em produção, estes dados viriam das props ou contexto)
     const mockContext: PlaceholderContext = {
       contact: { name: 'João Silva', phone: '+55 11 99999-9999' },
-      clinic: { name: 'Clínica Exemplo' },
+      institution: { name: 'Clínica Exemplo' },
       user: { name: 'Dr. Maria Santos' },
       ...context,
     };
@@ -152,7 +152,7 @@ const QuickReplyPicker: React.FC<QuickReplyPickerProps> = ({
       '@telefone': mockContext.contact?.phone || '+55 11 99999-9999',
       '@data': now.toLocaleDateString('pt-BR'),
       '@hora': now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      '@clinica': mockContext.clinic?.name || 'Nossa Clínica',
+      '@institutiona': mockContext.institution?.name || 'Nossa Clínica',
       '@atendente': mockContext.user?.name || 'Atendente',
     };
 

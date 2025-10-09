@@ -13,7 +13,7 @@ export const templateKeys = {
 
 // Hook para buscar templates
 export const useTemplates = (params: {
-  clinic_id: string;
+  institution_id: string;
   category?: string;
   search?: string;
   limit?: number;
@@ -25,7 +25,7 @@ export const useTemplates = (params: {
       const response = await apiService.getTemplates(params);
       return response.data;
     },
-    enabled: !!params.clinic_id,
+    enabled: !!params.institution_id,
     staleTime: 1000 * 60 * 10, // 10 minutos (templates mudam pouco)
     gcTime: 1000 * 60 * 30, // 30 minutos
   });
@@ -58,7 +58,7 @@ export const useCreateTemplate = () => {
 
   return useMutation({
     mutationFn: async (data: {
-      clinic_id: string;
+      institution_id: string;
       name: string;
       content: string;
       category: string;
@@ -122,34 +122,34 @@ export const useTemplateRenderer = () => {
 };
 
 // Hook para buscar templates por categoria
-export const useTemplatesByCategory = (clinicId: string, category?: string) => {
+export const useTemplatesByCategory = (institutionId: string, category?: string) => {
   return useQuery({
-    queryKey: templateKeys.list({ clinic_id: clinicId, category }),
+    queryKey: templateKeys.list({ institution_id: institutionId, category }),
     queryFn: async () => {
       const response = await apiService.getTemplates({
-        clinic_id: clinicId,
+        institution_id: institutionId,
         category,
       });
       return response.data;
     },
-    enabled: !!clinicId,
+    enabled: !!institutionId,
     staleTime: 1000 * 60 * 10,
     gcTime: 1000 * 60 * 30,
   });
 };
 
 // Hook para buscar templates mais usados
-export const useMostUsedTemplates = (clinicId: string, limit: number = 5) => {
+export const useMostUsedTemplates = (institutionId: string, limit: number = 5) => {
   return useQuery({
-    queryKey: [...templateKeys.lists(), 'most-used', clinicId, limit],
+    queryKey: [...templateKeys.lists(), 'most-used', institutionId, limit],
     queryFn: async () => {
       const response = await apiService.getTemplates({
-        clinic_id: clinicId,
+        institution_id: institutionId,
         limit,
       });
       return response.data.templates.sort((a, b) => b.usage_count - a.usage_count);
     },
-    enabled: !!clinicId,
+    enabled: !!institutionId,
     staleTime: 1000 * 60 * 15, // 15 minutos
     gcTime: 1000 * 60 * 30,
   });

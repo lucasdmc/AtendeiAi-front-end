@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProfileSidebarProps {
   className?: string;
@@ -7,39 +9,48 @@ interface ProfileSidebarProps {
 
 export default function ProfileSidebar({ className = '' }: ProfileSidebarProps) {
   const navigate = useNavigate();
-
-  // Dados do usuário (simulados - em produção viriam do contexto/auth)
-  const userProfile = {
-    name: 'Paulo',
-    avatar: '/api/placeholder/64/64'
-  };
+  const { user, attendant } = useAuth();
 
   const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .slice(0, 2) // Limitar a apenas 2 palavras
+      .map(n => n[0])
+      .join('')
+      .toUpperCase();
   };
 
   const handleProfileClick = () => {
     navigate('/profile');
   };
 
+  // Usar dados do usuário autenticado
+  const displayName = attendant?.name || user?.email || 'Usuário';
+  const userAvatar = attendant?.avatar || `https://via.placeholder.com/64x64/f3f4f6/6b7280?text=${attendant?.name?.charAt(0) || 'U'}`;
+
   return (
-    <div className={`flex items-center justify-center p-4 ${className}`}>
-      <button
+    <div className={`flex flex-col space-y-2 ${className}`}>
+      {/* Badge de Perfil */}
+      <Button 
+        variant="ghost" 
+        size="sm" 
         onClick={handleProfileClick}
-        className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors w-full"
+        className="w-full justify-start p-2 text-white text-opacity-70 hover:bg-white hover:bg-opacity-10 hover:text-white"
       >
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={userProfile.avatar} alt={userProfile.name} />
-          <AvatarFallback className="bg-gray-300 text-gray-700">
-            {getInitials(userProfile.name)}
+        <Avatar className="h-6 w-6 mr-2">
+          <AvatarImage src={userAvatar} alt={displayName} />
+          <AvatarFallback className="bg-white bg-opacity-20 text-white text-xs">
+            {getInitials(displayName)}
           </AvatarFallback>
         </Avatar>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium text-gray-900 truncate">
-            {userProfile.name}
-          </div>
+        <div className="flex flex-col items-start">
+          <span className="truncate text-sm font-medium">{displayName}</span>
+          {user?.email && (
+            <span className="truncate text-xs text-white text-opacity-50">{user.email}</span>
+          )}
         </div>
-      </button>
+      </Button>
     </div>
   );
 }

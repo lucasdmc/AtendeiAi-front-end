@@ -41,7 +41,7 @@ export interface Template {
   category: string;
   usage_count: number;
   created_at: string;
-  clinic_id: string;
+  institution_id: string;
 }
 
 export interface TemplateCategory {
@@ -161,7 +161,7 @@ export interface ConversationsContextType extends ConversationsState, Conversati
     em_atendimento: number;
     finalizadas: number;
   };
-  clinicSettings?: {
+  institutionSettings?: {
     conversations?: {
       show_newsletter?: boolean;
       show_groups?: boolean;
@@ -181,7 +181,7 @@ export interface ConversationsContextType extends ConversationsState, Conversati
   messagesError: Error | null;
   
   // Configurações
-  clinicId: string;
+  institutionId: string;
   isConnected: boolean;
   
   // Dados mock/estáticos

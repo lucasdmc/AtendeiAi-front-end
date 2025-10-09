@@ -5,7 +5,7 @@ import { MessageInput } from './MessageInput';
 import { useConversationsContext } from '../../context';
 import { useSendMessage } from '../../../../hooks/useMessages';
 import { MessageInputRef, MessageInputMode } from '../../types';
-import { DEFAULT_AGENT_ID } from '../../../../constants/auth';
+import { useAuth } from '../../../../contexts/AuthContext';
 
 export const ChatArea: React.FC = () => {
   const {
@@ -17,6 +17,8 @@ export const ChatArea: React.FC = () => {
     setShowContactInfo,
     setSearchInConversation
   } = useConversationsContext();
+
+  const { attendant } = useAuth();
 
   // Estado local para o input de mensagem
   const [messageText, setMessageText] = useState('');
@@ -36,8 +38,8 @@ export const ChatArea: React.FC = () => {
     const conversationState = (selectedConversation as any).state;
     const assignedUserId = selectedConversation.assigned_user_id;
     
-    // TODO: Pegar o ID do usuário logado do contexto de autenticação
-    const currentUserId = DEFAULT_AGENT_ID; // Atendente padrão temporário
+    // Usar o ID do atendente logado do contexto de autenticação
+    const currentUserId = attendant?.id;
     
     // Desabilitar se:
     // 1. Conversa não está ASSIGNED ao usuário atual
@@ -96,7 +98,7 @@ export const ChatArea: React.FC = () => {
         // Reset da mutação para permitir novos envios
         setTimeout(() => resetSendMessage(), 100);
       },
-      onError: (error) => {
+      onError: (error: any) => {
         console.error('❌ Erro ao enviar mensagem:', error);
         // Aqui poderia mostrar um toast de erro
       }
@@ -151,7 +153,7 @@ export const ChatArea: React.FC = () => {
         // Reset da mutação
         setTimeout(() => resetSendMessage(), 100);
       },
-      onError: (error) => {
+      onError: (error: any) => {
         console.error('❌ Erro ao agendar mensagem:', error);
         // Aqui poderia mostrar um toast de erro
       }

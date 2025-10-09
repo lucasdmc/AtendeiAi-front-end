@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useInstitution } from '@/contexts/InstitutionContext';
 import {
   Plus,
   Search,
@@ -73,7 +74,7 @@ interface Contact {
     zipCode: string;
   };
   custom_fields?: Record<string, any>;
-  clinic_id: string;
+  institution_id: string;
   last_contact?: string;
   created_at: string;
 }
@@ -101,6 +102,7 @@ interface ContactFormData {
 export default function Contacts() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { selectedInstitution } = useInstitution();
   const [searchTerm, setSearchTerm] = useState('');
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,8 +110,8 @@ export default function Contacts() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-  // Usar clinic_id válido (obtido de clínica existente)
-  const clinicId = '68cd84230e29f31cf5f5f1b8';
+  // Usar institution_id da instituição selecionada
+  const institutionId = selectedInstitution?._id || '';
 
   const form = useForm<ContactFormData>({
     defaultValues: {
@@ -140,7 +142,7 @@ export default function Contacts() {
   const loadContacts = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/contacts?clinic_id=${clinicId}`);
+      const response = await fetch(`http://localhost:3000/api/v1/contacts?institution_id=${institutionId}`);
       const data = await response.json();
 
       if (data.success) {
@@ -158,7 +160,7 @@ export default function Contacts() {
           notes: item.notes,
           address: item.address,
           custom_fields: item.custom_fields,
-          clinic_id: item.clinic_id,
+          institution_id: item.institution_id,
           last_contact: item.last_contact,
           created_at: item.created_at
         }));
@@ -322,7 +324,7 @@ export default function Contacts() {
       const payload = {
         ...data,
         tags: selectedTags,
-        clinic_id: clinicId
+        institution_id: institutionId
       };
 
       const response = await fetch(url, {

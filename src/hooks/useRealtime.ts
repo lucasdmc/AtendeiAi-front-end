@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 //   timestamp: string;
 // }
 
-export const useRealtime = (clinicId: string, options?: {
+export const useRealtime = (institutionId: string, options?: {
   onMessageReceived?: (message: any, conversation: any) => void;
 }) => {
   const queryClient = useQueryClient();
@@ -22,7 +22,7 @@ export const useRealtime = (clinicId: string, options?: {
   const isConnectingRef = useRef(false);
 
   useEffect(() => {
-    if (!clinicId) return;
+    if (!institutionId) return;
 
     const connectSSE = () => {
       // Evitar múltiplas conexões simultâneas
@@ -39,9 +39,9 @@ export const useRealtime = (clinicId: string, options?: {
         eventSourceRef.current = null;
       }
 
-      console.log('🔌 Conectando ao SSE para clínica:', clinicId);
+      console.log('🔌 Conectando ao SSE para instituição:', institutionId);
       const backendUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:3000';
-      const sseUrl = `${backendUrl}/api/v1/events/subscribe?clinic_id=${clinicId}`;
+      const sseUrl = `${backendUrl}/api/v1/events/subscribe?institution_id=${institutionId}`;
       console.log('🔗 URL SSE:', sseUrl);
       console.log('🔗 Backend URL:', backendUrl);
 
@@ -339,7 +339,7 @@ export const useRealtime = (clinicId: string, options?: {
         console.log('🔌 Estado antes de fechar:', {
           readyState: eventSourceRef.current.readyState,
           url: eventSourceRef.current.url,
-          clinicId: clinicId
+          institutionId: institutionId
         });
         eventSourceRef.current.close();
         eventSourceRef.current = null;
@@ -353,7 +353,7 @@ export const useRealtime = (clinicId: string, options?: {
       
       setIsConnected(false);
     };
-  }, [clinicId]); // Removendo queryClient e toast das dependências para evitar loop
+  }, [institutionId]); // Removendo queryClient e toast das dependências para evitar loop
 
   return {
     isConnected,

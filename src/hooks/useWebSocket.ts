@@ -4,10 +4,10 @@ import { io, Socket } from 'socket.io-client';
 // Interfaces
 interface WebSocketConfig {
   url?: string;
-  clinicId?: string;
+  institutionId?: string;
   userId?: string;
   roomId?: string;
-  roomType?: 'clinic' | 'conversation' | 'user';
+  roomType?: 'institution' | 'conversation' | 'user';
   autoConnect?: boolean;
   reconnectAttempts?: number;
   reconnectDelay?: number;
@@ -28,10 +28,10 @@ interface ConnectionStatus {
 export function useWebSocket(config: WebSocketConfig) {
   const {
     url = import.meta.env.VITE_WS_URL || 'http://localhost:3000',
-    clinicId,
+    institutionId,
     userId,
     roomId,
-    roomType = 'clinic',
+    roomType = 'institution',
     autoConnect = true,
     reconnectAttempts: maxReconnectAttempts = 5,
     reconnectDelay = 1000
@@ -67,7 +67,7 @@ export function useWebSocket(config: WebSocketConfig) {
       // Criar nova instância do socket
       const socket = io(url, {
         query: {
-          clinicId: clinicId || roomId,
+          institutionId: institutionId || roomId,
           userId: userId || 'anonymous',
           roomType
         },
@@ -188,7 +188,7 @@ export function useWebSocket(config: WebSocketConfig) {
         error: error instanceof Error ? error.message : 'Erro desconhecido'
       }));
     }
-  }, [url, clinicId, userId, maxReconnectAttempts]);
+  }, [url, institutionId, userId, maxReconnectAttempts]);
   
   // Função para desconectar
   const disconnect = useCallback(() => {
@@ -265,21 +265,21 @@ export function useWebSocket(config: WebSocketConfig) {
   
   // Conectar automaticamente quando o hook é montado
   useEffect(() => {
-    if (autoConnect && clinicId) {
+    if (autoConnect && institutionId) {
       connect();
     }
     
     return () => {
       disconnect();
     };
-  }, [autoConnect, clinicId, connect, disconnect]);
+  }, [autoConnect, institutionId, connect, disconnect]);
   
-  // Reconectar quando clinicId ou userId mudarem
+  // Reconectar quando institutionId ou userId mudarem
   useEffect(() => {
     if (socketRef.current?.connected) {
       reconnect();
     }
-  }, [clinicId, userId, reconnect]);
+  }, [institutionId, userId, reconnect]);
   
   // Cleanup ao desmontar
   useEffect(() => {

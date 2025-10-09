@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useInstitution } from '../../../../contexts/InstitutionContext';
 import { Input } from '../../../../components/ui/input';
 import { ScrollArea } from '../../../../components/ui/scroll-area';
 import { Button } from '../../../../components/ui/button';
@@ -23,6 +24,7 @@ import { useConversationActions } from '../../hooks/useConversationActions';
 import { Conversation } from '../../../../services/api';
 
 export const ConversationsList: React.FC = () => {
+  const { selectedInstitution } = useInstitution();
   const {
     conversations,
     selectedConversation,
@@ -61,7 +63,7 @@ export const ConversationsList: React.FC = () => {
   const { openMenuId, handleMenuClick, handleMenuAction } = useConversationMenu();
 
   // Hook para ações de conversa
-  const conversationActions = useConversationActions('68cd84230e29f31cf5f5f1b8'); // TODO: pegar clinicId do contexto
+  const conversationActions = useConversationActions(selectedInstitution?._id || '');
 
   // Handler para ações de conversa
   const handleConversationAction = (action: string, conversation: Conversation) => {

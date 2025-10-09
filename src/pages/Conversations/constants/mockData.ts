@@ -54,7 +54,7 @@ export const mockFlags: Flag[] = [
   { id: '5', name: 'Suporte', color: '#8B5CF6', description: 'Suporte técnico e dúvidas', createdAt: '2024-01-17' },
   { id: '6', name: 'VIP', color: '#EC4899', description: 'Cliente VIP - atendimento prioritário', createdAt: '2024-01-18' },
   { id: '7', name: 'Retorno', color: '#F97316', description: 'Paciente de retorno', createdAt: '2024-01-18' },
-  { id: '8', name: 'Primeira Consulta', color: '#06B6D4', description: 'Primeira vez na clínica', createdAt: '2024-01-19' },
+  { id: '8', name: 'Primeira Consulta', color: '#06B6D4', description: 'Primeira vez na instituição', createdAt: '2024-01-19' },
   { id: '9', name: 'Cancelamento', color: '#6B7280', description: 'Solicitação de cancelamento', createdAt: '2024-01-19' },
   { id: '10', name: 'Reagendamento', color: '#84CC16', description: 'Solicitação de reagendamento', createdAt: '2024-01-20' },
   { id: '11', name: 'Exames', color: '#A855F7', description: 'Relacionado a exames', createdAt: '2024-01-20' },

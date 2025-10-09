@@ -100,7 +100,7 @@ export const TemplatesModal: React.FC = () => {
         console.log('Template usado com sucesso');
         // Fechar modal ou mostrar feedback
       },
-      onError: (error) => {
+      onError: (error: any) => {
         console.error('Erro ao usar template:', error);
       }
     });

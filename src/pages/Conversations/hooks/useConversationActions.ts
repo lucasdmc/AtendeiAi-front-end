@@ -1,18 +1,23 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { conversationService } from '../../../services/api/index';
 import { useToast } from '../../../components/ui/use-toast';
+import { useAuth } from '../../../contexts/AuthContext';
 
 /**
  * Hook para ações de conversação (assumir, iniciar, finalizar, etc.)
  */
-export function useConversationActions(_clinicId: string) {
+export function useConversationActions(_institutionId: string) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { attendant } = useAuth();
 
   // Assumir conversa (ROUTING → ASSIGNED)
   const assumeConversationMutation = useMutation({
     mutationFn: async (conversationId: string) => {
-      return await conversationService.assumeConversation(conversationId);
+      if (!attendant?.id) {
+        throw new Error('Usuário não autenticado');
+      }
+      return await conversationService.assumeConversation(conversationId, attendant.id);
     },
     onSuccess: (_data, _conversationId) => {
       // Invalidar queries relacionadas
@@ -36,7 +41,10 @@ export function useConversationActions(_clinicId: string) {
   // Iniciar atendimento (ASSIGNED → IN_PROGRESS)
   const startHandlingMutation = useMutation({
     mutationFn: async (conversationId: string) => {
-      return await conversationService.startHandling(conversationId);
+      if (!attendant?.id) {
+        throw new Error('Usuário não autenticado');
+      }
+      return await conversationService.startHandling(conversationId, attendant.id);
     },
     onSuccess: (_data, _conversationId) => {
       // Invalidar queries relacionadas

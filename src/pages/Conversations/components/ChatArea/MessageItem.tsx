@@ -6,20 +6,22 @@ import { MessageItemProps } from '../../types';
 import { formatTime, formatGroupSender } from '../../utils';
 import { AudioPlayer } from './AudioPlayer';
 import { ScheduledMessageBadge } from './ScheduledMessageBadge';
+import { useAuth } from '../../../../contexts/AuthContext';
 
 export const MessageItem: React.FC<MessageItemProps> = React.memo(({
   message,
   conversation,
   onMenuClick
 }) => {
+  const { attendant } = useAuth();
   const [showTooltip, setShowTooltip] = useState(false);
   
   const isInbound = message.sender_type === 'customer'; // Mensagem recebida (lado esquerdo)
   const isOutbound = message.sender_type === 'bot' || message.sender_type === 'human'; // Mensagem enviada (lado direito)
   const isSystemMessage = message.sender_type === 'system'; // Mensagem do sistema
   
-  // Mock do usuário logado - em produção viria do contexto de autenticação
-  const currentUserId = 'current-user'; // TODO: pegar do contexto de auth
+  // ID do usuário logado
+  const currentUserId = attendant?.id || 'current-user';
   
   // Verifica se a mensagem foi enviada pelo usuário logado
   const isFromCurrentUser = message.sender_id === currentUserId;

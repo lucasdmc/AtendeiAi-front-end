@@ -23,6 +23,7 @@ import { useEditorStore } from '@/stores/editorStore';
 import { flowsService } from '@/services/flowsService';
 import { getActiveChannels } from '@/services/activeChannelsService';
 import { useToast } from '@/components/ui/use-toast';
+import { useInstitution } from '@/contexts/InstitutionContext';
 import { BlockDefinition, TemplateFlow } from '@/types/flow';
 import { flowDTOSchema } from '@/lib/flowSchema';
 import { validateFlow, getValidationSummary } from '@/lib/flowValidation';
@@ -31,6 +32,7 @@ function EditorContent() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { selectedInstitution } = useInstitution();
   const { fitView, getViewport, zoomIn, zoomOut } = useReactFlow();
 
   // Store
@@ -75,8 +77,13 @@ function EditorContent() {
   // Função para buscar canais ativos
   const fetchActiveChannels = useCallback(async () => {
     try {
-      const clinicId = 'test-clinic-123'; // TODO: Pegar do contexto de autenticação
-      const activeChannels = await getActiveChannels(clinicId);
+      const institutionId = selectedInstitution?._id || '';
+      if (!institutionId) {
+        console.warn('Nenhuma instituição selecionada');
+        return [];
+      }
+      
+      const activeChannels = await getActiveChannels(institutionId);
       
       // Converter para o formato esperado pelo ChannelSelect
       return activeChannels.map(channel => ({
@@ -92,7 +99,7 @@ function EditorContent() {
       });
       return [];
     }
-  }, [toast]);
+  }, [selectedInstitution, toast]);
   
   // Webhook Drawer State
   const [showWebhookDrawer, setShowWebhookDrawer] = useState(false);
@@ -103,7 +110,7 @@ function EditorContent() {
     if (id) {
       setIsLoading(true);
       flowsService
-        .getFlow(id)
+        .getFlow(id, selectedInstitution?._id || '')
         .then((dto) => {
           // Enriquecer nós start-channel com função getActiveChannels
           const enrichedNodes = dto.nodes.map(node => {
@@ -355,14 +362,14 @@ function EditorContent() {
 
       if (flowId) {
         // Atualizar existente
-        await flowsService.updateFlow(flowId, dto);
+        await flowsService.updateFlow(flowId, dto, selectedInstitution?._id || '');
         toast({
           title: 'Fluxo salvo',
           description: 'Suas alterações foram salvas com sucesso.',
         });
       } else {
         // Criar novo
-        const result = await flowsService.createFlow(dto);
+        const result = await flowsService.createFlow(dto, selectedInstitution?._id || '');
         console.log('✅ [FLOW SAVE] Fluxo criado, ID:', result.id);
         setId(result.id);
         

@@ -18,10 +18,10 @@ export interface ActiveChannelsResponse {
 /**
  * Busca canais ativos com sessões conectadas para uso no flow editor
  */
-export const getActiveChannels = async (clinicId: string): Promise<ActiveChannel[]> => {
+export const getActiveChannels = async (institutionId: string): Promise<ActiveChannel[]> => {
   try {
     const response = await apiService.get<ActiveChannelsResponse>(`/channels/active`, {
-      clinic_id: clinicId
+      institution_id: institutionId
     });
 
     if (response.success) {
@@ -42,13 +42,13 @@ export const associateChannelSession = async (
   channelId: string, 
   sessionId: string, 
   sessionType: string,
-  clinicId: string
+  institutionId: string
 ) => {
   try {
     const response = await apiService.post(`/channels/${channelId}/session`, {
       session_id: sessionId,
       session_type: sessionType
-    }, { clinic_id: clinicId });
+    }, { institution_id: institutionId });
 
     return response;
   } catch (error) {
@@ -60,9 +60,9 @@ export const associateChannelSession = async (
 /**
  * Dissocia uma sessão de um canal
  */
-export const dissociateChannelSession = async (channelId: string, clinicId: string) => {
+export const dissociateChannelSession = async (channelId: string, institutionId: string) => {
   try {
-    const response = await apiService.delete(`/channels/${channelId}/session`, { clinic_id: clinicId });
+    const response = await apiService.delete(`/channels/${channelId}/session`, { institution_id: institutionId });
 
     return response;
   } catch (error) {
@@ -74,10 +74,10 @@ export const dissociateChannelSession = async (channelId: string, clinicId: stri
 /**
  * Obtém informações da sessão associada a um canal
  */
-export const getChannelSessionInfo = async (channelId: string, clinicId: string) => {
+export const getChannelSessionInfo = async (channelId: string, institutionId: string) => {
   try {
     const response = await apiService.get(`/channels/${channelId}/session`, {
-      clinic_id: clinicId
+      institution_id: institutionId
     });
 
     return response;

@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useUsers } from "@/hooks/useApi"
-import { useClinic as useClinicContext } from "@/contexts/ClinicContext"
+import { useInstitution as useInstitutionContext } from "@/contexts/InstitutionContext"
 import { useToast } from "../components/ui/use-toast"
 import { userApi } from "@/services/api"
 
@@ -20,7 +20,7 @@ interface User {
   name: string
   login: string
   role: 'admin_lify' | 'suporte_lify' | 'atendente' | 'gestor' | 'administrador'
-  clinic_id: string
+  institution_id: string
   status: 'active' | 'inactive'
   created_at: string
   updated_at: string
@@ -45,7 +45,7 @@ const roleColors = {
 }
 
 export default function Users() {
-  const { selectedClinic } = useClinicContext()
+  const { selectedInstitution } = useInstitutionContext()
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState<string>("all")
@@ -55,7 +55,7 @@ export default function Users() {
   const [editingUser, setEditingUser] = useState<User | null>(null)
 
   // API hooks - Now using real API
-  const { data: users = [], loading: usersLoading, error: usersError, refetch: refetchUsers } = useUsers(selectedClinic?.id)
+  const { data: users = [], loading: usersLoading, error: usersError, refetch: refetchUsers } = useUsers(selectedInstitution?.id)
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -86,7 +86,7 @@ export default function Users() {
         login: formData.get('email') as string,
         password: formData.get('password') as string,
         role: formData.get('role') as 'admin_lify' | 'suporte_lify' | 'atendente' | 'gestor' | 'administrador',
-        clinic_id: selectedClinic?.id || '',
+        institution_id: selectedInstitution?.id || '',
         status: 'active' as 'active' | 'inactive'
       }
       
@@ -184,15 +184,15 @@ export default function Users() {
     }
   }
 
-  // No clinic selected
-  if (!selectedClinic) {
+  // No institution selected
+  if (!selectedInstitution) {
     return (
       <div className="flex items-center justify-center h-64">
         <Building2 className="h-8 w-8 text-muted-foreground" />
         <div className="ml-2 text-center">
-          <p className="text-muted-foreground">Nenhuma clínica selecionada</p>
+          <p className="text-muted-foreground">Nenhuma instituição selecionada</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Selecione uma clínica para visualizar os usuários
+            Selecione uma instituição para visualizar os usuários
           </p>
         </div>
       </div>
@@ -373,8 +373,8 @@ export default function Users() {
                     <span className="text-sm">Gerenciar usuários</span>
                   </label>
                   <label className="flex items-center space-x-2">
-                    <input type="checkbox" name="permissions" value="clinics" />
-                    <span className="text-sm">Gerenciar clínicas</span>
+                    <input type="checkbox" name="permissions" value="institutions" />
+                    <span className="text-sm">Gerenciar instituiçãos</span>
                   </label>
                 </div>
               </div>
@@ -475,7 +475,7 @@ export default function Users() {
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">Clínica ID: {user.clinic_id}</span>
+                        <span className="text-sm">Clínica ID: {user.institution_id}</span>
                       </div>
                     </TableCell>
                   
@@ -530,7 +530,7 @@ export default function Users() {
                       <UsersIcon className="h-12 w-12 text-muted-foreground mb-4" />
                       <h3 className="text-lg font-semibold mb-2">Nenhum usuário encontrado</h3>
                       <p className="text-muted-foreground text-center max-w-sm">
-                        Não há usuários cadastrados para esta clínica.
+                        Não há usuários cadastrados para esta instituição.
                       </p>
                     </div>
                   </TableCell>

@@ -22,7 +22,7 @@ interface ConversationFiltersProps {
   onFilterChange: (filter: string) => void;
   onTabChange: (tab: string) => void; // Nova prop para mudança de aba
   onAdvancedFilter: (type: string, values: string[]) => void;
-  clinicSettings?: any;
+  institutionSettings?: any;
 }
 
 // Definir tipos de filtros rápidos
@@ -94,7 +94,7 @@ export const ConversationFilters: React.FC<ConversationFiltersProps> = ({
   onFilterChange,
   onTabChange,
   onAdvancedFilter,
-  clinicSettings
+  institutionSettings
 }) => {
   // Estados para filtros avançados
   const [selectedStatus, setSelectedStatus] = React.useState<string[]>([]);
@@ -103,8 +103,8 @@ export const ConversationFilters: React.FC<ConversationFiltersProps> = ({
 
   // Aplicar filtros de configuração primeiro para contadores consistentes
   const configFilteredConversations = React.useMemo(() => {
-    return applyConfigurationFilters(conversations, clinicSettings?.conversations);
-  }, [conversations, clinicSettings?.conversations]);
+    return applyConfigurationFilters(conversations, institutionSettings?.conversations);
+  }, [conversations, institutionSettings?.conversations]);
 
   // Função para determinar o status da conversa baseado em lógica de negócio
   const getConversationStatus = (conversation: Conversation): 'inbox' | 'waiting' | 'finished' => {

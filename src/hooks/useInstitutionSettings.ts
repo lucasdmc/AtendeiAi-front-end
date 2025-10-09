@@ -12,7 +12,7 @@ export interface UISettings {
   recent_emojis: string[];
 }
 
-export interface ClinicSettings {
+export interface InstitutionSettings {
   auto_response: boolean;
   business_hours_only: boolean;
   max_concurrent_conversations: number;
@@ -21,47 +21,47 @@ export interface ClinicSettings {
   ui: UISettings;
 }
 
-// Hook para buscar configurações da clínica
-export const useClinicSettings = (clinicId: string) => {
+// Hook para buscar configurações da instituição
+export const useInstitutionSettings = (institutionId: string) => {
   return useQuery({
-    queryKey: ['clinic-settings', clinicId],
-    queryFn: async (): Promise<ClinicSettings> => {
-      console.log('📋 [FRONTEND] Buscando configurações da clínica:', clinicId);
+    queryKey: ['institution-settings', institutionId],
+    queryFn: async (): Promise<InstitutionSettings> => {
+      console.log('📋 [FRONTEND] Buscando configurações da instituição:', institutionId);
       
-      const response = await apiService.getClinicSettings(clinicId);
+      const response = await apiService.getInstitutionSettings(institutionId);
       
       console.log('✅ [FRONTEND] Configurações recebidas:', response.data);
       
       return response.data;
     },
-    enabled: !!clinicId,
+    enabled: !!institutionId,
     staleTime: 5 * 60 * 1000, // 5 minutos
     refetchOnWindowFocus: false
   });
 };
 
 // Hook para atualizar todas as configurações
-export const useUpdateClinicSettings = () => {
+export const useUpdateInstitutionSettings = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ clinicId, settings }: { 
-      clinicId: string; 
-      settings: ClinicSettings 
-    }): Promise<ClinicSettings> => {
-      console.log('📝 [FRONTEND] Atualizando todas as configurações:', { clinicId, settings });
+    mutationFn: async ({ institutionId, settings }: { 
+      institutionId: string; 
+      settings: InstitutionSettings 
+    }): Promise<InstitutionSettings> => {
+      console.log('📝 [FRONTEND] Atualizando todas as configurações:', { institutionId, settings });
       
-      const response = await apiService.updateClinicSettings(clinicId, settings);
+      const response = await apiService.updateInstitutionSettings(institutionId, settings);
       
       return response.data;
     },
-    onSuccess: (updatedSettings, { clinicId }) => {
+    onSuccess: (updatedSettings, { institutionId }) => {
       // Atualizar cache
-      queryClient.setQueryData(['clinic-settings', clinicId], updatedSettings);
+      queryClient.setQueryData(['institution-settings', institutionId], updatedSettings);
       
       console.log('✅ [FRONTEND] Configurações atualizadas no cache');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('❌ [FRONTEND] Erro ao atualizar configurações:', error);
     }
   });
@@ -72,21 +72,21 @@ export const useUpdateConversationSettings = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ clinicId, settings }: { 
-      clinicId: string; 
+    mutationFn: async ({ institutionId, settings }: { 
+      institutionId: string; 
       settings: Partial<ConversationSettings>
     }): Promise<ConversationSettings> => {
-      console.log('💬 [FRONTEND] Atualizando configurações de conversas:', { clinicId, settings });
+      console.log('💬 [FRONTEND] Atualizando configurações de conversas:', { institutionId, settings });
       
-      const response = await apiService.updateConversationSettings(clinicId, settings);
+      const response = await apiService.updateConversationSettings(institutionId, settings);
       
       return response.data;
     },
-    onSuccess: (updatedConversationSettings, { clinicId }) => {
+    onSuccess: (updatedConversationSettings, { institutionId }) => {
       // Atualizar cache parcialmente
       queryClient.setQueryData(
-        ['clinic-settings', clinicId], 
-        (oldData: ClinicSettings | undefined) => {
+        ['institution-settings', institutionId], 
+        (oldData: InstitutionSettings | undefined) => {
           if (!oldData) return oldData;
           
           return {
@@ -101,7 +101,7 @@ export const useUpdateConversationSettings = () => {
       
       console.log('✅ [FRONTEND] Configurações de conversas atualizadas no cache');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('❌ [FRONTEND] Erro ao atualizar configurações de conversas:', error);
     }
   });
@@ -112,21 +112,21 @@ export const useUpdateUISettings = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ clinicId, settings }: { 
-      clinicId: string; 
+    mutationFn: async ({ institutionId, settings }: { 
+      institutionId: string; 
       settings: Partial<UISettings>
     }): Promise<UISettings> => {
-      console.log('🎨 [FRONTEND] Atualizando configurações de UI:', { clinicId, settings });
+      console.log('🎨 [FRONTEND] Atualizando configurações de UI:', { institutionId, settings });
       
-      const response = await apiService.updateUISettings(clinicId, settings);
+      const response = await apiService.updateUISettings(institutionId, settings);
       
       return response.data;
     },
-    onSuccess: (updatedUISettings, { clinicId }) => {
+    onSuccess: (updatedUISettings, { institutionId }) => {
       // Atualizar cache parcialmente
       queryClient.setQueryData(
-        ['clinic-settings', clinicId], 
-        (oldData: ClinicSettings | undefined) => {
+        ['institution-settings', institutionId], 
+        (oldData: InstitutionSettings | undefined) => {
           if (!oldData) return oldData;
           
           return {
@@ -141,7 +141,7 @@ export const useUpdateUISettings = () => {
       
       console.log('✅ [FRONTEND] Configurações de UI atualizadas no cache');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('❌ [FRONTEND] Erro ao atualizar configurações de UI:', error);
     }
   });

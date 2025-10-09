@@ -53,7 +53,7 @@ export const QuickRepliesDrawer: React.FC<QuickRepliesDrawerProps> = ({
       onSuccess: () => {
         console.log('Template usado com sucesso');
       },
-      onError: (error) => {
+      onError: (error: any) => {
         console.error('Erro ao usar template:', error);
       }
     });

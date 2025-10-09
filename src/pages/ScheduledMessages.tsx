@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useInstitution } from '@/contexts/InstitutionContext';
 import { 
   Plus, 
   Search, 
@@ -60,6 +61,8 @@ import {
 } from '@/hooks/useScheduledMessagesGlobal';
 
 const ScheduledMessages: React.FC = () => {
+  const { selectedInstitution } = useInstitution();
+  
   // Estados
   const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -80,7 +83,7 @@ const ScheduledMessages: React.FC = () => {
     error, 
     refetch 
   } = useGlobalScheduledMessages({
-    // clinic_id: 'current-clinic-id', // TODO: pegar do contexto da clínica - removido temporariamente
+    institution_id: selectedInstitution?._id || '',
     limit: 100
   });
 

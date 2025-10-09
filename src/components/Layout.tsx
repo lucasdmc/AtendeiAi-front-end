@@ -1,5 +1,8 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import ProfileSidebar from './ProfileSidebar';
+import InstitutionSelector from './InstitutionSelector';
 import { 
   Home, 
   MessageSquare, 
@@ -17,13 +20,6 @@ import {
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
 
 interface LayoutProps {
   children: ReactNode;
@@ -50,25 +46,13 @@ export const Layout = ({ children }: LayoutProps) => {
     const saved = localStorage.getItem('sidebarMinimized');
     return saved ? JSON.parse(saved) : true;
   });
-  const [selectedClinic, setSelectedClinic] = useState('clinic-1');
+  // Removido: selectedInstitution agora é gerenciado pelo InstitutionContext
   const location = useLocation();
+  const { user, attendant } = useAuth();
 
-  // Mock data para clínicas - será substituído por dados reais
-  const clinics = [
-    { id: 'clinic-1', name: 'Clínica Central' },
-    { id: 'clinic-2', name: 'Clínica Norte' },
-    { id: 'clinic-3', name: 'Clínica Sul' },
-  ];
+  // Removido: dados mockados substituídos pelo InstitutionContext
 
-  // Dados do usuário - será substituído por dados reais do contexto/auth
-  const userProfile = {
-    name: 'Paulo Roberto',
-    avatar: '' // Sem avatar - usará apenas as iniciais
-  };
-
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
-  };
+  // Removido: userProfile agora é gerenciado pelo ProfileSidebar
 
   // Salva o estado do sidebar no localStorage sempre que mudar
   useEffect(() => {
@@ -118,37 +102,37 @@ export const Layout = ({ children }: LayoutProps) => {
             maxWidth: sidebarMinimized ? '64px' : '256px'
           }}
         >
-          {/* Header com Seletor de Clínicas */}
-          <div className={`h-16 border-b border-white border-opacity-20 ${sidebarMinimized ? 'flex items-center justify-center px-0' : 'flex items-center justify-between px-4'}`}>
-            {!sidebarMinimized && (
-              <div className="flex-1 mr-2">
-                <Select value={selectedClinic} onValueChange={setSelectedClinic}>
-                  <SelectTrigger className="w-full bg-white bg-opacity-10 border-white border-opacity-20 text-white">
-                    <SelectValue placeholder="Selecione uma clínica" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clinics.map((clinic) => (
-                      <SelectItem key={clinic.id} value={clinic.id}>
-                        {clinic.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          {/* Header com Seletor de Instituições */}
+          <div className={`border-b border-white border-opacity-20 ${sidebarMinimized ? 'h-16 flex items-center justify-center px-0' : 'p-4'}`}>
+            {sidebarMinimized ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSidebarMinimized(!sidebarMinimized)}
+                className="h-8 w-8 p-0 flex-shrink-0 text-white hover:bg-white hover:bg-opacity-10"
+                title="Expandir sidebar"
+              >
+                <Menu className="h-4 w-4" />
+              </Button>
+            ) : (
+              <div className="space-y-4">
+                {/* Linha com Dropdown e Botão X */}
+                <div className="flex items-center space-x-2">
+                  <div className="flex-1">
+                    <InstitutionSelector />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSidebarMinimized(!sidebarMinimized)}
+                    className="h-8 w-8 p-0 flex-shrink-0 text-white hover:bg-white hover:bg-opacity-10"
+                    title="Minimizar sidebar"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSidebarMinimized(!sidebarMinimized)}
-              className="hidden lg:flex h-8 w-8 p-0 flex-shrink-0 text-white hover:bg-white hover:bg-opacity-10"
-              title={sidebarMinimized ? 'Expandir sidebar' : 'Minimizar sidebar'}
-            >
-              {sidebarMinimized ? (
-                <Menu className="h-4 w-4" />
-              ) : (
-                <X className="h-4 w-4" />
-              )}
-            </Button>
           </div>
 
           {/* Navigation */}
@@ -179,7 +163,6 @@ export const Layout = ({ children }: LayoutProps) => {
                   {!sidebarMinimized && (
                     <div className="flex-1">
                       <div className="font-medium">{item.label}</div>
-                      <div className="text-xs text-white text-opacity-50 mt-0.5">{item.description}</div>
                     </div>
                   )}
                   {sidebarMinimized && active && (
@@ -192,26 +175,10 @@ export const Layout = ({ children }: LayoutProps) => {
             })}
           </nav>
 
-          {/* Footer */}
+          {/* Footer com Badge de Perfil */}
           <div className={`border-t border-white border-opacity-20 overflow-x-hidden ${sidebarMinimized ? 'py-3 px-0' : 'p-4'}`}>
             {!sidebarMinimized ? (
-              <div className="space-y-2">
-                <Link to="/profile" className="block">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="w-full justify-start p-2 text-white text-opacity-70 hover:bg-white hover:bg-opacity-10 hover:text-white"
-                  >
-                    <Avatar className="h-6 w-6 mr-2">
-                      <AvatarImage src={userProfile.avatar} alt={userProfile.name} />
-                      <AvatarFallback className="bg-white bg-opacity-20 text-white text-xs">
-                        {getInitials(userProfile.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="truncate">{userProfile.name}</span>
-                  </Button>
-                </Link>
-              </div>
+              <ProfileSidebar />
             ) : (
               <div className="flex flex-col items-center space-y-1">
                 <Link to="/profile">
@@ -219,12 +186,12 @@ export const Layout = ({ children }: LayoutProps) => {
                     variant="ghost" 
                     size="sm" 
                     className="w-10 h-10 p-0 rounded-lg text-white text-opacity-70 hover:bg-white hover:bg-opacity-10 hover:text-white" 
-                    title={userProfile.name}
+                    title={attendant?.name || user?.email || 'Usuário'}
                   >
                     <Avatar className="h-6 w-6">
-                      <AvatarImage src={userProfile.avatar} alt={userProfile.name} />
+                      <AvatarImage src={attendant?.avatar || `https://via.placeholder.com/64x64/f3f4f6/6b7280?text=${attendant?.name?.charAt(0) || 'U'}`} alt={attendant?.name || user?.email || 'Usuário'} />
                       <AvatarFallback className="bg-white bg-opacity-20 text-white text-xs">
-                        {getInitials(userProfile.name)}
+                        {(attendant?.name || user?.email || 'U').split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </Button>

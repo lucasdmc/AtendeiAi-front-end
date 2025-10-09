@@ -4,8 +4,9 @@ import { useConversations } from '../../../hooks/useConversations';
 import { useMessages } from '../../../hooks/useMessages';
 import { useTemplates } from '../../../hooks/useTemplates';
 import { useRealtime } from '../../../hooks/useRealtime';
-import { useClinicSettings } from '../../../hooks/useClinicSettings';
+import { useInstitutionSettings } from '../../../hooks/useInstitutionSettings';
 import { useMarkAsRead, getSessionIdFromConversation, getUnreadMessageIds } from '../../../hooks/useReceipts';
+import { useInstitution } from '../../../contexts/InstitutionContext';
 import { 
   ConversationsContextType, 
   ConversationsState,
@@ -27,6 +28,7 @@ interface ConversationsProviderProps {
 
 export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ children }) => {
   const queryClient = useQueryClient();
+  const { selectedInstitution } = useInstitution();
 
   // Estados principais da página
   const [conversationsState, setConversationsState] = useState<ConversationsState>({
@@ -74,14 +76,16 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
   };
 
   // Hooks da API
-  const clinicId = '68cd84230e29f31cf5f5f1b8';
+  const institutionId = selectedInstitution?._id || '';
+  
+  // Só executar hooks se há uma instituição selecionada
   const { 
     conversations: conversationsData, 
     isLoading: conversationsLoading, 
     error: conversationsError,
     tabCounters // Adicionar tabCounters
   } = useConversations({ 
-    clinic_id: clinicId,
+    institution_id: institutionId,
     tab: conversationsState.activeTab
   });
 
@@ -151,12 +155,12 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
 
   const { 
     data: templatesData 
-  } = useTemplates({ clinic_id: clinicId });
+  } = useTemplates({ institution_id: institutionId });
 
-  // Hook para configurações da clínica
+  // Hook para configurações da instituição
   const { 
-    data: clinicSettings 
-  } = useClinicSettings(clinicId);
+    data: institutionSettings 
+  } = useInstitutionSettings(institutionId);
 
   // Hook para marcar mensagens como lidas (será usado dinamicamente)
   // const { mutate: markMessagesAsRead } = useMarkMessagesAsRead();
@@ -168,7 +172,7 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
   const lastProcessedConversationRef = useRef<string | null>(null);
 
   // Realtime com callback para atualização direta das mensagens
-  const { isConnected } = useRealtime(clinicId, {
+  const { isConnected } = useRealtime(institutionId, {
     onMessageReceived: (message, conversation) => {
       console.log('🎯 [CONTEXT] Callback SSE: Nova mensagem recebida diretamente', {
         message: {
@@ -186,7 +190,7 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
           conversation_type: conversation.conversation_type
         },
         selectedConversation: conversationsState.selectedConversation?._id,
-        clinicSettings: clinicSettings?.conversations
+        institutionSettings: institutionSettings?.conversations
       });
 
       // Log específico para mensagens de texto
@@ -284,7 +288,7 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     }
   }, [conversationsState.selectedConversation?._id, conversationsState.selectedConversation?.unread_count]);
 
-  // Configurações da clínica são gerenciadas pelo Layout principal
+  // Configurações da instituição são gerenciadas pelo Layout principal
 
   // Actions para ConversationsState
   const setSelectedConversation = (conversation: Conversation | null) => {
@@ -355,7 +359,7 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     messages: processedMessages,
     templates,
     flags: mockFlags,
-    clinicSettings,
+    institutionSettings,
     tabCounters, // Adicionar tabCounters
     
     // Estados de loading
@@ -367,7 +371,7 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     messagesError: messagesError instanceof Error ? messagesError : (messagesError ? new Error(messagesError) : null),
     
     // Configurações
-    clinicId,
+    institutionId,
     isConnected,
     
     // Dados mock/estáticos

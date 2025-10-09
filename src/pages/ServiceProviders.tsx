@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useInstitution } from '@/contexts/InstitutionContext';
 import {
   Plus,
   Search,
@@ -72,7 +73,7 @@ interface ServiceProvider {
   status: 'active' | 'inactive' | 'suspended';
   contract_start?: string;
   contract_end?: string;
-  clinic_id: string;
+  institution_id: string;
   created_at: string;
 }
 
@@ -100,14 +101,15 @@ interface ServiceProviderFormData {
 export default function ServiceProviders() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { selectedInstitution } = useInstitution();
   const [searchTerm, setSearchTerm] = useState('');
   const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<ServiceProvider | null>(null);
 
-  // Usar clinic_id válido (obtido de clínica existente)
-  const clinicId = '68cd84230e29f31cf5f5f1b8';
+  // Usar institution_id da instituição selecionada
+  const institutionId = selectedInstitution?._id || '';
 
   const form = useForm<ServiceProviderFormData>({
     defaultValues: {
@@ -139,7 +141,7 @@ export default function ServiceProviders() {
   const loadServiceProviders = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3000/api/v1/service-providers?clinic_id=${clinicId}`);
+      const response = await fetch(`http://localhost:3000/api/v1/service-providers?institution_id=${institutionId}`);
       const data = await response.json();
 
       if (data.success) {
@@ -158,7 +160,7 @@ export default function ServiceProviders() {
           status: item.status,
           contract_start: item.contract_start,
           contract_end: item.contract_end,
-          clinic_id: item.clinic_id,
+          institution_id: item.institution_id,
           created_at: item.created_at
         }));
         setServiceProviders(formattedProviders);
@@ -320,7 +322,7 @@ export default function ServiceProviders() {
 
       const payload = {
         ...data,
-        clinic_id: clinicId,
+        institution_id: institutionId,
         status: 'active'
       };
 

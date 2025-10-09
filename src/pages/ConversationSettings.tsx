@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useInstitution } from '../contexts/InstitutionContext';
 import { ArrowLeft, MessageSquare, Users, Mail, Save, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Switch } from '../components/ui/switch';
@@ -7,17 +8,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Label } from '../components/ui/label';
 import { Separator } from '../components/ui/separator';
 import { useToast } from '../components/ui/use-toast';
-import { useClinicSettings, useUpdateConversationSettings } from '../hooks/useClinicSettings';
+import { useInstitutionSettings, useUpdateConversationSettings } from '../hooks/useInstitutionSettings';
 
 export default function ConversationSettings() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { selectedInstitution } = useInstitution();
   
-  // ID da clínica (hardcoded por enquanto)
-  const clinicId = '68cd84230e29f31cf5f5f1b8';
+  // ID da instituição selecionada
+  const institutionId = selectedInstitution?._id || '';
   
   // Hooks para gerenciar configurações
-  const { data: settings, isLoading, error } = useClinicSettings(clinicId);
+  const { data: settings, isLoading, error } = useInstitutionSettings(institutionId);
   const { mutate: updateSettings, isPending: isUpdating } = useUpdateConversationSettings();
   
   // Estados locais para os toggles
@@ -34,7 +36,7 @@ export default function ConversationSettings() {
 
   const handleSave = () => {
     updateSettings({
-      clinicId,
+      institutionId,
       settings: {
         show_newsletter: showNewsletter,
         show_groups: showGroups
@@ -47,7 +49,7 @@ export default function ConversationSettings() {
           variant: 'default'
         });
       },
-      onError: (error) => {
+      onError: (error: any) => {
         toast({
           title: 'Erro ao salvar',
           description: 'Não foi possível salvar as configurações. Tente novamente.',

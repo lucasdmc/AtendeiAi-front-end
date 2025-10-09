@@ -1,6 +1,9 @@
 // Configuração base da API
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
 
+// Importar authService para gerenciar tokens
+import { authService } from './authService';
+
 // Tipos de resposta da API
 export interface ApiResponse<T> {
   success: boolean;
@@ -21,7 +24,7 @@ export interface PaginatedResponse<T> {
 // Tipos de dados da API
 export interface Conversation {
   _id: string;
-  clinic_id: string;
+  institution_id: string;
   customer_phone: string;
   customer_name?: string;
   customer_profile_pic?: string;
@@ -69,7 +72,7 @@ export interface Message {
 
 export interface Flag {
   _id: string;
-  clinic_id: string;
+  institution_id: string;
   name: string;
   color: string;
   description?: string;
@@ -82,7 +85,7 @@ export interface Flag {
 
 export interface Template {
   _id: string;
-  clinic_id: string;
+  institution_id: string;
   name: string;
   content: string;
   category: 'saudacao' | 'agendamento' | 'consulta' | 'exame' | 'financeiro' | 'despedida' | 'outro';
@@ -99,13 +102,13 @@ export interface User {
   name: string;
   login: string;
   role: 'admin_lify' | 'suporte_lify' | 'atendente' | 'gestor' | 'administrador';
-  clinic_id: string;
+  institution_id: string;
   status: 'active' | 'inactive';
   created_at: string;
   updated_at: string;
 }
 
-export interface Clinic {
+export interface Institution {
   _id: string;
   name: string;
   cnpj?: string;
@@ -171,9 +174,13 @@ class ApiService {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
 
+    // Obter token de autenticação
+    const accessToken = authService.getAccessToken();
+    
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
         ...options.headers,
       },
       credentials: 'include',
@@ -267,7 +274,7 @@ class ApiService {
 
   // Conversations API
   async getConversations(params: {
-    clinic_id: string;
+    institution_id: string;
     status?: 'active' | 'closed' | 'archived';
     assigned_to?: string;
     limit?: number;
@@ -294,7 +301,7 @@ class ApiService {
   }
 
   async createConversation(data: {
-    clinic_id: string;
+    institution_id: string;
     customer_phone: string;
     customer_name?: string;
     initial_message?: string;
@@ -436,7 +443,7 @@ class ApiService {
 
   // Templates API
   async getTemplates(params: {
-    clinic_id: string;
+    institution_id: string;
     category?: string;
     search?: string;
     limit?: number;
@@ -458,7 +465,7 @@ class ApiService {
   }
 
   async createTemplate(data: {
-    clinic_id: string;
+    institution_id: string;
     name: string;
     content: string;
     category: string;
@@ -496,7 +503,7 @@ class ApiService {
 
   // Users API
   async getUsers(params: {
-    clinic_id?: string;
+    institution_id?: string;
     role?: string;
     status?: 'active' | 'inactive';
     search?: string;
@@ -527,7 +534,7 @@ class ApiService {
     login: string;
     password: string;
     role: 'admin_lify' | 'suporte_lify' | 'atendente' | 'gestor' | 'administrador';
-    clinic_id: string;
+    institution_id: string;
     status?: 'active' | 'inactive';
   }): Promise<ApiResponse<User>> {
     return this.request('/users', {
@@ -555,15 +562,15 @@ class ApiService {
     });
   }
 
-  // Clinics API
-  async getClinics(params: {
+  // Institutions API
+  async getInstitutions(params: {
     limit?: number;
     offset?: number;
     status?: 'active' | 'inactive' | 'suspended';
     search?: string;
     plan?: 'free' | 'basic' | 'premium' | 'enterprise';
   } = {}): Promise<ApiResponse<{
-    clinics: Clinic[];
+    institutions: Institution[];
     total: number;
     hasMore: boolean;
   }>> {
@@ -575,14 +582,14 @@ class ApiService {
       }
     });
 
-    return this.request(`/clinics?${searchParams}`);
+    return this.request(`/institutions?${searchParams}`);
   }
 
-  async getClinic(id: string): Promise<ApiResponse<{ clinic: Clinic }>> {
-    return this.request(`/clinics/${id}`);
+  async getInstitution(id: string): Promise<ApiResponse<{ institution: Institution }>> {
+    return this.request(`/institutions/${id}`);
   }
 
-  async createClinic(data: {
+  async createInstitution(data: {
     name: string;
     cnpj?: string;
     email?: string;
@@ -625,14 +632,14 @@ class ApiService {
       ai_enabled?: boolean;
     };
     status?: 'active' | 'inactive' | 'suspended';
-  }): Promise<ApiResponse<{ clinic: Clinic }>> {
-    return this.request('/clinics', {
+  }): Promise<ApiResponse<{ institution: Institution }>> {
+    return this.request('/institutions', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateClinic(id: string, data: Partial<{
+  async updateInstitution(id: string, data: Partial<{
     name: string;
     cnpj: string;
     email: string;
@@ -675,21 +682,21 @@ class ApiService {
       ai_enabled: boolean;
     };
     status: 'active' | 'inactive' | 'suspended';
-  }>): Promise<ApiResponse<{ clinic: Clinic }>> {
-    return this.request(`/clinics/${id}`, {
+  }>): Promise<ApiResponse<{ institution: Institution }>> {
+    return this.request(`/institutions/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
-  async deleteClinic(id: string): Promise<ApiResponse<void>> {
-    return this.request(`/clinics/${id}`, {
+  async deleteInstitution(id: string): Promise<ApiResponse<void>> {
+    return this.request(`/institutions/${id}`, {
       method: 'DELETE',
     });
   }
 
-  async getClinicStats(id: string): Promise<ApiResponse<{
-    clinic_id: string;
+  async getInstitutionStats(id: string): Promise<ApiResponse<{
+    institution_id: string;
     stats: {
       total_conversations: number;
       active_conversations: number;
@@ -697,11 +704,11 @@ class ApiService {
       today_messages: number;
     };
   }>> {
-    return this.request(`/clinics/${id}/stats`);
+    return this.request(`/institutions/${id}/stats`);
   }
 
-  async updateClinicStatus(id: string, status: 'active' | 'inactive' | 'suspended'): Promise<ApiResponse<{ clinic: Clinic }>> {
-    return this.request(`/clinics/${id}/status`, {
+  async updateInstitutionStatus(id: string, status: 'active' | 'inactive' | 'suspended'): Promise<ApiResponse<{ institution: Institution }>> {
+    return this.request(`/institutions/${id}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     });
@@ -714,7 +721,7 @@ class ApiService {
 
   // Nova função para buscar todas as mensagens programadas
   async getAllScheduledMessages(params: {
-    clinic_id?: string;
+    institution_id?: string;
     status?: 'pending' | 'sent' | 'cancelled' | 'failed';
     limit?: number;
     offset?: number;
@@ -773,33 +780,33 @@ class ApiService {
     return this.request(`/messages/scheduled/${messageId}/history`);
   }
 
-  // Clinic Settings API
-  async getClinicSettings(clinicId: string): Promise<ApiResponse<any>> {
-    return this.request(`/clinics/${clinicId}/settings`);
+  // Institution Settings API
+  async getInstitutionSettings(institutionId: string): Promise<ApiResponse<any>> {
+    return this.request(`/institutions/${institutionId}/settings`);
   }
 
-  async updateClinicSettings(clinicId: string, settings: any): Promise<ApiResponse<any>> {
-    return this.request(`/clinics/${clinicId}/settings`, {
+  async updateInstitutionSettings(institutionId: string, settings: any): Promise<ApiResponse<any>> {
+    return this.request(`/institutions/${institutionId}/settings`, {
       method: 'PUT',
       body: JSON.stringify(settings)
     });
   }
 
-  async updateConversationSettings(clinicId: string, settings: {
+  async updateConversationSettings(institutionId: string, settings: {
     show_newsletter?: boolean;
     show_groups?: boolean;
   }): Promise<ApiResponse<any>> {
-    return this.request(`/clinics/${clinicId}/settings/conversations`, {
+    return this.request(`/institutions/${institutionId}/settings/conversations`, {
       method: 'PATCH',
       body: JSON.stringify(settings)
     });
   }
 
-  async updateUISettings(clinicId: string, settings: {
+  async updateUISettings(institutionId: string, settings: {
     sidebar_minimized?: boolean;
     recent_emojis?: string[];
   }): Promise<ApiResponse<any>> {
-    return this.request(`/clinics/${clinicId}/settings/ui`, {
+    return this.request(`/institutions/${institutionId}/settings/ui`, {
       method: 'PATCH',
       body: JSON.stringify(settings)
     });

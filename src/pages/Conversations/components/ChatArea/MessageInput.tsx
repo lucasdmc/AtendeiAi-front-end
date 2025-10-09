@@ -247,7 +247,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(({
           });
           setShowAudioRecorder(false);
         },
-        onError: (error) => {
+        onError: (error: any) => {
           console.error('❌ Erro ao enviar áudio:', error);
           alert('Erro ao enviar áudio. Tente novamente.');
         }

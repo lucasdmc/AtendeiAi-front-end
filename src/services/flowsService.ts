@@ -14,8 +14,8 @@ class FlowsService {
   /**
    * Busca um fluxo por ID
    */
-  async getFlow(id: string): Promise<FlowDTO> {
-    const response = await fetch(`${this.baseURL}/${id}?clinic_id=test-clinic-123`);
+  async getFlow(id: string, institutionId: string): Promise<FlowDTO> {
+    const response = await fetch(`${this.baseURL}/${id}?institution_id=${institutionId}`);
     if (!response.ok) {
       throw new Error('Erro ao buscar fluxo');
     }
@@ -30,8 +30,8 @@ class FlowsService {
   /**
    * Cria um novo fluxo
    */
-  async createFlow(dto: Omit<FlowDTO, 'id' | 'createdAt'>): Promise<{ id: string }> {
-    const response = await fetch(`${this.baseURL}?clinic_id=test-clinic-123`, {
+  async createFlow(dto: Omit<FlowDTO, 'id' | 'createdAt'>, institutionId: string): Promise<{ id: string }> {
+    const response = await fetch(`${this.baseURL}?institution_id=${institutionId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -53,8 +53,8 @@ class FlowsService {
   /**
    * Atualiza um fluxo existente
    */
-  async updateFlow(id: string, dto: Omit<FlowDTO, 'createdAt'>): Promise<void> {
-    const response = await fetch(`${this.baseURL}/${id}?clinic_id=test-clinic-123`, {
+  async updateFlow(id: string, dto: Omit<FlowDTO, 'createdAt'>, institutionId: string): Promise<void> {
+    const response = await fetch(`${this.baseURL}/${id}?institution_id=${institutionId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -70,8 +70,8 @@ class FlowsService {
   /**
    * Exclui um fluxo
    */
-  async deleteFlow(id: string): Promise<void> {
-    const response = await fetch(`${this.baseURL}/${id}?clinic_id=test-clinic-123`, {
+  async deleteFlow(id: string, institutionId: string): Promise<void> {
+    const response = await fetch(`${this.baseURL}/${id}?institution_id=${institutionId}`, {
       method: 'DELETE',
     });
 
@@ -83,8 +83,8 @@ class FlowsService {
   /**
    * Ativa um fluxo
    */
-  async activateFlow(id: string): Promise<void> {
-    const response = await fetch(`${this.baseURL}/${id}/activate?clinic_id=test-clinic-123`, {
+  async activateFlow(id: string, institutionId: string): Promise<void> {
+    const response = await fetch(`${this.baseURL}/${id}/activate?institution_id=${institutionId}`, {
       method: 'PUT',
     });
 
@@ -96,8 +96,8 @@ class FlowsService {
   /**
    * Testa um fluxo
    */
-  async testFlow(id: string, message: string, phone?: string): Promise<any> {
-    const response = await fetch(`${this.baseURL}/${id}/test?clinic_id=test-clinic-123`, {
+  async testFlow(id: string, message: string, institutionId: string, phone?: string): Promise<any> {
+    const response = await fetch(`${this.baseURL}/${id}/test?institution_id=${institutionId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

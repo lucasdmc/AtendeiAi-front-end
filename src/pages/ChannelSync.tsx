@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useInstitution } from '@/contexts/InstitutionContext';
 import {
   X,
   MessageCircle,
@@ -21,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { whatsappSessionService } from '@/services/whatsappSessionService';
 import { channelsService } from '@/services/channelsService';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 // Estados da sincronização
 type SyncStatus = 'initializing' | 'creating-session' | 'qr-ready' | 'connecting' | 'connected' | 'error';
@@ -41,6 +43,7 @@ export default function ChannelSync() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { selectedInstitution } = useInstitution();
   
   const syncState = location.state as SyncState;
   
@@ -49,6 +52,14 @@ export default function ChannelSync() {
   const [countdown, setCountdown] = useState(0);
   const [activeTab, setActiveTab] = useState<'sync' | 'recommendations'>('sync');
   const [error, setError] = useState<string>('');
+
+  // Conectar WebSocket para receber eventos
+  const { socket, isConnected } = useWebSocket({
+    url: import.meta.env.VITE_WEBSOCKET_URL || 'http://localhost:3000',
+    institutionId: selectedInstitution?._id || '',
+    userId: 'channel-sync',
+    autoConnect: true
+  });
 
   // Se não há estado, redirecionar
   useEffect(() => {
@@ -61,18 +72,57 @@ export default function ChannelSync() {
     initializeSession();
   }, [syncState, navigate]);
 
+  // Tratar evento de conflito de telefone
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handlePhoneConflict = (data: {
+      sessionId: string;
+      phoneNumber: string;
+      error: string;
+      existingSession?: any;
+      existingChannel?: any;
+      existingInstitution?: any;
+    }) => {
+      console.log('🚨 [CHANNEL SYNC] Conflito de telefone detectado:', data);
+      
+      // Verificar se é para a sessão atual
+      if (sessionData && data.sessionId === sessionData.sessionId) {
+        setSyncStatus('error');
+        setError(`Telefone já em uso: ${data.error}`);
+        
+        // Mostrar toast com detalhes do conflito
+        toast({
+          title: "Telefone já está em uso",
+          description: `Este número (${data.phoneNumber}) já está associado ao canal "${data.existingChannel?.name || 'Desconhecido'}" da organização "${data.existingInstitution?.name || 'Desconhecida'}"`,
+          variant: "destructive",
+        });
+      }
+    };
+
+    socket.on('phoneConflict', handlePhoneConflict);
+
+    return () => {
+      socket.off('phoneConflict', handlePhoneConflict);
+    };
+  }, [socket, isConnected, sessionData, toast]);
+
   const initializeSession = async () => {
     try {
       setSyncStatus('creating-session');
       setError('');
 
       // Limpar sessões antigas primeiro
-      const clinicId = 'test-clinic-123'; // TODO: Obter do contexto/auth
-      await whatsappSessionService.cleanupSessions(clinicId);
+      const institutionId = selectedInstitution?._id || '';
+      if (!institutionId) {
+        throw new Error('Nenhuma instituição selecionada');
+      }
+      
+      await whatsappSessionService.cleanupSessions(institutionId);
 
       // Criar nova sessão
       const sessionResult = await whatsappSessionService.createSession(
-        clinicId,
+        institutionId,
         syncState.channelName,
         'Usuário'
       );
@@ -129,16 +179,22 @@ export default function ChannelSync() {
             setSyncStatus('connected');
             
             // Associar sessão ao canal
-            await associateSessionToChannel(sessionId);
+            const associationResult = await associateSessionToChannel(sessionId);
             
-            // Fechar modal após sucesso
-            setTimeout(() => {
-              handleClose();
-              toast({
-                title: "Canal sincronizado!",
-                description: `${syncState.channelName} foi conectado com sucesso.`,
-              });
-            }, 2000);
+            if (associationResult.success) {
+              // Fechar modal após sucesso
+              setTimeout(() => {
+                handleClose();
+                toast({
+                  title: "Canal sincronizado!",
+                  description: `${syncState.channelName} foi conectado com sucesso.`,
+                });
+              }, 2000);
+            } else {
+              // Erro na associação (provavelmente conflito de telefone)
+              setSyncStatus('error');
+              setError(associationResult.message || 'Erro ao associar sessão ao canal');
+            }
           } else if (status === 'error') {
             clearInterval(pollInterval);
             setSyncStatus('error');
@@ -156,16 +212,26 @@ export default function ChannelSync() {
     }, 300000);
   };
 
-  const associateSessionToChannel = async (sessionId: string) => {
+  const associateSessionToChannel = async (sessionId: string): Promise<{ success: boolean; message?: string }> => {
     try {
+      if (!selectedInstitution?._id) {
+        console.error('Nenhuma instituição selecionada para associar sessão');
+        return { success: false, message: 'Instituição não selecionada' };
+      }
+
       // Associar sessão ao canal
       await channelsService.associateSession(syncState.channelId, {
         session_id: sessionId,
         session_type: 'whatsapp'
-      });
+      }, selectedInstitution._id);
+      
+      return { success: true };
     } catch (error) {
       console.error('Erro ao associar sessão ao canal:', error);
-      // Não bloquear o fluxo por este erro
+      return { 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Erro desconhecido'
+      };
     }
   };
 

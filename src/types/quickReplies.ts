@@ -191,9 +191,9 @@ export const AVAILABLE_PLACEHOLDERS: PlaceholderField[] = [
     example: '14:30'
   },
   {
-    key: '@clinica',
-    label: 'Nome da clínica',
-    description: 'Nome da clínica/empresa',
+    key: '@institutiona',
+    label: 'Nome da instituição',
+    description: 'Nome da instituição/empresa',
     example: 'Clínica Exemplo'
   },
   {

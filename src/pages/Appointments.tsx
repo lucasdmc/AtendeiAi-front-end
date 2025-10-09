@@ -13,7 +13,7 @@ const Appointments = () => {
             Agendamentos
           </h1>
           <p className="text-lg text-muted-foreground">
-            Visualize e acompanhe os agendamentos das clínicas
+            Visualize e acompanhe os agendamentos das instituiçãos
           </p>
         </div>
         <Button>

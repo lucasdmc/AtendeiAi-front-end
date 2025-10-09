@@ -125,7 +125,7 @@ const Dashboard = () => {
       customerName: 'Pedro Oliveira',
       channel: 'whatsapp',
       status: 'active',
-      lastMessage: 'Qual o horário de funcionamento da clínica?',
+      lastMessage: 'Qual o horário de funcionamento da instituição?',
       timestamp: '15 min atrás',
       priority: 'medium'
     },

@@ -291,7 +291,7 @@ const QuickReplyFormDrawer: React.FC<QuickReplyFormDrawerProps> = ({
               <p className="text-xs text-gray-500">
                 {formData.scope === 'PERSONAL' 
                   ? 'Visível apenas para você'
-                  : 'Visível para todos os usuários da clínica'
+                  : 'Visível para todos os usuários da instituição'
                 }
               </p>
             </div>

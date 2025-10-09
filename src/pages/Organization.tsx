@@ -1,9 +1,9 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Camera, Loader2 } from 'lucide-react';
+import { Camera, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,9 +24,11 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { organizationService } from '@/services/organizationService';
 import { BRAZILIAN_STATES, DELETE_REASONS } from '@/types/organization';
 import { maskCNPJ, maskCEP, maskPhone, removeMask, validateCNPJ } from '@/lib/masks';
+import { useInstitution } from '@/contexts/InstitutionContext';
 
 // Schema de validação
 const organizationSchema = z.object({
@@ -57,6 +59,7 @@ export default function Organization() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { selectedInstitution, isLoading: institutionLoading, error: institutionError } = useInstitution();
 
   const [isCepLoading, setIsCepLoading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -95,6 +98,32 @@ export default function Organization() {
       },
     },
   });
+
+  // Carregar dados da instituição selecionada
+  useEffect(() => {
+    if (selectedInstitution) {
+      // Mapear dados da instituição para o formulário
+      setValue('id', selectedInstitution._id);
+      setValue('razaoSocial', selectedInstitution.name || '');
+      setValue('cnpj', selectedInstitution.cnpj || '');
+      setValue('avatarUrl', selectedInstitution.logo_url || '');
+      
+      // Dados do responsável (usar dados do primeiro atendente admin/proprietario se disponível)
+      setValue('responsavel.nome', selectedInstitution.contact_name || '');
+      setValue('responsavel.email', selectedInstitution.contact_email || '');
+      setValue('responsavel.telefone', selectedInstitution.contact_phone || '');
+      setValue('responsavel.whatsapp', selectedInstitution.whatsapp_config?.phone_number || '');
+      
+      // Dados do endereço
+      setValue('endereco.cep', selectedInstitution.address?.zipCode || '');
+      setValue('endereco.cidade', selectedInstitution.address?.city || '');
+      setValue('endereco.estado', selectedInstitution.address?.state || '');
+      setValue('endereco.bairro', selectedInstitution.address?.neighborhood || '');
+      setValue('endereco.rua', selectedInstitution.address?.street || '');
+      setValue('endereco.numero', selectedInstitution.address?.number || '');
+      setValue('endereco.complemento', selectedInstitution.address?.complement || '');
+    }
+  }, [selectedInstitution, setValue]);
 
   // Handlers para upload de avatar
   const handleAvatarClick = () => {
@@ -238,6 +267,44 @@ export default function Organization() {
     }
   };
 
+  // Mostrar erro se não houver instituição selecionada
+  if (institutionError) {
+    return (
+      <div className="min-h-screen bg-[#F4F6FD] flex items-center justify-center">
+        <Alert className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {institutionError}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (!selectedInstitution && !institutionLoading) {
+    return (
+      <div className="min-h-screen bg-[#F4F6FD] flex items-center justify-center">
+        <Alert className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Nenhuma instituição selecionada. Selecione uma instituição no sidebar para continuar.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (institutionLoading) {
+    return (
+      <div className="min-h-screen bg-[#F4F6FD] flex items-center justify-center">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Carregando dados da instituição...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F4F6FD]">
       <div className="px-6 py-6 max-w-[1200px] mx-auto">
@@ -252,15 +319,15 @@ export default function Organization() {
               Configurações
             </button>
             <span>/</span>
-            <span>Configurações da organização</span>
+            <span>Configurações da instituição</span>
           </div>
 
           {/* Título e descrição */}
           <h1 className="text-3xl font-semibold text-slate-900 mb-1">
-            Configurações da organização
+            Configurações da instituição
           </h1>
           <p className="text-slate-500">
-            Aqui você consegue editar as configurações gerais da sua organização.
+            Gerencie as informações da instituição <strong>{selectedInstitution?.name}</strong>
           </p>
         </div>
 

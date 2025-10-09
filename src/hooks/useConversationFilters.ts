@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 // Interfaces
 interface ConversationFilters {
-  clinic_id: string;
+  institution_id: string;
   status?: 'active' | 'closed' | 'archived';
   assigned_to?: string;
   search?: string;
@@ -21,16 +21,16 @@ interface FilterState {
  * Hook para gerenciar filtros de conversas com persistência no localStorage
  */
 export function useConversationFilters(initialFilters?: Partial<ConversationFilters>) {
-  // Chave para localStorage baseada na clínica
-  const storageKey = useCallback((clinicId: string) => 
-    `conversation-filters-${clinicId}`, 
+  // Chave para localStorage baseada na instituição
+  const storageKey = useCallback((institutionId: string) => 
+    `conversation-filters-${institutionId}`, 
     []
   );
   
   // Estado inicial dos filtros
   const getInitialFilters = useCallback((): ConversationFilters => {
-    if (initialFilters?.clinic_id) {
-      const saved = localStorage.getItem(storageKey(initialFilters.clinic_id));
+    if (initialFilters?.institution_id) {
+      const saved = localStorage.getItem(storageKey(initialFilters.institution_id));
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
@@ -42,7 +42,7 @@ export function useConversationFilters(initialFilters?: Partial<ConversationFilt
     }
     
     return {
-      clinic_id: initialFilters?.clinic_id || '',
+      institution_id: initialFilters?.institution_id || '',
       status: initialFilters?.status || 'active',
       assigned_to: initialFilters?.assigned_to,
       search: initialFilters?.search,
@@ -76,9 +76,9 @@ export function useConversationFilters(initialFilters?: Partial<ConversationFilt
   
   // Função para salvar filtros no localStorage
   const saveFilters = useCallback((filters: ConversationFilters) => {
-    if (filters.clinic_id) {
+    if (filters.institution_id) {
       try {
-        localStorage.setItem(storageKey(filters.clinic_id), JSON.stringify(filters));
+        localStorage.setItem(storageKey(filters.institution_id), JSON.stringify(filters));
       } catch (error) {
         console.warn('Erro ao salvar filtros:', error);
       }
@@ -131,7 +131,7 @@ export function useConversationFilters(initialFilters?: Partial<ConversationFilt
   // Função para resetar filtros
   const resetFilters = useCallback(() => {
     const defaultFilters: ConversationFilters = {
-      clinic_id: state.filters.clinic_id,
+      institution_id: state.filters.institution_id,
       status: 'active',
       assigned_to: undefined,
       search: undefined,
@@ -147,7 +147,7 @@ export function useConversationFilters(initialFilters?: Partial<ConversationFilt
     });
     
     saveFilters(defaultFilters);
-  }, [state.filters.clinic_id, saveFilters]);
+  }, [state.filters.institution_id, saveFilters]);
   
   // Função para limpar filtros específicos
   const clearStatus = useCallback(() => {
@@ -241,15 +241,15 @@ export function useConversationFilters(initialFilters?: Partial<ConversationFilt
   
   // Salvar filtros quando mudarem
   useEffect(() => {
-    if (state.filters.clinic_id) {
+    if (state.filters.institution_id) {
       saveFilters(state.filters);
     }
   }, [state.filters, saveFilters]);
   
-  // Carregar filtros quando clinic_id mudar
+  // Carregar filtros quando institution_id mudar
   useEffect(() => {
-    if (initialFilters?.clinic_id && initialFilters.clinic_id !== state.filters.clinic_id) {
-      const saved = localStorage.getItem(storageKey(initialFilters.clinic_id));
+    if (initialFilters?.institution_id && initialFilters.institution_id !== state.filters.institution_id) {
+      const saved = localStorage.getItem(storageKey(initialFilters.institution_id));
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
@@ -264,7 +264,7 @@ export function useConversationFilters(initialFilters?: Partial<ConversationFilt
         }
       }
     }
-  }, [initialFilters?.clinic_id, storageKey]);
+  }, [initialFilters?.institution_id, storageKey]);
   
   return {
     // Estado

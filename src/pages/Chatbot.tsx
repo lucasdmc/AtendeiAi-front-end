@@ -63,6 +63,7 @@ import { EmptyState } from '@/components/chatbots/EmptyState';
 import { Chatbot as ChatbotType, Channel } from '@/types/chatbot';
 import { chatbotsService } from '@/services/chatbotsService';
 import { channelsService } from '@/services/channelsService';
+import { useInstitution } from '@/contexts/InstitutionContext';
 
 // Configurar dayjs
 dayjs.extend(relativeTime);
@@ -306,6 +307,7 @@ function SortableRow({
 export default function Chatbot() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { selectedInstitution } = useInstitution();
 
   // Estados principais
   const [chatbots, setChatbots] = useState<ChatbotType[]>([]);
@@ -327,12 +329,20 @@ export default function Chatbot() {
         setIsLoading(true);
       }
 
+      // Verificar se há uma instituição selecionada
+      if (!selectedInstitution?._id) {
+        console.warn('⚠️ Nenhuma instituição selecionada, pulando carregamento de dados');
+        setChatbots([]);
+        setChannels([]);
+        return;
+      }
+
       console.log('🔄 Carregando chatbots e canais do backend...');
       
       // Carregar chatbots e canais em paralelo
       const [chatbotsResponse, channelsResponse] = await Promise.all([
-        chatbotsService.list(),
-        channelsService.list()
+        chatbotsService.list(selectedInstitution._id),
+        channelsService.list(selectedInstitution._id)
       ]);
 
         console.log('✅ Dados carregados:', {
@@ -457,14 +467,16 @@ export default function Chatbot() {
 
         // Atualizar ordem no backend (optimistic update)
         const orderedIds = newOrder.map((b) => b.id);
-        chatbotsService.reorder(orderedIds).catch(() => {
-          toast({
-            title: 'Erro ao reordenar',
-            description: 'Não foi possível salvar a nova ordem.',
-            variant: 'destructive',
+        if (selectedInstitution?._id) {
+          chatbotsService.reorder(orderedIds, selectedInstitution._id).catch(() => {
+            toast({
+              title: 'Erro ao reordenar',
+              description: 'Não foi possível salvar a nova ordem.',
+              variant: 'destructive',
+            });
+            setChatbots(items);
           });
-          setChatbots(items);
-        });
+        }
 
         toast({
           title: 'Ordem atualizada',
@@ -480,11 +492,20 @@ export default function Chatbot() {
     const bot = chatbots.find((b) => b.id === botId);
     if (!bot) return;
 
+    if (!selectedInstitution?._id) {
+      toast({
+        title: 'Erro',
+        description: 'Nenhuma instituição selecionada.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       if (bot.active) {
-        await chatbotsService.pause(botId);
+        await chatbotsService.pause(botId, selectedInstitution._id);
       } else {
-        await chatbotsService.activate(botId);
+        await chatbotsService.activate(botId, selectedInstitution._id);
       }
 
       setChatbots((prev) =>
@@ -505,8 +526,17 @@ export default function Chatbot() {
   }, [chatbots, toast]);
 
   const handleClone = useCallback(async (botId: string) => {
+    if (!selectedInstitution?._id) {
+      toast({
+        title: 'Erro',
+        description: 'Nenhuma instituição selecionada.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
-      const result = await chatbotsService.clone(botId);
+      const result = await chatbotsService.clone(botId, selectedInstitution._id);
       
       toast({
         title: 'Chatbot clonado',
@@ -525,13 +555,22 @@ export default function Chatbot() {
   }, [navigate, toast]);
 
   const handleDelete = useCallback(async () => {
+    if (!selectedInstitution?._id) {
+      toast({
+        title: 'Erro',
+        description: 'Nenhuma instituição selecionada.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const ids = deletingChatbots.map((b) => b.id);
 
       if (ids.length === 1) {
-        await chatbotsService.remove(ids[0]);
+        await chatbotsService.remove(ids[0], selectedInstitution._id);
       } else {
-        await chatbotsService.removeBulk(ids);
+        await chatbotsService.removeBulk(ids, selectedInstitution._id);
       }
 
       setChatbots((prev) => prev.filter((b) => !ids.includes(b.id)));
